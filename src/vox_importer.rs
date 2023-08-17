@@ -7,6 +7,6 @@ use std::io::{self, Read};
 //
 //
 fn read_ply(filepath: String) -> Result<String, io::Error>{
-    let mut result = String::new();
+    let mut output = String::new();
     File::open(filepath)
 }

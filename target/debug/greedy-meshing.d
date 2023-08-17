@@ -1,0 +1,1 @@
+D:\Davide\Archive\scripts\ di\ prova\project036\ rust\project011-greedy-meshing\greedy-meshing\target\debug\greedy-meshing.exe: D:\Davide\Archive\scripts\ di\ prova\project036\ rust\project011-greedy-meshing\greedy-meshing\src\main.rs

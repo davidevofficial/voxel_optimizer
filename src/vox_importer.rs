@@ -14,7 +14,7 @@ struct v{
 struct f{
     vs: Vec<v>,
 }
-struct ply{
+pub struct ply{
     //metadata
     ply_format: String,
     exported_by: String,
@@ -26,7 +26,7 @@ struct ply{
 //Reads the ply files and returns the content as a string
 //
 //
-fn is_valid_ply(ply_path: std::path::PathBuf) -> bool{
+pub(crate) fn is_valid_ply(ply_path: &std::path::PathBuf) -> bool{
     if ply_path.extension().unwrap() == std::ffi::OsStr::new("ply"){true}else{false}
 }
 fn read_ply(filepath: String) -> Result<String, io::Error>{
@@ -37,6 +37,6 @@ fn read_ply(filepath: String) -> Result<String, io::Error>{
 //Parses the ply file and returns a list of vertices and faces as a list
 //
 //
-fn parse_ply(content: &String) -> Option<ply>{
+pub fn parse_ply(content: &String) -> Option<ply>{
     todo!();
 }

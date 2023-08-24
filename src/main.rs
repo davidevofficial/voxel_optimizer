@@ -11,6 +11,7 @@ use std::fs::write;
 
 use eframe::egui::FontId;
 use eframe::egui::RichText;
+use crate::vox_importer::is_valid_ply;
 
 fn main() -> Result<(), eframe::Error> {
 
@@ -41,6 +42,7 @@ fn main() -> Result<(), eframe::Error> {
 struct MyApp {
     dropped_files: Vec<egui::DroppedFile>,
     picked_path: Option<String>,
+    pub status: String,
     pub converting: bool,
     monochrome: bool,
     pattern_matching: bool,
@@ -64,24 +66,44 @@ impl eframe::App for MyApp {
             });
         });
         egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui|{
-            if ui.button("Convert...").clicked(){
+            ui.horizontal(|ui|{
+                if ui.button("Convert...").clicked() {
+                    for i in &from_files_to_paths(self.dropped_files.clone()) {
+                        if is_valid_ply(i) {
+                            println!("valid!");
+                            self.status = format!("{}{}", String::from("Loading:"),i.to_string_lossy().to_string());
+                        } else {
+                            println!("invalid!")
+                        }
+                    }
+                }
+                ui.label(&self.status);
+
+            });
+
+                /*
+                if vox_importer::is_valid_ply(from_files_to_paths(self.dropped_files){
+                    println!("Valid!");
+                } else {
+                    println!("Invalid!");
+                }
+                */
                 //if  not ok then red label
-                todo!();
-            }
+
         });
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.columns(2, |columns|{
 
                 //first column
-                columns[0].label("Drag-and-drop files onto the window or click the button below!");
-                if columns[0].button("Open file…").clicked() {
-                    if let Some(path) = rfd::FileDialog::new().pick_file() {
+                columns[0].label("Drag-and-drop files onto the window to import, click the button below to choose the export directory!");
+                if columns[0].button("Click this button to choose the output directory!").clicked() {
+                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
                         self.picked_path = Some(path.display().to_string());
                     }
                 }
                 if let Some(picked_path) = &self.picked_path {
                     columns[0].horizontal(|ui| {
-                        ui.label("Picked file:");
+                        ui.label("The output folder is: ");
                         ui.monospace(picked_path);
                     });
                 }
@@ -113,7 +135,7 @@ impl eframe::App for MyApp {
                 columns[1].checkbox(&mut self.pattern_matching, "Should similiar faces be mapped on the same part of the texture map?");
                 columns[1].checkbox(&mut self.manual_vt, "Would you like to manually set the precision levels?");
                 if self.manual_vt == true {
-                    columns[1].add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("precision digits"));
+                    columns[1].add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
                 }
                 columns[1].horizontal(|ui|{
                     ui.color_edit_button_rgb(&mut self.background_color);
@@ -173,28 +195,26 @@ impl eframe::App for MyApp {
         });
     }
 }
-    fn preview_files_being_dropped(ctx: &egui::Context) {
-        use egui::*;
-        use std::fmt::Write as _;
+fn preview_files_being_dropped(ctx: &egui::Context) {
+    use egui::*;
+    use std::fmt::Write as _;
 
-        if !ctx.input(|i| i.raw.hovered_files.is_empty()) {
-            let text = ctx.input(|i| {
-                let mut text = "Dropping files:\n".to_owned();
-                for file in &i.raw.hovered_files {
-                    if let Some(path) = &file.path {
-                        write!(text, "\n{}", path.display()).ok();
-                    } else if !file.mime.is_empty() {
-                        write!(text, "\n{}", file.mime).ok();
-                    } else {
-                        text += "\n???";
-                    }
+    if !ctx.input(|i| i.raw.hovered_files.is_empty()) {
+        let text = ctx.input(|i| {
+            let mut text = "Dropping files:\n".to_owned();
+            for file in &i.raw.hovered_files {
+                if let Some(path) = &file.path {
+                    write!(text, "\n{}", path.display()).ok();
+                } else if !file.mime.is_empty() {
+                    write!(text, "\n{}", file.mime).ok();
+                } else {
+                    text += "\n???";
                 }
-                text
-            });
-
-            let painter =
-                ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
-
+            }
+            text
+        });
+        let painter =
+            ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("file_drop_target")));
             let screen_rect = ctx.screen_rect();
             painter.rect_filled(screen_rect, 0.0, Color32::from_black_alpha(192));
             painter.text(
@@ -218,4 +238,5 @@ fn from_string_to_path(pickedpath: String) -> Vec<std::path::PathBuf>{
     v.push(std::path::PathBuf::from(pickedpath));
     v
 }
+
 

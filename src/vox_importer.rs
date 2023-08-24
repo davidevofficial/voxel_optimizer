@@ -26,6 +26,9 @@ struct ply{
 //Reads the ply files and returns the content as a string
 //
 //
+fn is_valid_ply(ply_path: std::path::PathBuf) -> bool{
+    if ply_path.extension().unwrap() == std::ffi::OsStr::new("ply"){true}else{false}
+}
 fn read_ply(filepath: String) -> Result<String, io::Error>{
     let mut output = String::new();
     File::open(filepath)?.read_to_string(&mut output)?;

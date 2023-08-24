@@ -6,23 +6,33 @@ use rfd::FileDialog;
 use eframe;
 use eframe::{egui, IconData};
 
+use std::fs::read;
+use std::fs::write;
+
+use eframe::egui::FontId;
+use eframe::egui::RichText;
+
 fn main() -> Result<(), eframe::Error> {
 
     println!("Hello, world!");
-    //let icon: eframe::IconData = eframe::IconData::try_from_png_bytes( #read png file . as_bytes() )
-    let icon: eframe::IconData = eframe::IconData::from(IconData {
+    let bytes_png = read("src/icon.png").unwrap();
+    let icon: eframe::IconData = eframe::IconData::try_from_png_bytes(&bytes_png).unwrap();
+    /*let icon: eframe::IconData = eframe::IconData::from(IconData {
         rgba: vec![255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
         width: 2,
         height: 2,
     });
+     */
     let options = eframe::NativeOptions{
         drag_and_drop_support: true,
-        initial_window_size: Some(egui::vec2(320.0, 240.0)),
+        initial_window_pos: Some(egui::pos2(400.0,100.0)),
+        initial_window_size: Some(egui::vec2(1000.0, 500.0)),
+        run_and_return: false,
         icon_data: Some(icon),
         ..Default::default()
     };
     eframe::run_native(
-        "Native file dialogs and drag-and-drop files",
+        "Voxel optimizer",
         options,
         Box::new(|_cc| Box::<MyApp>::default()),
     )
@@ -31,12 +41,92 @@ fn main() -> Result<(), eframe::Error> {
 struct MyApp {
     dropped_files: Vec<egui::DroppedFile>,
     picked_path: Option<String>,
+    pub converting: bool,
+    monochrome: bool,
+    pattern_matching: bool,
+    is_texturesize_powerof2: bool,
+    texturemapping_invisiblefaces: bool,
+    manual_vt: bool,
+    vt_precisionnumber: u8,
+    background_color: [f32;3],
+    debug_uv_mode: bool
 }
 
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::TopBottomPanel::top("title").show(ctx, |ui|{
+            ui.vertical_centered(|ui|{
+                ui.label(RichText::new("Voxel Optimizer").font(FontId::proportional(40.0)));
+                ui.label(RichText::new("@davidevofficial - 2023").font(FontId::proportional(9.0)));
+                ui.separator();
+                ui.label("First change the setting and then Drag-and-drop files onto the window then click the convert button to convert them into an optimized .obj file, \
+                for more help check the documentation here: https://github.com/davidevofficial/voxel_optimizer/");
+            });
+        });
+        egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui|{
+            if ui.button("Convert...").clicked(){
+                //if  not ok then red label
+                todo!();
+            }
+        });
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.label("Drag-and-drop files onto the window!");
+            ui.columns(2, |columns|{
+
+                //first column
+                columns[0].label("Drag-and-drop files onto the window or click the button below!");
+                if columns[0].button("Open file…").clicked() {
+                    if let Some(path) = rfd::FileDialog::new().pick_file() {
+                        self.picked_path = Some(path.display().to_string());
+                    }
+                }
+                if let Some(picked_path) = &self.picked_path {
+                    columns[0].horizontal(|ui| {
+                        ui.label("Picked file:");
+                        ui.monospace(picked_path);
+                    });
+                }
+                // Show dropped files (if any):
+                if !self.dropped_files.is_empty() {
+                    columns[0].group(|ui| {
+                        ui.label("Dropped files:");
+
+                        for file in &self.dropped_files {
+                            let mut info = if let Some(path) = &file.path {
+                                path.display().to_string()
+                            } else if !file.name.is_empty() {
+                                file.name.clone()
+                            } else {
+                                "???".to_owned()
+                            };
+                            if let Some(bytes) = &file.bytes {
+                                use std::fmt::Write as _;
+                                write!(info, " ({} bytes)", bytes.len()).ok();
+                            }
+                            ui.label(info);
+                        }
+                    });
+                }
+                //second column
+                columns[1].checkbox(&mut self.is_texturesize_powerof2, "Should the texture width and height both be a power of 2?");
+                columns[1].checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
+                columns[1].checkbox(&mut self.monochrome, "Should each face of the same colour be mapped on the same part of the texture map?");
+                columns[1].checkbox(&mut self.pattern_matching, "Should similiar faces be mapped on the same part of the texture map?");
+                columns[1].checkbox(&mut self.manual_vt, "Would you like to manually set the precision levels?");
+                if self.manual_vt == true {
+                    columns[1].add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("precision digits"));
+                }
+                columns[1].horizontal(|ui|{
+                    ui.color_edit_button_rgb(&mut self.background_color);
+                    ui.label("What should the background colour be?");
+                });
+                columns[1].checkbox(&mut self.debug_uv_mode, "Would you like to activate uv debug mode?");
+
+                //columns[1].color_edit_button_rgb(&mut self.background_color);
+
+
+            });
+
+            /*ui.label("Drag-and-drop files onto the window or click the button below!");
 
             if ui.button("Open file…").clicked() {
                 if let Some(path) = rfd::FileDialog::new().pick_file() {
@@ -72,6 +162,8 @@ impl eframe::App for MyApp {
                     }
                 });
             }
+            */
+
         });
         preview_files_being_dropped(ctx);
 
@@ -114,3 +206,16 @@ impl eframe::App for MyApp {
             );
         }
     }
+fn from_files_to_paths(droppedfiles: Vec<egui::DroppedFile>) -> Vec<std::path::PathBuf>{
+    let mut v: Vec<std::path::PathBuf> = vec![];
+    for file in droppedfiles {if let Some(path) = file.path {
+        v.push(path);
+    }};
+    v
+}
+fn from_string_to_path(pickedpath: String) -> Vec<std::path::PathBuf>{
+    let mut v = vec![];
+    v.push(std::path::PathBuf::from(pickedpath));
+    v
+}
+

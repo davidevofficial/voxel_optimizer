@@ -12,6 +12,7 @@ use std::fs::write;
 use eframe::egui::FontId;
 use eframe::egui::RichText;
 use crate::vox_importer::is_valid_ply;
+use crate::greedy_mesher::*;
 
 fn main() -> Result<(), eframe::Error> {
 
@@ -68,16 +69,22 @@ impl eframe::App for MyApp {
         egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui|{
             ui.horizontal(|ui|{
                 if ui.button("Convert...").clicked() {
-                    for i in &from_files_to_paths(self.dropped_files.clone()) {
-                        if is_valid_ply(i) {
-                            println!("valid!");
-                            self.status = format!("{}{}", String::from("Loading:"),i.to_string_lossy().to_string());
-                        } else {
-                            println!("invalid!")
+                    if self.picked_path.is_some() {
+                        for i in &from_files_to_paths(self.dropped_files.clone()) {
+                            if is_valid_ply(i) {
+                                println!("valid!");
+                                self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy().to_string());
+                                greedy_mesher::convert(self, i);
+                            } else {
+                                println!("invalid!");
+                                self.status = String::from("Invalid file/files!!!");
+                            }
                         }
+                    } else {
+                        self.status = String::from("It is necessary to select an output folder, click the button above to do that!")
                     }
                 }
-                ui.label(&self.status);
+                    ui.label(&self.status);
 
             });
 

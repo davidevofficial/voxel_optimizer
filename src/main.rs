@@ -2,12 +2,16 @@ mod vox_importer;
 mod greedy_mesher;
 mod uv_unwrapping;
 mod texture_mapping;
+
 use rfd::FileDialog;
 use eframe;
 use eframe::{egui, IconData};
 
 use std::fs::read;
 use std::fs::write;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::sync::mpsc::{channel, Sender, Receiver};
 
 use eframe::egui::FontId;
 use eframe::egui::RichText;
@@ -17,6 +21,7 @@ use crate::greedy_mesher::*;
 fn main() -> Result<(), eframe::Error> {
 
     println!("Hello, world!");
+    //icon
     let bytes_png = read("src/icon.png").unwrap();
     let icon: eframe::IconData = eframe::IconData::try_from_png_bytes(&bytes_png).unwrap();
     /*let icon: eframe::IconData = eframe::IconData::from(IconData {
@@ -39,22 +44,25 @@ fn main() -> Result<(), eframe::Error> {
         Box::new(|_cc| Box::<MyApp>::default()),
     )
 }
-#[derive(Default)]
+#[derive(Clone, Debug)]
 struct MyApp {
+    sx: Sender<String>,
+    rx: Arc<Mutex<Receiver<String>>>,
     dropped_files: Vec<egui::DroppedFile>,
     picked_path: Option<String>,
     pub status: String,
     pub converting: bool,
+
     monochrome: bool,
-    pattern_matching: bool,
+    pattern_matching: i32,
     is_texturesize_powerof2: bool,
     texturemapping_invisiblefaces: bool,
     manual_vt: bool,
     vt_precisionnumber: u8,
     background_color: [f32;3],
-    debug_uv_mode: bool
+    debug_uv_mode: bool,
+    cross: bool
 }
-
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("title").show(ctx, |ui|{
@@ -74,14 +82,19 @@ impl eframe::App for MyApp {
                             if is_valid_ply(i) {
                                 println!("valid!");
                                 self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy().to_string());
-                                greedy_mesher::convert(self, i);
+                                let i_clone = i.clone();
+                                let mut my_app_clone = self.clone();
+                                thread::spawn(move ||{
+                                  greedy_mesher::convert(&mut my_app_clone, i_clone);
+                                });
+                                //greedy_mesher::convert(self, i);
                             } else {
                                 println!("invalid!");
                                 self.status = String::from("Invalid file/files!!!");
                             }
                         }
                     } else {
-                        self.status = String::from("It is necessary to select an output folder, click the button above to do that!")
+                        self.status = String::from("It is necessary to select an output folder, click the button above to do that! And if you haven't already drop the files onto the window")
                     }
                 }
                     ui.label(&self.status);
@@ -138,8 +151,10 @@ impl eframe::App for MyApp {
                 //second column
                 columns[1].checkbox(&mut self.is_texturesize_powerof2, "Should the texture width and height both be a power of 2?");
                 columns[1].checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
-                columns[1].checkbox(&mut self.monochrome, "Should each face of the same colour be mapped on the same part of the texture map?");
-                columns[1].checkbox(&mut self.pattern_matching, "Should similiar faces be mapped on the same part of the texture map?");
+                columns[1].checkbox(&mut self.monochrome, "Should each face of the same colour be mapped on ONE PIXEL of the texture map?");
+                //columns[1].checkbox(&mut self.pattern_matching, "Should similar faces be mapped on the same part of the texture map?");
+                columns[1].add(egui::Slider::new(&mut self.pattern_matching, 0..=3).text("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry"));
+                columns[1].checkbox(&mut self.cross, "Would you like to optimize cross-overlapping?");
                 columns[1].checkbox(&mut self.manual_vt, "Would you like to manually set the precision levels?");
                 if self.manual_vt == true {
                     columns[1].add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
@@ -195,13 +210,94 @@ impl eframe::App for MyApp {
 
         });
         preview_files_being_dropped(ctx);
-
+        self.update_status();
         // Collect dropped files:
         ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() { self.dropped_files = i.raw.dropped_files.clone(); }
         });
+        //save
+        let mut b: Option<String> = None;
+        if self.vt_precisionnumber < 10{b = Some(String::from("0"))}
+        let c = format!("{},{},{},{}{},{},{},{}"
+                        , (self.monochrome as i32).to_string()
+                        , self.pattern_matching.to_string()
+                        , (self.manual_vt as i32).to_string()
+                        , if b.is_some(){b.unwrap()}else{String::new()}
+                        , (self.vt_precisionnumber as i32).to_string()
+                        , (self.is_texturesize_powerof2 as i32).to_string()
+                        , (self.texturemapping_invisiblefaces as i32).to_string()
+                        , (self.cross as i32).to_string());
+        write("src/options.txt", c).unwrap();
     }
 }
+impl MyApp {
+    fn update_status(&mut self) {
+        match self.rx.lock().expect("REASON").try_recv() {
+            Ok(message) => {
+                self.status = message;
+            }
+            Err(_) => (),
+        }
+    }
+
+    fn sav(&self){
+        let c = format!("{},{},{},{},{},{},{}"
+                        , (self.monochrome as i32).to_string()
+                        , self.pattern_matching.to_string()
+                        , (self.manual_vt as i32).to_string()
+                        , (self.vt_precisionnumber as i32).to_string()
+                        , (self.is_texturesize_powerof2 as i32).to_string()
+                        , (self.texturemapping_invisiblefaces as i32).to_string()
+                        , (self.cross as i32).to_string());
+        write("src/options.txt", c).unwrap();
+    }
+
+
+}
+impl Default for MyApp{
+    fn default() -> Self {
+            let (sx, rx): (Sender<String>, Receiver<String>) = channel();
+            let c = read("src/options.txt").unwrap();
+            let m = if c[0] == b'1' {true}else{false};
+            let fourtyeight: u8 = 48; // '0' u8 representation in ascii
+            let p = (c[2] - &fourtyeight) as i32;
+            let m_vt = if c[4] == b'1' {true}else{false};
+            let vt_n = if c[6] == b'1' {10 + c[7]-&fourtyeight}else{c[7]-&fourtyeight};
+            let tn_s = if c[9] == b'1' {true}else{false};
+            let tx_f = if c[11] == b'1' {true}else{false};
+            let cro = if c[13] == b'1' {true}else{false};
+
+        Self{
+            sx: sx,
+            rx: Arc::new(Mutex::new(rx)),
+            dropped_files: vec![],
+            picked_path: None,
+            status: "".to_string(),
+            converting: false,
+            monochrome: m,
+            pattern_matching: p,
+            is_texturesize_powerof2: tn_s,
+            texturemapping_invisiblefaces: tx_f,
+            manual_vt: m_vt,
+            vt_precisionnumber: vt_n,
+            background_color: [0.0,0.0,0.0],
+            debug_uv_mode: false,
+            cross: cro,
+        }
+    }
+}
+/*
+
+
+    fn load(){
+        let c = read("src/options.txt").unwrap();
+        self.monochrome = if c[0] == b'1' {true}else{false};
+        let fourtyeight: u8 = 48; // '0' u8 representation in ascii
+        self.pattern_matching = (c[2] - &fourtyeight) as i32;
+        self.manual_vt = if c[4] == b'1' {true}else{false};
+        self.vt_precisionnumber = if c[6] == b'1' {10 + c[7]-&fourtyeight}else{c[7]-&fourtyeight};
+    }
+*/
 fn preview_files_being_dropped(ctx: &egui::Context) {
     use egui::*;
     use std::fmt::Write as _;
@@ -245,5 +341,4 @@ fn from_string_to_path(pickedpath: String) -> Vec<std::path::PathBuf>{
     v.push(std::path::PathBuf::from(pickedpath));
     v
 }
-
 

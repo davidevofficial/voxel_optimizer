@@ -259,10 +259,10 @@ impl Default for MyApp{
             let (sx, rx): (Sender<String>, Receiver<String>) = channel();
             let c = read("src/options.txt").unwrap();
             let m = if c[0] == b'1' {true}else{false};
-            let fourtyeight: u8 = 48; // '0' u8 representation in ascii
-            let p = (c[2] - &fourtyeight) as i32;
+            let fortyeight: u8 = 48; // '0' u8 representation in ascii
+            let p = (c[2] - &fortyeight) as i32;
             let m_vt = if c[4] == b'1' {true}else{false};
-            let vt_n = if c[6] == b'1' {10 + c[7]-&fourtyeight}else{c[7]-&fourtyeight};
+            let vt_n = if c[6] == b'1' {10 + c[7]-&fortyeight}else{c[7]-&fortyeight};
             let tn_s = if c[9] == b'1' {true}else{false};
             let tx_f = if c[11] == b'1' {true}else{false};
             let cro = if c[13] == b'1' {true}else{false};
@@ -292,8 +292,8 @@ impl Default for MyApp{
     fn load(){
         let c = read("src/options.txt").unwrap();
         self.monochrome = if c[0] == b'1' {true}else{false};
-        let fourtyeight: u8 = 48; // '0' u8 representation in ascii
-        self.pattern_matching = (c[2] - &fourtyeight) as i32;
+        let forty-eight: u8 = 48; // '0' u8 representation in ascii
+        self.pattern_matching = (c[2] - &forty-eight) as i32;
         self.manual_vt = if c[4] == b'1' {true}else{false};
         self.vt_precisionnumber = if c[6] == b'1' {10 + c[7]-&fourtyeight}else{c[7]-&fourtyeight};
     }

@@ -26,16 +26,28 @@ impl std::fmt::Display for vox_importer_errors{
 impl std::error::Error for vox_importer_errors{}
 #[derive(Debug, Default)]
 pub struct v{
-    x: f32,
-    y: f32,
-    z: f32,
-    r: u8,
-    g: u8,
-    b: u8
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8
 }
+
+impl ply{
+    pub(crate) fn normalize_positions(mut self) -> Self{
+        for va in 0..self.vertices.len(){
+            self.vertices[va].x *= 10.0;
+            self.vertices[va].y *= 10.0;
+            self.vertices[va].z *= 10.0;
+        }
+    self
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct f{
-    vs: (i32, i32, i32, i32)
+    pub(crate) vs: (i32, i32, i32, i32)
 }
 
 #[derive(Debug, Default)]
@@ -145,7 +157,7 @@ pub fn parse_ply(content: &String) -> Result<ply, vox_importer_errors>{
 
     }
     ply.faces = vec_f;
-    //ply.vertices = vec_v;
+    ply.vertices = vec_v;
     Ok(ply)
 }
 fn bytes_to_numeric<T>(bytes: &[u8]) -> Option<T> where T:std::str::FromStr{
@@ -156,7 +168,6 @@ fn bytes_to_numeric<T>(bytes: &[u8]) -> Option<T> where T:std::str::FromStr{
     }
     None
 }
-
 fn find_x_in_y(x: &[u8], y: &[u8]) -> Option<usize> {
     for (index, window) in y.windows(x.len()).enumerate(){
         if window == x{
@@ -170,6 +181,4 @@ fn split_into_words(input: &[u8]) -> Vec<&[u8]>{
 }
 fn find_next_space_after_index(bytes: &[u8]) -> Option<usize> {bytes.iter().position(|&x| x==b' ')}
 fn find_next_newline_after_index(bytes: &[u8]) -> Option<usize> {bytes.iter().position(|&x| x==b'\n')}
-
-
 pub fn is_made_by_ephtracy(ply: ply) -> bool { if ply.exported_by == "comment : MagicaVoxel @ Ephtracy"{true} else {false}}

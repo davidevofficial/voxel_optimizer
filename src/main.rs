@@ -2,6 +2,7 @@ mod vox_importer;
 mod greedy_mesher;
 mod uv_unwrapping;
 mod texture_mapping;
+mod vox_exporter;
 
 use rfd::FileDialog;
 use eframe;

@@ -6,43 +6,10 @@ use crate::vox_importer::*;
 use crate::texture_mapping::*;
 use crate::uv_unwrapping::*;
 use crate::{MyApp, vox_importer};
-use ndarray::Array3;
+use ndarray::{Array3, Axis};
 /*
 END_PRODUCT
-pub struct Obj{
-    //meta-info
-    //--number of v, vt and f
-    faces: vec!<obj_f>,
-    vertices: vec!<obj_v>,
-    vertices_uvs: vec!<obj_vt>
-}
-pub struct TextureMap{
-    w: i32,
-    h: i32,
-    colours: [[rgb;w];h] //I might consider using a tuple(u8, u8, u8) instead of a struct,
-                            however in this way I could implement an equality comparator for rgb struct
-}
-pub struct rgb{
-    r: u8,
-    g: u8,
-    b: u8
-}
-pub struct obj_f{
-    //index_v|index_vt
-    a = (i32, i32),
-    b = (i32, i32),
-    c = (i32, i32),
-    d = (i32, i32)
-}
-pub struct obj_v{
-    x: i32
-    y: i32
-    z: i32
-}
-pub struct obj_vt{
-    u: f32,
-    v: f32
-}
+
 END________
 INTERMEDIARY_PRODUCT
 */
@@ -291,3 +258,33 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     println!("{:?}", &cubes);
     //let ply: ply = parse_ply(&content);
 }
+pub fn convert_to_optimized_cubes(cubes: Array3<Option<Cube>>) -> Vec<OptimizedCube>{
+    let mut dimensions = (1,1,1);
+    let mut monochrome = true;
+    let mut cs = Vec::new();
+    /*
+    OptimizedCube{
+        dimensions: (0, 0, 0),
+        cubes: vec![],
+        monochrome: false,
+        important_vertices: [],
+    }
+     */
+    for z in cubes.len_of(Axis(2usize)){
+        for y in cubes.len_of(Axis(1usize)){
+            for x in cubes.len_of(Axis(0usize)) {
+                if let Some(mut c) = cubes[[x, y, z]]{
+                    if c.merged == false{
+                        find_dimension_x(dimensions, monochrome, cs);
+                        find_dimension_y();
+                        find_dimension_z();
+                    }
+                }
+            }
+        }
+    }
+    todo!()
+}
+fn find_dimension_x(dimensions: (u8,u8,u8), monochrome: bool, cs: Vec<Cube>){todo!()}
+fn find_dimension_y(){todo!()}
+fn find_dimension_z(){todo!()}

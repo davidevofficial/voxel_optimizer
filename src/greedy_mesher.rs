@@ -258,6 +258,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     println!("{:?}", &cubes);
     //let ply: ply = parse_ply(&content);
 }
+/*
 pub fn convert_to_optimized_cubes(cubes: Array3<Option<Cube>>) -> Vec<OptimizedCube>{
     let mut dimensions = (1,1,1);
     let mut monochrome = true;
@@ -288,3 +289,5 @@ pub fn convert_to_optimized_cubes(cubes: Array3<Option<Cube>>) -> Vec<OptimizedC
 fn find_dimension_x(dimensions: (u8,u8,u8), monochrome: bool, cs: Vec<Cube>){todo!()}
 fn find_dimension_y(){todo!()}
 fn find_dimension_z(){todo!()}
+
+ */

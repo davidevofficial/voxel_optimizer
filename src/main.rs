@@ -33,8 +33,8 @@ fn main() -> Result<(), eframe::Error> {
      */
     let options = eframe::NativeOptions{
         drag_and_drop_support: true,
-        initial_window_pos: Some(egui::pos2(400.0,100.0)),
-        initial_window_size: Some(egui::vec2(1000.0, 500.0)),
+        initial_window_pos: Some(egui::pos2(400.0,50.0)),
+        initial_window_size: Some(egui::vec2(1000.0, 600.0)),
         run_and_return: false,
         icon_data: Some(icon),
         ..Default::default()
@@ -77,6 +77,43 @@ impl eframe::App for MyApp {
         });
         egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui|{
             ui.horizontal(|ui|{
+                //ui.label("Drag-and-drop files onto the window to import, click the button below to choose the export directory!");
+                if ui.button("Click this button to choose the output directory!").clicked() {
+                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                        self.picked_path = Some(path.display().to_string());
+                    }
+                }
+                if let Some(picked_path) = &self.picked_path {
+                    ui.horizontal(|ui| {
+                        ui.label("The output folder is: ");
+                        ui.monospace(picked_path);
+                    });
+                }//ui.label("Drag-and-drop files onto the window to import, click the button below to choose the export directory!");
+
+            });
+            if !self.dropped_files.is_empty() {
+                ui.group(|ui| {
+                    ui.label("Dropped files:");
+                    egui::ScrollArea::vertical().id_source("Scroll1").max_height(200.0).show(ui,|ui|{
+                        for file in &self.dropped_files {
+                            let mut info = if let Some(path) = &file.path {
+                                path.display().to_string()
+                            } else if !file.name.is_empty() {
+                                file.name.clone()
+                            } else {
+                                "???".to_owned()
+                            };
+                            if let Some(bytes) = &file.bytes {
+                                use std::fmt::Write as _;
+                                write!(info, " ({} bytes)", bytes.len()).ok();
+                            }
+                            ui.label(info);
+                        }
+                    });
+
+                });
+            }
+            ui.horizontal(|ui|{
                 if ui.button("Convert...").clicked() {
                     if self.picked_path.is_some() {
                         for i in &from_files_to_paths(self.dropped_files.clone()) {
@@ -113,102 +150,25 @@ impl eframe::App for MyApp {
 
         });
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.columns(2, |columns|{
-
+            //ui.columns(2, |columns|{
                 //first column
-                columns[0].label("Drag-and-drop files onto the window to import, click the button below to choose the export directory!");
-                if columns[0].button("Click this button to choose the output directory!").clicked() {
-                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                        self.picked_path = Some(path.display().to_string());
-                    }
-                }
-                if let Some(picked_path) = &self.picked_path {
-                    columns[0].horizontal(|ui| {
-                        ui.label("The output folder is: ");
-                        ui.monospace(picked_path);
-                    });
-                }
                 // Show dropped files (if any):
-                if !self.dropped_files.is_empty() {
-                    columns[0].group(|ui| {
-                        ui.label("Dropped files:");
-
-                        for file in &self.dropped_files {
-                            let mut info = if let Some(path) = &file.path {
-                                path.display().to_string()
-                            } else if !file.name.is_empty() {
-                                file.name.clone()
-                            } else {
-                                "???".to_owned()
-                            };
-                            if let Some(bytes) = &file.bytes {
-                                use std::fmt::Write as _;
-                                write!(info, " ({} bytes)", bytes.len()).ok();
-                            }
-                            ui.label(info);
-                        }
-                    });
-                }
                 //second column
-                columns[1].checkbox(&mut self.is_texturesize_powerof2, "Should the texture width and height both be a power of 2?");
-                columns[1].checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
-                columns[1].checkbox(&mut self.monochrome, "Should each face of the same colour be mapped on ONE PIXEL of the texture map?");
+                ui.checkbox(&mut self.is_texturesize_powerof2, "Should the texture width and height both be a power of 2?");
+                ui.checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
+                ui.checkbox(&mut self.monochrome, "Should each face of the same colour be mapped on ONE PIXEL of the texture map?");
                 //columns[1].checkbox(&mut self.pattern_matching, "Should similar faces be mapped on the same part of the texture map?");
-                columns[1].add(egui::Slider::new(&mut self.pattern_matching, 0..=3).text("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry"));
-                columns[1].checkbox(&mut self.cross, "Would you like to optimize cross-overlapping?");
-                columns[1].checkbox(&mut self.manual_vt, "Would you like to manually set the precision levels?");
+                ui.add(egui::Slider::new(&mut self.pattern_matching, 0..=3).text("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry"));
+                ui.checkbox(&mut self.cross, "Would you like to optimize cross-overlapping?");
+                ui.checkbox(&mut self.manual_vt, "Would you like to manually set the precision levels?");
                 if self.manual_vt == true {
-                    columns[1].add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
+                    ui.add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
                 }
-                columns[1].horizontal(|ui|{
+                ui.horizontal(|ui|{
                     ui.color_edit_button_rgb(&mut self.background_color);
                     ui.label("What should the background colour be?");
                 });
-                columns[1].checkbox(&mut self.debug_uv_mode, "Would you like to activate uv debug mode?");
-
-                //columns[1].color_edit_button_rgb(&mut self.background_color);
-
-
-            });
-
-            /*ui.label("Drag-and-drop files onto the window or click the button below!");
-
-            if ui.button("Open file…").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_file() {
-                    self.picked_path = Some(path.display().to_string());
-                }
-            }
-
-            if let Some(picked_path) = &self.picked_path {
-                ui.horizontal(|ui| {
-                    ui.label("Picked file:");
-                    ui.monospace(picked_path);
-                });
-            }
-
-            // Show dropped files (if any):
-            if !self.dropped_files.is_empty() {
-                ui.group(|ui| {
-                    ui.label("Dropped files:");
-
-                    for file in &self.dropped_files {
-                        let mut info = if let Some(path) = &file.path {
-                            path.display().to_string()
-                        } else if !file.name.is_empty() {
-                            file.name.clone()
-                        } else {
-                            "???".to_owned()
-                        };
-                        if let Some(bytes) = &file.bytes {
-                            use std::fmt::Write as _;
-                            write!(info, " ({} bytes)", bytes.len()).ok();
-                        }
-                        ui.label(info);
-                    }
-                });
-            }
-            */
-
+                ui.checkbox(&mut self.debug_uv_mode, "Would you like to activate uv debug mode?");
         });
         preview_files_being_dropped(ctx);
         self.update_status();

@@ -1,4 +1,3 @@
-
 use std::path::PathBuf;
 use std::vec;
 use eframe::egui::panel::TopBottomSide::Top;
@@ -6,7 +5,7 @@ use crate::vox_importer::*;
 use crate::texture_mapping::*;
 use crate::uv_unwrapping::*;
 use crate::{MyApp, vox_importer};
-use ndarray::{Array3, Axis};
+use ndarray::{Array3, Axis, s};
 /*
 END_PRODUCT
 
@@ -128,9 +127,10 @@ pub struct OptimizedCube{
 
     //used to evaluate the texture map of each face
     cubes: Vec<Cube>,
-    monochrome: bool,
+    //monochrome: bool,
     //-------------------indices----0 bottom left, 1 bottom right, 2 top right, 3 top left, 4-7 same thing but up and clockwise
-    important_vertices: [i32; 8]
+    //important_vertices: [i32; 8]
+    starting_position: (i32,i32,i32)
 
 }
 //*/
@@ -258,36 +258,96 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     println!("{:?}", &cubes);
     //let ply: ply = parse_ply(&content);
 }
-/*
-pub fn convert_to_optimized_cubes(cubes: Array3<Option<Cube>>) -> Vec<OptimizedCube>{
-    let mut dimensions = (1,1,1);
-    let mut monochrome = true;
+
+pub fn convert_to_optimized_cubes(cubes: Array3<Option<Cube>>, cross: bool) -> Vec<OptimizedCube>{
     let mut cs = Vec::new();
     /*
     OptimizedCube{
         dimensions: (0, 0, 0),
         cubes: vec![],
-        monochrome: false,
-        important_vertices: [],
+        starting_position: (0,0,0),
     }
      */
     for z in cubes.len_of(Axis(2usize)){
         for y in cubes.len_of(Axis(1usize)){
             for x in cubes.len_of(Axis(0usize)) {
-                if let Some(mut c) = cubes[[x, y, z]]{
-                    if c.merged == false{
-                        find_dimension_x(dimensions, monochrome, cs);
-                        find_dimension_y();
-                        find_dimension_z();
-                    }
+                if let Some(opcube) =find_dimensions(cubes.raw_dim(), (x as u8, y as u8, z as u8), &cubes, &cross) {
+                    cs.push(opcube);
                 }
             }
         }
     }
-    todo!()
+    cs
 }
-fn find_dimension_x(dimensions: (u8,u8,u8), monochrome: bool, cs: Vec<Cube>){todo!()}
-fn find_dimension_y(){todo!()}
-fn find_dimension_z(){todo!()}
+fn find_dimensions(sh: ndarray::Ix3, index_we_are_at: (u8,u8,u8), cs: &Array3<Option<Cube>>, cross_optimization: &bool) -> Option<OptimizedCube>{
 
- */
+    let shape = (sh[0], sh[1], sh[2]);
+    let mut dimensions = (1, 1, 1);
+    let mut cubes = Vec::new();
+    let mut con = true;
+    let mut first = true;
+
+    //x scouting
+    while con {
+        if (index_we_are_at.0 as usize + dimensions.0 as usize) <= shape.0 {
+            if let Some(mut cube) = cs[[index_we_are_at.0 + dimensions.0, index_we_are_at.1, index_we_are_at.2]] {
+                if cross_optimization || !&cube.merged {
+                    dimensions.0 += 1;
+                    //let mut cube = cs[index_we_are_at + dimensions.x].unwrap();
+                    cube.merged = true;
+                    cubes.push(cube);
+                    first = false;
+                } else {
+                    con = false;
+                }
+            }
+        }
+    }
+
+    //y scouting
+    con = true;
+    first = true;
+
+    while con{
+        if (index_we_are_at.1 as usize + dimensions.1 as usize) <= shape.0 {
+            let slice = cs.slice[ndarray::s![index_we_are_at.0..index_we_are_at.0+dimensions.1,index_we_are_at.1..index_we_are_at.1+dimensions.1, index_we_are_at.2..index_we_are_at.2+1]];
+            if is_slice_some(slice) {
+                //is next slice some
+                let last = !(is_slice_some(cs.slice[ndarray::s![index_we_are_at.0..index_we_are_at.0+dimensions.1,
+                    index_we_are_at.1+1..index_we_are_at.1+dimensions.1+1,
+                    index_we_are_at.2..index_we_are_at.2+1]]));
+                if can_slice_be_merged(slice, &first, &last, &cross_optimization) {
+                    for x in index_we_are_at.0..index_we_are_at.0+dimensions.0{
+                        if let Some(mut cube) = cs[[x, index_we_are_at.1 + dimensions.1, index_we_are_at.2]]{
+                            dimensions.1 += 1;
+                            cube.merged = true;
+                            cubes.push(cube);
+                            first = false;
+                        }
+                    }
+                }else{con = false}
+            }else{con = false}
+        }else{con = false}
+
+    //if cs.slice[ndarray::s![starting_x..ending_x,index_we_are_at.y..index_we_are_at.y+dimensions.1, index_we_are_at.z..index_we_are_at.z+1]].is_some() && (cross_optimization || !cs.merged){}
+
+    }
+    //z scouting
+    con = true;
+    while con{
+
+    }
+    //optimized cube forming
+    let starting_position = index_we_are_at;
+    Some(OptimizedCube{
+        dimensions: dimensions,
+        starting_position: (index_we_are_at.0 as i32, index_we_are_at.1 as i32, index_we_are_at.2 as i32),
+        cubes: cubes,
+
+    })
+}
+fn is_slice_some(slice: Array3<Option<Cube>>) -> bool {todo!();}
+fn can_slice_be_merged(slice: Array3<Option<Cube>>, first: &bool, last: &bool, cross: &bool) -> bool{todo!();}
+
+//https://stackoverflow.com/questions/63752622/is-there-a-simple-way-to-find-out-whether-a-vector-is-filled-with-none-in-rust
+//do this for some and you are alright

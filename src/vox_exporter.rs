@@ -1,6 +1,7 @@
 use ndarray::Array2;
 use std::fs;
 use crate::greedy_mesher::OptimizedCube;
+use crate::MyApp;
 
 pub struct Obj{
     //meta-info
@@ -40,8 +41,8 @@ pub struct obj_vt{
     v: f32
 }
 impl Obj{
-    fn from_optimized_cubes(name: String, vector_of_optimized_cubes: Vec<&OptimizedCube>, debug: bool) -> Obj{
-        if debug{
+    fn from_optimized_cubes(my_app: &MyApp, name: String, vector_of_optimized_cubes: Vec<&OptimizedCube>, debug: bool) -> Obj{
+        if my_app.debug_uv_mode{
             //mtl will be the same but png is going to be a 2x2 of pink and black and there are going to be 4 vt's in the whole obj
             todo!()
         } else{

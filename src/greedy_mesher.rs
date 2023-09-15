@@ -285,52 +285,60 @@ fn find_dimensions(sh: ndarray::Ix3, index_we_are_at: (u8,u8,u8), cs: &Array3<Op
     let mut dimensions = (1, 1, 1);
     let mut cubes = Vec::new();
     let mut con = true;
-    let mut first = true;
+    //should this cube even have a chance of being a "Some" value?
+    if let Some(cube) = cs[[index_we_are_at.0, index_we_are_at.1, index_we_are_at.2]]{
+        //first cannot have been merged
+        if cube.merged{
+            None
+        }
+        //and must be Some value
+    } else { None }
 
     //x scouting
     while con {
         if (index_we_are_at.0 as usize + dimensions.0 as usize) <= shape.0 {
-            if let Some(mut cube) = cs[[index_we_are_at.0 + dimensions.0, index_we_are_at.1, index_we_are_at.2]] {
-                if cross_optimization || !&cube.merged {
-                    dimensions.0 += 1;
-                    //let mut cube = cs[index_we_are_at + dimensions.x].unwrap();
-                    cube.merged = true;
-                    cubes.push(cube);
-                    first = false;
-                } else {
-                    con = false;
+            let slice = cs.slice[ndarray::s![index_we_are_at.0+dimensions.0..=index_we_are_at.0+dimensions.0,index_we_are_at.1..=index_we_are_at.1, index_we_are_at.2..=index_we_are_at.2]];
+        if is_slice_some(slice) {
+            //is next slice some
+            let last = !(is_slice_some(cs.slice[ndarray::s![index_we_are_at.0+dimensions.0..=index_we_are_at.0+dimensions.0+1,
+                    index_we_are_at.1..=index_we_are_at.1,
+                    index_we_are_at.2..=index_we_are_at.2]]));
+
+            if can_slice_be_merged(slice, &last, &cross_optimization) {
+                    if let Some(mut cube) = cs[[index_we_are_at.0+dimensions.0, index_we_are_at.1, index_we_are_at.2]]{
+                        dimensions.1 += 1;
+                        cube.merged = true;
+                        cubes.push(cube);
+
                 }
-            }
-        }
+            }else{con = false}
+        }else{con = false}
+    }else{con = false}
     }
 
     //y scouting
     con = true;
-    first = true;
 
     while con{
-        if (index_we_are_at.1 as usize + dimensions.1 as usize) <= shape.0 {
+        if (index_we_are_at.1 as usize + dimensions.1 as usize) <= shape.1 {
             let slice = cs.slice[ndarray::s![index_we_are_at.0..index_we_are_at.0+dimensions.1,index_we_are_at.1..index_we_are_at.1+dimensions.1, index_we_are_at.2..index_we_are_at.2+1]];
             if is_slice_some(slice) {
                 //is next slice some
                 let last = !(is_slice_some(cs.slice[ndarray::s![index_we_are_at.0..index_we_are_at.0+dimensions.1,
                     index_we_are_at.1+1..index_we_are_at.1+dimensions.1+1,
                     index_we_are_at.2..index_we_are_at.2+1]]));
-                if can_slice_be_merged(slice, &first, &last, &cross_optimization) {
+
+                if can_slice_be_merged(slice, &last, &cross_optimization) {
                     for x in index_we_are_at.0..index_we_are_at.0+dimensions.0{
                         if let Some(mut cube) = cs[[x, index_we_are_at.1 + dimensions.1, index_we_are_at.2]]{
                             dimensions.1 += 1;
                             cube.merged = true;
                             cubes.push(cube);
-                            first = false;
                         }
                     }
                 }else{con = false}
             }else{con = false}
         }else{con = false}
-
-    //if cs.slice[ndarray::s![starting_x..ending_x,index_we_are_at.y..index_we_are_at.y+dimensions.1, index_we_are_at.z..index_we_are_at.z+1]].is_some() && (cross_optimization || !cs.merged){}
-
     }
     //z scouting
     con = true;
@@ -347,7 +355,14 @@ fn find_dimensions(sh: ndarray::Ix3, index_we_are_at: (u8,u8,u8), cs: &Array3<Op
     })
 }
 fn is_slice_some(slice: Array3<Option<Cube>>) -> bool {todo!();}
-fn can_slice_be_merged(slice: Array3<Option<Cube>>, first: &bool, last: &bool, cross: &bool) -> bool{todo!();}
+fn can_slice_be_merged(slice: Array3<Option<Cube>>, last: &bool, cross: &bool) -> bool{
+    if last == true{
+        //they all must have not been merged
+    } else{
+        //they either have not been merged or cross optimization must be on
+    }
+    todo!();
+}
 
 //https://stackoverflow.com/questions/63752622/is-there-a-simple-way-to-find-out-whether-a-vector-is-filled-with-none-in-rust
 //do this for some and you are alright

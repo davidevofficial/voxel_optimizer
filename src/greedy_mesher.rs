@@ -271,13 +271,19 @@ pub fn convert_to_optimized_cubes(cubes: Array3<Option<Cube>>, cross: bool) -> V
     for z in cubes.len_of(Axis(2usize)){
         for y in cubes.len_of(Axis(1usize)){
             for x in cubes.len_of(Axis(0usize)) {
-                if let Some(opcube) =find_dimensions(cubes.raw_dim(), (x as u8, y as u8, z as u8), &cubes, &cross) {
+                if let Some(opcube) = find_dimensions(cubes.raw_dim(), (x as u8, y as u8, z as u8), &cubes, &cross) {
                     cs.push(opcube);
                 }
             }
         }
     }
     cs
+}
+
+pub enum can_be_merged{
+    Yes,
+    No,
+    Cross,
 }
 fn find_dimensions(sh: ndarray::Ix3, index_we_are_at: (u8,u8,u8), cs: &Array3<Option<Cube>>, cross_optimization: &bool) -> Option<OptimizedCube>{
 
@@ -287,16 +293,45 @@ fn find_dimensions(sh: ndarray::Ix3, index_we_are_at: (u8,u8,u8), cs: &Array3<Op
     let mut con = true;
     //should this cube even have a chance of being a "Some" value?
     if let Some(cube) = cs[[index_we_are_at.0, index_we_are_at.1, index_we_are_at.2]]{
-        //first cannot have been merged
+        // can it have been merged?
         if cube.merged{
             None
+        }else{
+            cubes.push(cube);
         }
-        //and must be Some value
+        //let some = x: is it a Some value?
     } else { None }
+
+    //todo: implement a cache function (a vector of possible values
+    //that answers the question can it be merged? (Yes, No, Cross (already been merged)))
+    //like so: Yes, cross, cross, Yes
+    //or: Yes, no -> you therefore stop
+    //or: Yes, cross, cross, No -> you evaluate that the third is the last but being a Cross it cannot be last
+    //so it asks the second one, can you be last? and he is a cross too so it becomes Yes, and that is it
+    let v_cached = Vec::new();
+    //x
+        let j = 1
+        for i in (index_we_are_at.0 as usize + dimensions.0 as usize)..shape.0{
+            let slice = cs.slice[ndarray::s![i..=i+j,index_we_are_at.1..=index_we_are_at.1, index_we_are_at.2..=index_we_are_at.2]];
+            v_cached.push(can_slice_be_merged(&slice, &cross_optimization));
+            j += 1
+        }
+            v_cached = cache_sanitization(v_cached);
+            //how many cubes is the x axis?
+            dimensions.0 = v_cached.len();
+            //push the cubes
+            for i in index_we_are_at.0+1..dimensions.0{
+                cubes.push(cs[[i, index_we_are_at.1, index_we_are_at.2]])
+            }
+        }
+
 
     //x scouting
     while con {
+
+        //if the next cube fits inside the x shape
         if (index_we_are_at.0 as usize + dimensions.0 as usize) <= shape.0 {
+            //we take a slice
             let slice = cs.slice[ndarray::s![index_we_are_at.0+dimensions.0..=index_we_are_at.0+dimensions.0,index_we_are_at.1..=index_we_are_at.1, index_we_are_at.2..=index_we_are_at.2]];
         if is_slice_some(slice) {
             //is next slice some
@@ -354,15 +389,31 @@ fn find_dimensions(sh: ndarray::Ix3, index_we_are_at: (u8,u8,u8), cs: &Array3<Op
 
     })
 }
-fn is_slice_some(slice: Array3<Option<Cube>>) -> bool {todo!();}
-fn can_slice_be_merged(slice: Array3<Option<Cube>>, last: &bool, cross: &bool) -> bool{
-    if last == true{
-        //they all must have not been merged
-    } else{
-        //they either have not been merged or cross optimization must be on
+fn is_slice_some(slice: &Array3<Option<Cube>>) -> bool {
+    //https://stackoverflow.com/questions/63752622/is-there-a-simple-way-to-find-out-whether-a-vector-is-filled-with-none-in-rust
+    //do this for some and you are alright
+    todo!();
+}
+fn can_slice_be_merged(slice: &Array3<Option<Cube>>, cross: &bool) -> can_be_merged{
+    if is_slice_some() == false{
+        return can_be_merged::No;
+    }
+    if cross == true{
+        //if each Cube of the slice is cube.merged == false
+        //return can_be_merged::Yes
+        //otherwise if even one of them is cube.merged == true (even tho if one of them is true than all of them should be because of how we check for it be merged)
+        //return can_be_merged::Cross
+    }
+    if cross == false{
+        //if each of the Cube of the slice is cube.merged == false
+        //return can_be_merged::Yes
     }
     todo!();
 }
-
-//https://stackoverflow.com/questions/63752622/is-there-a-simple-way-to-find-out-whether-a-vector-is-filled-with-none-in-rust
-//do this for some and you are alright
+fn cache_sanitization(v_cached: Vec) -> Vec{
+    //1. get the lenght of the vector
+    //2. you take the last and check if it is a Yes, if it is not you delete it and check for the last - 1 and so on until the last is a Yes
+    //3. if the last is a yes the question is is there a No before? (we check from first to last) if false then we be chilling
+    //   if there is a No then the lenght of the vector is the index of the first No - 1
+    //return the modified vector
+}

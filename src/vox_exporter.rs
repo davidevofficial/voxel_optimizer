@@ -24,6 +24,8 @@ pub struct rgb{
     g: u8,
     b: u8
 }
+
+//todo()! -> implement an HashMap (obj_v, index_v) and an HashMap (obj_vt, index_vt)
 pub struct obj_f{
     //index_v|index_vt
     a: (i32, i32),

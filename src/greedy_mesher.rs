@@ -121,9 +121,10 @@ impl cube_f {
         return ((po.0),(po.1),(po.2));
     }
 }
+#[derive(Debug)]
 pub struct OptimizedCube{
     //___________w_|_h_|_d_|_
-    dimensions: (u8, u8, u8),
+    dimensions: (u16, u16, u16),
 
     //used to evaluate the texture map of each face
     cubes: Vec<Cube>,
@@ -265,7 +266,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     */
 
     //todo()! -> lowestcoordinates unsafe
-    let mut mapofcubes: MapOfCubes = MapOfCubes{Hashmap:HashMap::new(), Shape:(0,0,0),
+    let mut mapofcubes: MapOfCubes = MapOfCubes{Hashmap:HashMap::new(), Shape:(1,1,1),
      Lowest_coordinates:(lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32)};
 
     mapofcubes.set_shape((highest_coordinates.0 - lowest_coordinates.0) as i32,
@@ -296,11 +297,18 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
         }
     }
     println!("{:?}", &mapofcubes);
+    let optimized_cubes = convert_to_optimized_cubes(&mut mapofcubes, my_app.cross,
+     (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
+    let x = String::from(format!("Reduced model voxels count from {:?} to {:?} voxels", &ply.number_of_v_and_f.0/8, optimized_cubes.len()));
+        my_app.sx.send(x);
+    
+    println!("{:?}", optimized_cubes.len());
+
 }
 
 use std::collections::HashMap;
 #[derive(Debug)]
-struct MapOfCubes {
+pub struct MapOfCubes {
     Hashmap: HashMap<(i32, i32, i32),Cube>,
     Shape: (i32, i32, i32),
     Lowest_coordinates: (i32,i32,i32),
@@ -332,27 +340,25 @@ impl MapOfCubes{
         return true;
     }
 
-    fn can_slice_be_merged(&self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> can_be_merged {
+    fn can_slice_be_merged(&self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> CanBeMerged {
+        
         let mut is_slice_already_merged: bool = false;
-        if self.is_slice_some(x1,x2,y1,y2,z1,z2) == false{
-            return can_be_merged::No;
-        }else{
-            for z in z1..=z2{
+        for z in z1..=z2{
             for y in y1..=y2{
-            for x in x1..=x2{
+                for x in x1..=x2{
                 let cube = self.Hashmap.get(&(x,y,z));
                 match cube{
-                    None => {unimplemented!()}
+                    None => {return CanBeMerged::No;}
                     Some(x) => {if x.merged == true{is_slice_already_merged = true;}}
-                }
-        } 
+                    }
+                } 
+            }
         }
-        }
-        }
+        
         if is_slice_already_merged{
-            return can_be_merged::Cross;
+            return CanBeMerged::Cross;
         }
-        return can_be_merged::Yes;
+        return CanBeMerged::Yes;
     }
 
     fn merge_slice(&mut self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32){
@@ -374,7 +380,9 @@ impl MapOfCubes{
                 for x in x1..=x2{
                     let cube = self.Hashmap.get(&(x,y,z));
                     match cube{
-                    None => {unimplemented!()}
+                    None => {println!("x1:{:?}, x2:{:?}, y1:{:?}, y2:{:?}, z1:{:?}, z2:{:?}, ",x1,x2,y1,y2,z1,z2 );
+                            println!("x:{:?} y:{:?} z:{:?} ", x,y,z);
+                        unimplemented!()}
                     Some(x) => {vector_to_return.push(*x);}
                     }
                 } 
@@ -384,13 +392,16 @@ impl MapOfCubes{
     }
 
 }
-pub enum can_be_merged{
+
+#[derive(PartialEq)]
+#[derive(Debug)]
+pub enum CanBeMerged{
     Yes,
     No,
     Cross,
 }
-/*
-pub fn convert_to_optimized_cubes(cubes: MapOfCubes, cross: bool) -> Vec<OptimizedCube>{
+
+pub fn convert_to_optimized_cubes(cubes: &mut MapOfCubes, cross: bool, lowest_coordinates:(i32, i32, i32)) -> Vec<OptimizedCube>{
     let mut cs = Vec::new();
     /*
     OptimizedCube{
@@ -399,10 +410,14 @@ pub fn convert_to_optimized_cubes(cubes: MapOfCubes, cross: bool) -> Vec<Optimiz
         starting_position: (0,0,0),
     }
      */
-    for z in 0..=cubes.shape.0{
-        for y in 0..=cubes.shape.1{
-            for x in 0..=cubes.shape.2{
-                if let Some(opcube) = find_dimensions(&mut cubes, (x as u8, y as u8, z as u8), &cross) {
+    println!("{:?}", lowest_coordinates);
+    println!("{:?}", cubes.Shape);
+    for z in lowest_coordinates.2..cubes.Shape.2+lowest_coordinates.2{
+        for y in lowest_coordinates.1..cubes.Shape.1+lowest_coordinates.1{
+            for x in lowest_coordinates.0..cubes.Shape.0+lowest_coordinates.0{
+                println!("x:{:?} y:{:?} z:{:?}", x as i32,y as i32,z as i32);
+                if let Some(opcube) = find_dimensions(cubes, (x as i32, y as i32, z as i32), &cross) {
+
                     cs.push(opcube);
                 }
             }
@@ -411,143 +426,148 @@ pub fn convert_to_optimized_cubes(cubes: MapOfCubes, cross: bool) -> Vec<Optimiz
     cs
 }
 
-/*
-fn find_dimensions(mymap: &mut MapOfCubes, index_we_are_at: (u8,u8,u8), cross_optimization: &bool) -> Option<OptimizedCube>{
 
-    let shape = (sh[0], sh[1], sh[2]);
-    let mut dimensions = (1u8, 1u8, 1u8);
+fn find_dimensions(mymap: &mut MapOfCubes, index_we_are_at: (i32,i32,i32), cross_optimization: &bool) -> Option<OptimizedCube>{
+
+    let mut shape = (1, 1, 1);
+    println!("{:?}", shape);
+    //let mut dimensions = (1u8, 1u8, 1u8);
     let mut cubes = Vec::new();
-    let mut con = true;
-    //should this cube even have a chance of being a "Some" value?
-    if let Some(cube) = cs[[index_we_are_at.0, index_we_are_at.1, index_we_are_at.2]]{
-        // can it have been merged?
-        if cube.merged{
-            return None;
-        }else{
-            cubes.push(cube);
-        }
-        //let some = x: is it a Some value?
-    } else { return None; }
 
+
+    //is the first cube a some value?
+    if mymap.is_slice_some(index_we_are_at.0 as i32, index_we_are_at.0 as i32,
+                             index_we_are_at.1 as i32, index_we_are_at.1 as i32,
+                              index_we_are_at.2 as i32, index_we_are_at.2 as i32){
+        //can it be merged?
+        match mymap.can_slice_be_merged(index_we_are_at.0 as i32, index_we_are_at.0 as i32,
+                             index_we_are_at.1 as i32, index_we_are_at.1 as i32,
+                              index_we_are_at.2 as i32, index_we_are_at.2 as i32){
+            CanBeMerged::No => {return None;}
+            CanBeMerged::Cross => {return None;}
+            CanBeMerged::Yes => {
+                //if so it will be the first cube of the vector
+                if let Some(x) = mymap.get_cube(index_we_are_at.0 as i32, index_we_are_at.1 as i32, index_we_are_at.2 as i32) {
+                    cubes.push(x);
+                    mymap.merge_slice(index_we_are_at.0, index_we_are_at.0, index_we_are_at.1, index_we_are_at.1,
+                        index_we_are_at.2, index_we_are_at.2);
+                }
+                
+            }
+        }
+
+    } else {return None;}
     //todo: implement a cache function (a vector of possible values
     //that answers the question can it be merged? (Yes, No, Cross (already been merged)))
     //like so: Yes, cross, cross, Yes
     //or: Yes, no -> you therefore stop
     //or: Yes, cross, cross, No -> you evaluate that the third is the last but being a Cross it cannot be last
     //so it asks the second one, can you be last? and he is a cross too so it becomes Yes, and that is it
-    let v_cached = Vec::new();
+    println!("{:?}", "has it crashed yet? 1");
+    println!("{:?}", shape);
+
+    let mut v_cached = Vec::new();
     //x
-        let j = 1;
-        for i in (index_we_are_at.0 as usize + dimensions.0 as usize)..shape.0{
-            let slice = cs.slice(ndarray::s![i..i+j,index_we_are_at.1..index_we_are_at.1+1, index_we_are_at.2..index_we_are_at.2+1;1]);
-            v_cached.push(can_slice_be_merged(&slice, &cross_optimization));
-            j += 1
-        }
-            v_cached = cache_sanitization(v_cached);
-            //how many cubes is the x axis?
-            dimensions.0 = v_cached.len() as u8;
-            //push the cubes
-            for i in (index_we_are_at.0+1 as u8)..(dimensions.0 as u8){
-                cubes.push(Some(cs[[i, index_we_are_at.1, index_we_are_at.2]]));
+    let i = index_we_are_at.0.clone();
+    let j = index_we_are_at.1.clone();
+    let k = index_we_are_at.2.clone();
+    println!("{:?}", "has it crashed yet? 1.1");
+    println!("i:{:?} j:{:?} k:{:?}", i, j, k);
+    println!("{:?}", mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k));
+    while (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k) == CanBeMerged::Yes) ||
+            (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k) == CanBeMerged::Cross && *cross_optimization){
+                v_cached.push(mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k));
+                shape.0 += 1;
             }
-        ;
+    println!("{:?}", "has it crashed yet? 1.2");
+    println!("{:?}", shape);
+    //todo()! -> v_cached gets sanitized (based on the cross rule) and then I put cubes in the optimized cubes based
+    //           on vector lenght
+    println!("{:?}", v_cached);
+    v_cached = cache_sanitization( v_cached, *cross_optimization);
+    println!("{:?}", v_cached);
+    shape.0 = v_cached.len() as i32 + 1 ;
+    if shape.0 > 1{
 
-
-    //x scouting
-    while con {
-
-        //if the next cube fits inside the x shape
-        if (index_we_are_at.0 as usize + dimensions.0 as usize) <= shape.0 {
-            //we take a slice
-            let slice = cs.slice[ndarray::s![index_we_are_at.0+dimensions.0..=index_we_are_at.0+dimensions.0,index_we_are_at.1..=index_we_are_at.1, index_we_are_at.2..=index_we_are_at.2]];
-        if is_slice_some(slice) {
-            //is next slice some
-            let last = !(is_slice_some(cs.slice[ndarray::s![index_we_are_at.0+dimensions.0..=index_we_are_at.0+dimensions.0+1,
-                    index_we_are_at.1..=index_we_are_at.1,
-                    index_we_are_at.2..=index_we_are_at.2]]));
-
-            if can_slice_be_merged(slice, &last, &cross_optimization) {
-                    if let Some(mut cube) = cs[[index_we_are_at.0+dimensions.0, index_we_are_at.1, index_we_are_at.2]]{
-                        dimensions.1 += 1;
-                        cube.merged = true;
-                        cubes.push(cube);
-
-                }
-            }else{con = false}
-        }else{con = false}
-    }else{con = false}
+        for v in mymap.get_cubes_from_slice(i+1, i+shape.0-1, j, j, k, k){
+            cubes.push(v);
+        }
+        mymap.merge_slice(i, i+shape.0-1, j, j, k, k)
     }
-
-    //y scouting
-    con = true;
-
-    while con{
-        if (index_we_are_at.1 as usize + dimensions.1 as usize) <= shape.1 {
-            let slice = cs.slice[ndarray::s![index_we_are_at.0..index_we_are_at.0+dimensions.1,index_we_are_at.1..index_we_are_at.1+dimensions.1, index_we_are_at.2..index_we_are_at.2+1]];
-            if is_slice_some(slice) {
-                //is next slice some
-                let last = !(is_slice_some(cs.slice[ndarray::s![index_we_are_at.0..index_we_are_at.0+dimensions.1,
-                    index_we_are_at.1+1..index_we_are_at.1+dimensions.1+1,
-                    index_we_are_at.2..index_we_are_at.2+1]]));
-
-                if can_slice_be_merged(slice, &last, &cross_optimization) {
-                    for x in index_we_are_at.0..index_we_are_at.0+dimensions.0{
-                        if let Some(mut cube) = cs[[x, index_we_are_at.1 + dimensions.1, index_we_are_at.2]]{
-                            dimensions.1 += 1;
-                            cube.merged = true;
-                            cubes.push(cube);
-                        }
-                    }
-                }else{con = false}
-            }else{con = false}
-        }else{con = false}
+    println!("{:?}", "has it crashed yet? 1.3");
+    println!("{:?}", shape);
+    //y
+    v_cached = Vec::new();
+    println!("{:?}", mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k));
+    println!("{:?}", (i, i+shape.0, j+shape.1, j+shape.1, k, k));
+    while (mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k) == CanBeMerged::Yes) ||
+            ((mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k) == CanBeMerged::Cross) && *cross_optimization){
+                v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k));
+                shape.1 += 1;
+            }  
+    v_cached = cache_sanitization( v_cached, *cross_optimization);
+    shape.1 = v_cached.len() as i32  + 1;
+    if shape.1 > 1{
+        for v in mymap.get_cubes_from_slice(i, i+shape.0-1, j+1, j+shape.1-1, k, k){
+            cubes.push(v);
+        }
+        mymap.merge_slice(i, i+shape.0-1, j, j+shape.1-1, k, k)
     }
-    //z scouting
-    con = true;
-    while con{
-
+    println!("{:?}", "has it crashed yet? 1.4");
+    println!("shape:{:?}, ijk:{:?}", (shape),(i,j,k));
+    //z
+    v_cached = Vec::new();
+    while (mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2) == CanBeMerged::Yes) ||
+            ((mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2) == CanBeMerged::Cross) && *cross_optimization){
+                v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2));
+                shape.2 += 1;
+            }  
+    v_cached = cache_sanitization( v_cached, *cross_optimization);
+    shape.2 = v_cached.len() as i32  + 1;
+    if shape.2 > 1{
+        for v in mymap.get_cubes_from_slice(i, i+shape.0-1, j, j+shape.1-1, k+1, k+shape.2-1){
+            cubes.push(v);
+        }
+        mymap.merge_slice(i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1)
     }
-    */
+    println!("{:?}", "has it crashed yet? 2");
     //optimized cube forming
-    let starting_position = index_we_are_at;
+    //let starting_position = index_we_are_at;
+    println!("{:?}", shape);
     Some(OptimizedCube{
-        dimensions: dimensions,
+        dimensions: (shape.0 as u16, shape.1 as u16, shape.2 as u16),
         starting_position: (index_we_are_at.0 as i32, index_we_are_at.1 as i32, index_we_are_at.2 as i32),
         cubes: cubes,
 
     })
 }
-fn is_slice_some(slice: &Array3<Option<Cube>>) -> bool {
-    //https://stackoverflow.com/questions/63752622/is-there-a-simple-way-to-find-out-whether-a-vector-is-filled-with-none-in-rust
-    //do this for some and you are alright
-    todo!();
-}
-fn can_slice_be_merged(slice: &Array3<Option<Cube>>, cross: &bool) -> can_be_merged{
-    if is_slice_some(slice) == false{
-        return can_be_merged::No;
-    }
-    if cross == &true{
-        //if each Cube of the slice is cube.merged == false
-        //return can_be_merged::Yes
-        //otherwise if even one of them is cube.merged == true (even tho if one of them is true than all of them should be because of how we check for it be merged)
-        //return can_be_merged::Cross
-    }
-    if cross == &false{
-        //if each of the Cube of the slice is cube.merged == false
-        //return can_be_merged::Yes
-    }
-    todo!();
-}
+
 //todo!();
-fn cache_sanitization<T>(v_cached: Vec<T>) -> Vec<T>{
-    v_cached
-    //edit: a can_be_merged::No cannot be a possible value because the cache function stops at a No value 
-//1. get the lenght of the vector
-    //2. you take the last and check if it is a Yes, if it is not you delete it and check for the last - 1 and so on until the last is a Yes
-    //3. if the last is a yes the question is is there a No before? (we check from first to last) if false then we be chilling
-    //   if there is a No then the lenght of the vector is the index of the first No - 1
-    //return the modified vector
-    //______
+fn cache_sanitization(mut v_cached: Vec<CanBeMerged>, cross: bool) -> Vec<CanBeMerged>{
+    if v_cached.len() != 0{
+    if cross {
+        while v_cached.len() != 0 && v_cached[v_cached.len()-1] == CanBeMerged::Cross{
+            v_cached.pop();
+        }
+        return v_cached;
+
+    } else {
+        let mut is_not_mergeable = false;
+        let mut i = 0;
+        while v_cached.len() != 0 && (i <= v_cached.len()-1) && is_not_mergeable == false{
+            if v_cached[i] == CanBeMerged::Yes{
+                i += 1;
+            }else{
+                is_not_mergeable = true;
+            }
+        }
+        while i <= v_cached.len() -1 {
+            v_cached.pop();
+        }
+        return v_cached;
+    }
+    }else {
+        Vec::new()
+    }
 
 }
-*/

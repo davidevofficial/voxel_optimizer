@@ -62,7 +62,8 @@ struct MyApp {
     vt_precisionnumber: u8,
     background_color: [f32;3],
     debug_uv_mode: bool,
-    cross: bool
+    cross: bool,
+    cull_optimization: bool,
 }
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -71,7 +72,7 @@ impl eframe::App for MyApp {
                 ui.label(RichText::new("Voxel Optimizer").font(FontId::proportional(40.0)));
                 ui.label(RichText::new("@davidevofficial - 2023").font(FontId::proportional(9.0)));
                 ui.separator();
-                ui.label("First change the setting and then Drag-and-drop files onto the window then click the convert button to convert them into an optimized .obj file, \
+                ui.label("First change the settings and then Drag-and-drop files onto the window then click the convert button to convert them into an optimized .obj file, \
                 for more help check the documentation here: https://github.com/davidevofficial/voxel_optimizer/");
             });
         });
@@ -154,23 +155,28 @@ impl eframe::App for MyApp {
                 //first column
                 // Show dropped files (if any):
                 //second column
-                ui.checkbox(&mut self.is_texturesize_powerof2, "Should the texture width and height both be a power of 2?");
-                ui.checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
-                ui.checkbox(&mut self.monochrome, "Should each face of the same colour be mapped on ONE PIXEL of the texture map?");
+                //ui.checkbox(&mut self.is_texturesize_powerof2, "Should the texture width and height both be a power of 2?");
+                //ui.checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
+                ui.checkbox(&mut self.cross, "Enable cross-overlapping optimization");
+                ui.checkbox(&mut self.cull_optimization, "Enable cull-optimization optimization");
+                ui.checkbox(&mut self.monochrome, "Enable solid color faces to be one pixel on the texture map");
                 //columns[1].checkbox(&mut self.pattern_matching, "Should similar faces be mapped on the same part of the texture map?");
                 ui.add(egui::Slider::new(&mut self.pattern_matching, 0..=3).text("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry"));
-                ui.checkbox(&mut self.cross, "Would you like to optimize cross-overlapping?");
-                ui.checkbox(&mut self.manual_vt, "Would you like to manually set the precision levels?");
+                
+                ui.checkbox(&mut self.manual_vt, "Enable manual setting of the precision levels?");
                 if self.manual_vt == true {
                     ui.add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
                 }
                 ui.horizontal(|ui|{
                     ui.color_edit_button_rgb(&mut self.background_color);
-                    ui.label("What should the background colour be?");
+                    ui.label("Select the background colour");
                 });
-                ui.checkbox(&mut self.debug_uv_mode, "Would you like to activate uv debug mode?");
+                ui.checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
         });
         preview_files_being_dropped(ctx);
+        if self.manual_vt == false{
+            self.vt_precisionnumber = 0;
+        }
         self.update_status();
         // Collect dropped files:
         ctx.input(|i| {
@@ -179,7 +185,7 @@ impl eframe::App for MyApp {
         //save
         let mut b: Option<String> = None;
         if self.vt_precisionnumber < 10{b = Some(String::from("0"))}
-        let c = format!("{},{},{},{}{},{},{},{}"
+        let c = format!("{},{},{},{}{},{},{},{},{}"
                         , (self.monochrome as i32).to_string()
                         , self.pattern_matching.to_string()
                         , (self.manual_vt as i32).to_string()
@@ -187,9 +193,12 @@ impl eframe::App for MyApp {
                         , (self.vt_precisionnumber as i32).to_string()
                         , (self.is_texturesize_powerof2 as i32).to_string()
                         , (self.texturemapping_invisiblefaces as i32).to_string()
-                        , (self.cross as i32).to_string());
+                        , (self.cross as i32).to_string()
+                        , (self.cull_optimization as i32).to_string()
+                        );
         write("src/options.txt", c).unwrap();
     }
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>){panic!()}
 }
 impl MyApp {
     fn update_status(&mut self) {
@@ -227,6 +236,7 @@ impl Default for MyApp{
             let tn_s = if c[9] == b'1' {true}else{false};
             let tx_f = if c[11] == b'1' {true}else{false};
             let cro = if c[13] == b'1' {true}else{false};
+            let cu_o = if c[15] == b'1' {true}else{false};
 
         Self{
             sx: sx,
@@ -244,6 +254,7 @@ impl Default for MyApp{
             background_color: [0.0,0.0,0.0],
             debug_uv_mode: false,
             cross: cro,
+            cull_optimization: cu_o,
         }
     }
 }

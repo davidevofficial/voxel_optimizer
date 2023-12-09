@@ -37,10 +37,11 @@ pub struct v{
 impl ply{
     pub(crate) fn normalize_positions(mut self) -> Self{
         for va in 0..self.vertices.len(){
-            self.vertices[va].x *= 10.0;
-            self.vertices[va].y *= 10.0;
-            self.vertices[va].z *= 10.0;
+            self.vertices[va].x = (self.vertices[va].x*10.0).round();
+            self.vertices[va].y = (self.vertices[va].y*10.0).round();
+            self.vertices[va].z = (self.vertices[va].z*10.0).round();
         }
+            
     self
     }
 }
@@ -127,8 +128,8 @@ pub fn parse_ply(content: &String) -> Result<ply, vox_importer_errors>{
     for v in (0..ply.number_of_v_and_f.0){
         end_index = find_next_newline_after_index(&ply_bytes[start_index..]).unwrap() + start_index;
         let tokens = split_into_words(&ply_bytes[start_index..(end_index - 1)]);
-        println!("{:?}", &tokens);
-        println!("{:?}", &v);
+        //println!("{:?}", &tokens);
+        //println!("{:?}", &v);
         start_index = end_index + 1;
         vec_v.push(v::default());
         //x, y, z value
@@ -144,8 +145,8 @@ pub fn parse_ply(content: &String) -> Result<ply, vox_importer_errors>{
     for f in (0..ply.number_of_v_and_f.1){
         end_index = find_next_newline_after_index(&ply_bytes[start_index..]).unwrap() + start_index;
         let tokens = split_into_words(&ply_bytes[start_index..(end_index - 1)]);
-        println!("{:?}", &tokens);
-        println!("{:?}", &f);
+        //println!("{:?}", &tokens);
+        //println!("{:?}", &f);
         start_index = end_index + 1;
         vec_f.push(f::default());
         //a, b, c, d indices

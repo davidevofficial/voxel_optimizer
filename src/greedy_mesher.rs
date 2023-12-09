@@ -2,10 +2,12 @@ use std::path::PathBuf;
 use std::vec;
 use eframe::egui::panel::TopBottomSide::Top;
 use crate::vox_importer::*;
+use crate::vox_exporter::*;
 use crate::texture_mapping::*;
 use crate::uv_unwrapping::*;
 use crate::{MyApp, vox_importer};
 use ndarray::{Array3, Axis, s};
+
 /*
 END_PRODUCT
 
@@ -18,13 +20,11 @@ pub struct Cube{
     faces: [Option<cube_f>;6], //(it was about to be outdated even before I uncommented this mess LOL DEATH_EMOJI)
     position: (f32, f32, f32),
     colour: (u8, u8, u8),
-    vertices_indices: [i32;8],
     merged: bool
 }
 impl Cube{
     fn from_face(f: &cube_f) -> Cube{
         let m = false;
-        let v = [0;8];
         let faces = match f.dir {
             DIRECTION::TOP =>    {[Some(f.clone()),None,None,None,None,None]}
             DIRECTION::BOTTOM => {[None,Some(f.clone()),None,None,None,None]}
@@ -44,7 +44,6 @@ impl Cube{
         Cube{
             position: po,
             faces: faces,
-            vertices_indices: v,
             colour: f.colour,
             merged: m,
         }
@@ -80,7 +79,38 @@ impl cube_f {
         let po = ((a.x + b.x + c.x + d.x) / 4.0,
                   (a.y + b.y + c.y + d.y) / 4.0,
                   (a.z + b.z + c.z + d.z) / 4.0);
-
+        /*
+        let mut di: DIRECTION = DIRECTION::TOP;
+        //either top or bottom
+        if a.z == b.z && b.z == c.z && c.z == d.z{
+            //top
+            if a.y == b.y{
+                
+            }
+            //not top 
+            else{
+                di = DIRECTION::BOTTOM;
+            }
+        }
+        //either front or back
+        if a.y == b.y && b.y == c.y && c.y == d.y{
+            //front
+            if a.x != b.x{
+                di = DIRECTION::FRONT;
+            } else{
+                di = DIRECTION::BACK;
+            }
+        }
+        //either left or right
+        if a.x == b.x && b.x == c.x && c.x == d.x{
+            //left
+            if a.y == b.y{
+                di = DIRECTION::LEFT;
+            } else{
+                di = DIRECTION::RIGHT;
+            }
+        }
+        */
         let di: DIRECTION = if a.x != b.x {
             if b.y != c.y {
                 DIRECTION::TOP
@@ -99,7 +129,6 @@ impl cube_f {
             } else if b.y != c.y {
                 DIRECTION::LEFT
             } else { DIRECTION::TOP }}else { DIRECTION::TOP };
-
         let col = (a.r, a.g, a.b);
 
         cube_f {
@@ -124,14 +153,15 @@ impl cube_f {
 #[derive(Debug)]
 pub struct OptimizedCube{
     //___________w_|_h_|_d_|_
-    dimensions: (u16, u16, u16),
+    pub dimensions: (u16, u16, u16),
 
     //used to evaluate the texture map of each face
-    cubes: Vec<Cube>,
+    //pub cubes: Vec<Cube>,
+    pub textures: Vec<Vec<Option<(u8,u8,u8)>>>,
     //monochrome: bool,
     //-------------------indices----0 bottom left, 1 bottom right, 2 top right, 3 top left, 4-7 same thing but up and clockwise
     //important_vertices: [i32; 8]
-    starting_position: (i32,i32,i32)
+    pub starting_position: (i32,i32,i32)
 
 }
 //*/
@@ -143,7 +173,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     let content = read_ply(&path.to_string_lossy().to_string());
     let mut ply_result:Result<ply, vox_importer::vox_importer_errors> = match content {
         Ok(content) => {
-            println!("{}", content);
+            //println!("{}", content);
             let x = format!("{}{}" ,String::from("parsing:"), path.to_string_lossy().to_string());
             my_app.sx.send(x);
             parse_ply(&content)
@@ -162,7 +192,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
         let x = String::from(format!("Optimizing model with {} vertices and {} faces", &ply.number_of_v_and_f.0, &ply.number_of_v_and_f.1));
         my_app.sx.send(x);
 
-        println!("{:?}", &ply);
+        //println!("{:?}", &ply);
     }
     if let Err(e) = &ply_result {
         let x = String::from(format!("Error while parsing!!! {}" ,e));
@@ -192,12 +222,12 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     //normalize positions
     let mut ply = ply_result.unwrap();
     ply = ply.normalize_positions();
-    println!("{:?}",&ply);
+    //println!("{:?}",&ply);
 
     //get size
     let mut vector_of_f: Vec<cube_f> = Vec::new();
-    let mut lowest_coordinates = (9999.0,9999.0,9999.0);
-    let mut highest_coordinates = (-9999.0, -9999.0, -9999.0);
+    let mut lowest_coordinates = (99999.0,99999.0,99999.0);
+    let mut highest_coordinates = (-99999.0, -99999.0, -99999.0);
     for f in &ply.faces{
         let a: &v = &ply.vertices[f.vs.0 as usize];
         let b: &v = &ply.vertices[f.vs.1 as usize];
@@ -221,51 +251,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
 
     }
 
-    /*
-    let mut cubes =  Array3::<Option<Cube>>::from_elem(
-                                     ((highest_coordinates.0 - lowest_coordinates.0) as usize,
-                                        (highest_coordinates.1 - lowest_coordinates.1) as usize,
-                                        (highest_coordinates.2 - lowest_coordinates.2)as usize), None);
-    println!("{:?}", &lowest_coordinates);
-    println!("{:?}", &highest_coordinates);
 
-    for fa in &vector_of_f{
-        //let index = ((fa.return_cube_position().0-0.5) - lowest_coordinates.0 as u8, fa.return_cube_position()-0.5)as u8, fa.return_cube_position()-0.5)as u8)
-        println!("x:{:?},y:{:?},z:{:?}",fa.return_cube_position().0 - lowest_coordinates.0 - 0.5,
-                    fa.return_cube_position().1 - lowest_coordinates.1 - 0.5,
-                    fa.return_cube_position().2 - lowest_coordinates.2 - 0.5);
-        let index = (((fa.return_cube_position().0 - lowest_coordinates.0 - 0.5) as usize),
-                            ((fa.return_cube_position().1 - lowest_coordinates.1 - 0.5) as usize),
-                            ((fa.return_cube_position().2 - lowest_coordinates.2 - 0.5) as usize));
-        //println!("{:?}", &index);
-
-        //if cubes[index.0][index.1][index.2].is_some(){
-        if let Some(mut cube) = cubes[[index.0, index.1, index.2]].take(){
-            let i = match fa.dir {
-                DIRECTION::TOP => {0}
-                DIRECTION::BOTTOM => {1}
-                DIRECTION::LEFT => {2}
-                DIRECTION::RIGHT => {3}
-                DIRECTION::FRONT => {4}
-                DIRECTION::BACK => {5}
-            };
-            cube.faces[i] = Some(*fa);
-            cubes[[index.0, index.1, index.2]] = Some(cube);
-            //println!("{:?}", &fa);
-
-        } else {
-            let mut cu = Cube::from_face(fa);
-            //println!("{:?}", &cu);
-            cubes[[index.0, index.1, index.2]] = Some(cu);
-            //cubes[index.0][index.1][index.2] = Some(cu);
-        }
-    }
-    //println!("{:?}", &vector_of_f);
-    println!("{:?}", &cubes);
-    //convert_to_optimized_cubes(cubes,&cross)
-    */
-
-    //todo()! -> lowestcoordinates unsafe
     let mut mapofcubes: MapOfCubes = MapOfCubes{Hashmap:HashMap::new(), Shape:(1,1,1),
      Lowest_coordinates:(lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32)};
 
@@ -274,9 +260,9 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
                         (highest_coordinates.2 - lowest_coordinates.2)as i32);
 
     for fa in &vector_of_f{
-        let index = (   ((fa.return_cube_position().0 -  0.5) as i32),
-                        ((fa.return_cube_position().1  - 0.5) as i32),
-                        ((fa.return_cube_position().2  - 0.5) as i32)   );
+        let index = (   ((fa.return_cube_position().0 - 0.5) as i32),
+                        ((fa.return_cube_position().1 - 0.5) as i32),
+                        ((fa.return_cube_position().2 - 0.5) as i32)   );
 
         if let Some(mut cube) = mapofcubes.get_cube(index.0, index.1, index.2){
             let i = match fa.dir {
@@ -292,17 +278,40 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
             //println!("{:?}", &fa);
 
         } else {
-            let mut cu = Cube::from_face(fa);
+            let cu = Cube::from_face(fa);
             mapofcubes.set_cube(index.0, index.1, index.2, cu);
         }
     }
+    println!("mapofcubes.len()={:?}", &mapofcubes.Hashmap.len());
     println!("{:?}", &mapofcubes);
+    if my_app.cull_optimization == false{
     let optimized_cubes = convert_to_optimized_cubes(&mut mapofcubes, my_app.cross,
      (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
-    let x = String::from(format!("Reduced model voxels count from {:?} to {:?} voxels", &ply.number_of_v_and_f.0/8, optimized_cubes.len()));
+
+    println!("{:?} optimized cubes in total", optimized_cubes.len());
+    let mut obj = Obj::from_optimized_cubes(path, &my_app, &optimized_cubes);
+    let x = String::from(format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
+                ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.texture_map.w, obj.texture_map.h));
         my_app.sx.send(x);
-    
-    println!("{:?}", optimized_cubes.len());
+    obj.export_all();
+    println!("{:?}", "Finished optimizing mesh");
+    let x = String::from(format!("{}","Operation completed successfully!"));
+        my_app.sx.send(x);
+
+    }else{
+        let optimized_cubes = convert_to_optimized_cubes_cull_optimized(&mut mapofcubes,
+     (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
+
+    println!("{:?} optimized cubes in total", optimized_cubes.len());
+    let mut obj = Obj::from_optimized_cubes(path, &my_app, &optimized_cubes);
+    let x = String::from(format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
+                ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.texture_map.w, obj.texture_map.h));
+        my_app.sx.send(x);
+    obj.export_all();
+    println!("{:?}", "Finished optimizing mesh");
+    let x = String::from(format!("{}","Operation completed successfully!"));
+        my_app.sx.send(x);
+    }
 
 }
 
@@ -347,6 +356,7 @@ impl MapOfCubes{
             for y in y1..=y2{
                 for x in x1..=x2{
                 let cube = self.Hashmap.get(&(x,y,z));
+                //println!("self.Hashmap.get({:?},{:?},{:?};)={:?}",x,y,z,self.Hashmap.get(&(x,y,z)));
                 match cube{
                     None => {return CanBeMerged::No;}
                     Some(x) => {if x.merged == true{is_slice_already_merged = true;}}
@@ -367,6 +377,7 @@ impl MapOfCubes{
                 for x in x1..=x2{
                     if let Some(entry) = self.Hashmap.get_mut(&(x,y,z)) {
                         entry.merged = true;
+                    } else {
                     }
                 } 
             }
@@ -380,8 +391,8 @@ impl MapOfCubes{
                 for x in x1..=x2{
                     let cube = self.Hashmap.get(&(x,y,z));
                     match cube{
-                    None => {println!("x1:{:?}, x2:{:?}, y1:{:?}, y2:{:?}, z1:{:?}, z2:{:?}, ",x1,x2,y1,y2,z1,z2 );
-                            println!("x:{:?} y:{:?} z:{:?} ", x,y,z);
+                    None => {//println!("x1:{:?}, x2:{:?}, y1:{:?}, y2:{:?}, z1:{:?}, z2:{:?}, ",x1,x2,y1,y2,z1,z2 );
+                            //println!("x:{:?} y:{:?} z:{:?} ", x,y,z);
                         unimplemented!()}
                     Some(x) => {vector_to_return.push(*x);}
                     }
@@ -390,7 +401,131 @@ impl MapOfCubes{
         }
         return vector_to_return;
     }
-
+    fn get_texturemap(&self, i: i32, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> Vec<Option<(u8,u8,u8)>>{
+        let mut vector_to_return: Vec<Option<(u8,u8,u8)>> = Vec::new();
+        if i == 0{
+            for y in y1..=y2{
+                for x in x1..=x2{
+                    if self.is_slice_some(x, x, y, y, z2, z2){
+                        let cube =self.Hashmap.get(&(x,y,z2)).unwrap();
+                        vector_to_return.push(Some(cube.colour));
+                    }else {
+                        vector_to_return.push(None);
+                    }
+                }
+            }
+        }
+        if i == 1{
+            for y in y1..=y2{
+                for x in x1..=x2{
+                    if self.is_slice_some(x2-x, x2-x, y2-y, y2-y, z1, z1){
+                        let cube =self.Hashmap.get(&(x2-x,y2-y,z1)).unwrap();
+                        vector_to_return.push(Some(cube.colour));
+                    }else {
+                        vector_to_return.push(None);
+                    }
+                }
+            }
+        }
+        if i == 2{
+            for z in z1..=z2{
+                for y in y1..=y2{
+                    if self.is_slice_some(x1, x1, y2-y, y2-y, z, z){
+                        let cube =self.Hashmap.get(&(x1,y2-y,z)).unwrap();
+                        vector_to_return.push(Some(cube.colour));
+                    }else {
+                        vector_to_return.push(None);
+                    }
+                }
+            }
+        }
+        if i == 3{
+            for z in z1..=z2{
+                for y in y1..=y2{
+                    if self.is_slice_some(x2, x2, y, y, z, z){
+                        let cube =self.Hashmap.get(&(x2,y,z)).unwrap();
+                        vector_to_return.push(Some(cube.colour));
+                    }else {
+                        vector_to_return.push(None);
+                    }
+                }
+            }
+        }
+        if i == 4{
+            for z in z1..=z2{
+                for x in x1..=x2{
+                    if self.is_slice_some(x, x, y1, y1, z, z){
+                        let cube =self.Hashmap.get(&(x,y1,z)).unwrap();
+                        vector_to_return.push(Some(cube.colour));
+                    }else {
+                        vector_to_return.push(None);
+                    }
+                }
+            }
+        }
+        if i == 5{
+            for z in z1..=z2{
+                for x in x1..=x2{
+                    if self.is_slice_some(x2-x, x2-x, y1, y2, z, z){
+                        let cube =self.Hashmap.get(&(x2-x,y2,z)).unwrap();
+                        vector_to_return.push(Some(cube.colour));
+                    }else {
+                        vector_to_return.push(None);
+                    }
+                }
+            }
+        }
+        vector_to_return
+    }
+    fn slice_has_right_face(&self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32)->bool{
+        for z in z1..=z2{
+            for y in y1..=y2{
+                for x in x1..=x2{
+                    if self.Hashmap.get(&(x,y,z)).is_some(){                    
+                        let c = self.Hashmap.get(&(x,y,z)).unwrap();
+                        if c.faces[3].is_some(){
+                            return true;
+                        }
+                    }
+                } 
+            }
+            
+        }
+        return false;
+    }
+    fn slice_has_back_face(&self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32)->bool{
+        for z in z1..=z2{
+            for y in y1..=y2{
+                for x in x1..=x2{
+                    println!("{:?}", self.Hashmap.get(&(x,y,z)).unwrap().faces);
+                    if self.Hashmap.get(&(x,y,z)).is_some(){
+                        let c = self.Hashmap.get(&(x,y,z)).unwrap();
+                        if c.faces[5].is_some(){
+                            return true;
+                        }
+                    }
+                } 
+            }
+            
+        }
+        return false;
+    }
+    fn slice_has_top_face(&self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32)->bool{
+        for z in z1..=z2{
+            for y in y1..=y2{
+                for x in x1..=x2{
+                    if self.Hashmap.get(&(x,y,z)).is_some(){
+                        let c = self.Hashmap.get(&(x,y,z)).unwrap();
+                        if c.faces[0].is_some(){
+                            return true;
+                        }
+                    }
+                } 
+            }
+            
+        }
+        return false;
+    }
 }
 
 #[derive(PartialEq)]
@@ -400,7 +535,79 @@ pub enum CanBeMerged{
     No,
     Cross,
 }
+pub fn convert_to_optimized_cubes_cull_optimized(cubes: &mut MapOfCubes, lowest_coordinates:(i32, i32, i32)) -> Vec<OptimizedCube>{
+    let mut cs = Vec::new();
 
+    println!("{:?}", lowest_coordinates);
+    println!("{:?}", cubes.Shape);
+    for z in lowest_coordinates.2..cubes.Shape.2+lowest_coordinates.2+1{
+        for y in lowest_coordinates.1..cubes.Shape.1+lowest_coordinates.1+1{
+            for x in lowest_coordinates.0..cubes.Shape.0+lowest_coordinates.0+1{
+                println!("x:{:?} y:{:?} z:{:?}", x as i32,y as i32,z as i32);
+                if let Some(opcube) = find_dimensions_cull(cubes, (x as i32, y as i32, z as i32)) {
+                    cs.push(opcube);
+
+                }
+            }
+        }
+    }
+    cs
+}
+fn find_dimensions_cull(mymap: &mut MapOfCubes, index_we_are_at: (i32,i32,i32)) -> Option<OptimizedCube>{
+
+    let mut shape = (1, 1, 1);
+
+    if mymap.is_slice_some(index_we_are_at.0 as i32, index_we_are_at.0 as i32,
+                             index_we_are_at.1 as i32, index_we_are_at.1 as i32,
+                              index_we_are_at.2 as i32, index_we_are_at.2 as i32){
+
+        match mymap.can_slice_be_merged(index_we_are_at.0 as i32, index_we_are_at.0 as i32,
+                             index_we_are_at.1 as i32, index_we_are_at.1 as i32,
+                              index_we_are_at.2 as i32, index_we_are_at.2 as i32){
+            CanBeMerged::No => {return None;}
+            CanBeMerged::Cross => {return None;}
+            CanBeMerged::Yes => { }
+        }
+
+    } else {return None;}
+
+    let i = index_we_are_at.0.clone();
+    let j = index_we_are_at.1.clone();
+    let k = index_we_are_at.2.clone();
+    
+    //x
+    while mymap.slice_has_right_face(i+shape.0-1,i+shape.0-1,j,j,k,k) == false {
+                shape.0 += 1;
+    }
+
+    println!("line 556: shape: {:?}", shape);
+    //y
+    while mymap.slice_has_back_face(i,i+shape.0-1,j+shape.1-1,j+shape.1-1,k,k) == false {
+                println!("mymap.slice_has_back_face({:?},{:?},{:?},{:?},{:?},{:?})",i,i+shape.0-1, j+shape.1, j+shape.1, k,k);
+                shape.1 += 1;
+    }
+
+    println!("line 562: shape: {:?}", shape);
+    //z
+    while mymap.slice_has_top_face(i,i+shape.0-1,j,j+shape.1-1,k+shape.2-1,k+shape.2-1) == false {
+                shape.2 += 1;
+    }
+    shape.2 += 1;
+    println!("line 568: shape: {:?}", shape);
+    let mut txt = Vec::new();
+    for x in 0..6{
+        txt.push(mymap.get_texturemap(x, i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1));
+    }
+    mymap.merge_slice(i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1);
+
+
+    Some(OptimizedCube{
+        dimensions: (shape.0 as u16, shape.1 as u16, shape.2 as u16),
+        starting_position: (index_we_are_at.0 as i32, index_we_are_at.1 as i32, index_we_are_at.2 as i32),
+        textures: txt,
+
+    })
+}
 pub fn convert_to_optimized_cubes(cubes: &mut MapOfCubes, cross: bool, lowest_coordinates:(i32, i32, i32)) -> Vec<OptimizedCube>{
     let mut cs = Vec::new();
     /*
@@ -412,10 +619,10 @@ pub fn convert_to_optimized_cubes(cubes: &mut MapOfCubes, cross: bool, lowest_co
      */
     println!("{:?}", lowest_coordinates);
     println!("{:?}", cubes.Shape);
-    for z in lowest_coordinates.2..cubes.Shape.2+lowest_coordinates.2{
-        for y in lowest_coordinates.1..cubes.Shape.1+lowest_coordinates.1{
-            for x in lowest_coordinates.0..cubes.Shape.0+lowest_coordinates.0{
-                println!("x:{:?} y:{:?} z:{:?}", x as i32,y as i32,z as i32);
+    for z in lowest_coordinates.2..cubes.Shape.2+lowest_coordinates.2+1{
+        for y in lowest_coordinates.1..cubes.Shape.1+lowest_coordinates.1+1{
+            for x in lowest_coordinates.0..cubes.Shape.0+lowest_coordinates.0+1{
+                //println!("x:{:?} y:{:?} z:{:?}", x as i32,y as i32,z as i32);
                 if let Some(opcube) = find_dimensions(cubes, (x as i32, y as i32, z as i32), &cross) {
 
                     cs.push(opcube);
@@ -430,9 +637,8 @@ pub fn convert_to_optimized_cubes(cubes: &mut MapOfCubes, cross: bool, lowest_co
 fn find_dimensions(mymap: &mut MapOfCubes, index_we_are_at: (i32,i32,i32), cross_optimization: &bool) -> Option<OptimizedCube>{
 
     let mut shape = (1, 1, 1);
-    println!("{:?}", shape);
-    //let mut dimensions = (1u8, 1u8, 1u8);
-    let mut cubes = Vec::new();
+    //println!("{:?}", shape);
+    //let mut cubes: std::vec::Vec<T> = Vec::new();
 
 
     //is the first cube a some value?
@@ -445,14 +651,15 @@ fn find_dimensions(mymap: &mut MapOfCubes, index_we_are_at: (i32,i32,i32), cross
                               index_we_are_at.2 as i32, index_we_are_at.2 as i32){
             CanBeMerged::No => {return None;}
             CanBeMerged::Cross => {return None;}
-            CanBeMerged::Yes => {
+            CanBeMerged::Yes => { 
                 //if so it will be the first cube of the vector
+                /*
                 if let Some(x) = mymap.get_cube(index_we_are_at.0 as i32, index_we_are_at.1 as i32, index_we_are_at.2 as i32) {
                     cubes.push(x);
                     mymap.merge_slice(index_we_are_at.0, index_we_are_at.0, index_we_are_at.1, index_we_are_at.1,
                         index_we_are_at.2, index_we_are_at.2);
                 }
-                
+                */
             }
         }
 
@@ -463,30 +670,30 @@ fn find_dimensions(mymap: &mut MapOfCubes, index_we_are_at: (i32,i32,i32), cross
     //or: Yes, no -> you therefore stop
     //or: Yes, cross, cross, No -> you evaluate that the third is the last but being a Cross it cannot be last
     //so it asks the second one, can you be last? and he is a cross too so it becomes Yes, and that is it
-    println!("{:?}", "has it crashed yet? 1");
-    println!("{:?}", shape);
+    //println!("{:?}", "has it crashed yet? 1");
 
     let mut v_cached = Vec::new();
     //x
     let i = index_we_are_at.0.clone();
     let j = index_we_are_at.1.clone();
     let k = index_we_are_at.2.clone();
-    println!("{:?}", "has it crashed yet? 1.1");
-    println!("i:{:?} j:{:?} k:{:?}", i, j, k);
-    println!("{:?}", mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k));
+    //println!("{:?}", "has it crashed yet? 1.1");
+    //println!("i:{:?} j:{:?} k:{:?}", i, j, k);
     while (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k) == CanBeMerged::Yes) ||
             (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k) == CanBeMerged::Cross && *cross_optimization){
                 v_cached.push(mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k));
                 shape.0 += 1;
             }
-    println!("{:?}", "has it crashed yet? 1.2");
-    println!("{:?}", shape);
+    //println!("{:?}", "has it crashed yet? 1.2");
+    //println!("{:?}", shape);
     //todo()! -> v_cached gets sanitized (based on the cross rule) and then I put cubes in the optimized cubes based
     //           on vector lenght
-    println!("{:?}", v_cached);
-    v_cached = cache_sanitization( v_cached, *cross_optimization);
-    println!("{:?}", v_cached);
+    //println!("{:?}", v_cached);
+    
+
+    v_cached = cache_sanitization( v_cached, *cross_optimization);  
     shape.0 = v_cached.len() as i32 + 1 ;
+    /*
     if shape.0 > 1{
 
         for v in mymap.get_cubes_from_slice(i+1, i+shape.0-1, j, j, k, k){
@@ -494,27 +701,30 @@ fn find_dimensions(mymap: &mut MapOfCubes, index_we_are_at: (i32,i32,i32), cross
         }
         mymap.merge_slice(i, i+shape.0-1, j, j, k, k)
     }
-    println!("{:?}", "has it crashed yet? 1.3");
-    println!("{:?}", shape);
+    */
+    //println!("{:?}", "has it crashed yet? 1.3");
+    //println!("{:?}", shape);
     //y
     v_cached = Vec::new();
-    println!("{:?}", mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k));
-    println!("{:?}", (i, i+shape.0, j+shape.1, j+shape.1, k, k));
+    //println!("{:?}", mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k));
+    //println!("{:?}", (i, i+shape.0, j+shape.1, j+shape.1, k, k));
     while (mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k) == CanBeMerged::Yes) ||
             ((mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k) == CanBeMerged::Cross) && *cross_optimization){
                 v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k));
                 shape.1 += 1;
             }  
-    v_cached = cache_sanitization( v_cached, *cross_optimization);
+    v_cached = cache_sanitization( v_cached, *cross_optimization);    
     shape.1 = v_cached.len() as i32  + 1;
+    /*
     if shape.1 > 1{
         for v in mymap.get_cubes_from_slice(i, i+shape.0-1, j+1, j+shape.1-1, k, k){
             cubes.push(v);
         }
         mymap.merge_slice(i, i+shape.0-1, j, j+shape.1-1, k, k)
     }
-    println!("{:?}", "has it crashed yet? 1.4");
-    println!("shape:{:?}, ijk:{:?}", (shape),(i,j,k));
+    */
+    //println!("{:?}", "has it crashed yet? 1.4");
+    //println!("shape:{:?}, ijk:{:?}", (shape),(i,j,k));
     //z
     v_cached = Vec::new();
     while (mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2) == CanBeMerged::Yes) ||
@@ -524,25 +734,32 @@ fn find_dimensions(mymap: &mut MapOfCubes, index_we_are_at: (i32,i32,i32), cross
             }  
     v_cached = cache_sanitization( v_cached, *cross_optimization);
     shape.2 = v_cached.len() as i32  + 1;
+    /*
     if shape.2 > 1{
         for v in mymap.get_cubes_from_slice(i, i+shape.0-1, j, j+shape.1-1, k+1, k+shape.2-1){
             cubes.push(v);
         }
         mymap.merge_slice(i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1)
     }
-    println!("{:?}", "has it crashed yet? 2");
+    */
+    let mut txt = Vec::new();
+    for x in 0..6{
+        txt.push(mymap.get_texturemap(x, i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1));
+    }
+    mymap.merge_slice(i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1);
+
+    //println!("{:?}", "has it crashed yet? 2");
     //optimized cube forming
     //let starting_position = index_we_are_at;
-    println!("{:?}", shape);
+    //println!("{:?}", shape);
     Some(OptimizedCube{
         dimensions: (shape.0 as u16, shape.1 as u16, shape.2 as u16),
         starting_position: (index_we_are_at.0 as i32, index_we_are_at.1 as i32, index_we_are_at.2 as i32),
-        cubes: cubes,
+        textures: txt,
 
     })
 }
 
-//todo!();
 fn cache_sanitization(mut v_cached: Vec<CanBeMerged>, cross: bool) -> Vec<CanBeMerged>{
     if v_cached.len() != 0{
     if cross {

@@ -1,7 +1,7 @@
 use crate::greedy_mesher::OptimizedCube;
-use crate::vox_exporter::{rgb, TextureMap};
+use crate::vox_exporter::{Rgb, TextureMap};
 
-pub fn create_texture_for_a_cube(optimizedcube: &OptimizedCube,bg_color: rgb) -> TextureMap{
+pub fn create_texture_for_a_cube(optimizedcube: &OptimizedCube,bg_color: Rgb) -> TextureMap{
     todo!()
 }
 fn rotate_90(texture: TextureMap) -> TextureMap{

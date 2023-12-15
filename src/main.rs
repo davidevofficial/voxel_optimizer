@@ -12,12 +12,15 @@ use std::fs::read;
 use std::fs::write;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::Duration;
 use std::sync::mpsc::{channel, Sender, Receiver};
 
 use eframe::egui::FontId;
 use eframe::egui::RichText;
 use crate::vox_importer::is_valid_ply;
 use crate::greedy_mesher::*;
+
+
 
 fn main() -> Result<(), eframe::Error> {
 
@@ -126,6 +129,7 @@ impl eframe::App for MyApp {
                                 thread::spawn(move ||{
                                   greedy_mesher::convert(&mut my_app_clone, i_clone);
                                 });
+                                //thread::sleep(Duration::from_millis((2000/self.dropped_files.len()).try_into().unwrap()));
                                 //greedy_mesher::convert(self, i);
                             } else {
                                 println!("invalid!");
@@ -158,7 +162,7 @@ impl eframe::App for MyApp {
                 //ui.checkbox(&mut self.is_texturesize_powerof2, "Should the texture width and height both be a power of 2?");
                 //ui.checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
                 ui.checkbox(&mut self.cross, "Enable cross-overlapping optimization");
-                ui.checkbox(&mut self.cull_optimization, "Enable cull-optimization optimization");
+                ui.checkbox(&mut self.cull_optimization, "Enable de-cull optimization");
                 ui.checkbox(&mut self.monochrome, "Enable solid color faces to be one pixel on the texture map");
                 //columns[1].checkbox(&mut self.pattern_matching, "Should similar faces be mapped on the same part of the texture map?");
                 ui.add(egui::Slider::new(&mut self.pattern_matching, 0..=3).text("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry"));
@@ -169,7 +173,7 @@ impl eframe::App for MyApp {
                 }
                 ui.horizontal(|ui|{
                     ui.color_edit_button_rgb(&mut self.background_color);
-                    ui.label("Select the background colour");
+                    ui.label("Select the background colour (reccomended rgb: #000000)");
                 });
                 ui.checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
         });
@@ -197,6 +201,8 @@ impl eframe::App for MyApp {
                         , (self.cull_optimization as i32).to_string()
                         );
         write("src/options.txt", c).unwrap();
+        //thread::sleep(Duration::from_millis(10));
+        //ctx.request_repaint()
     }
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>){panic!()}
 }

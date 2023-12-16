@@ -22,12 +22,23 @@ pub struct Obj{
     pub vertices_uvs: Vec<ObjVt>,
     pub texture_map: TextureMap,
     pub vt_precisionnumber: u8,
+    pub y_is_up: bool,
+    pub center_model: bool,
+    pub background_color: Rgb,
 }
-#[derive(Debug)]
+#[derive(Copy, Debug, PartialEq)]
+#[derive(Clone)]
+pub struct Rgb{
+    pub r: u8,
+    pub g: u8,
+    pub b: u8
+}
+
+#[derive(Debug, Clone)]
 pub struct TextureMap{
     pub w: usize,
     pub h: usize,
-    colours: Vec<Rgb>, //I might consider using a tuple(u8, u8, u8) instead of a struct,
+    pub colours: Vec<Option<Rgb>>, //I might consider using a tuple(u8, u8, u8) instead of a struct,
                         //however in this way I could implement an equality comparator for rgb struct
 }
 #[derive(PartialEq)]
@@ -41,12 +52,13 @@ pub enum equality{
     THREE_Y,
 }
 impl TextureMap{
-    fn is_equal(&self, t2: TextureMap, typeofequality: i32) -> equality{
+    fn is_equal(&self, t2: &TextureMap, typeofequality: i32) -> equality{
 
-        if typeofequality == 0{
+        if typeofequality == 0 || self.colours.len() != t2.colours.len(){
             return equality::NO;
         } 
-        let mut equality_one = equality::ONE;
+        //println!("comparing {:?} with {:?}",self, t2);
+        let mut equality_one = true;
         let mut equality_two180 = equality::TWO_180;
         let mut equality_two90 = equality::TWO_90;
         let mut equality_two270 = equality::TWO_270;
@@ -55,20 +67,21 @@ impl TextureMap{
 
         if typeofequality >= 1{
             if self.w == t2.w && self.h == t2.h{
-                    for x in 0..self.colours.len()-1{
-                        if equality_one == equality::ONE && self.colours[x] != t2.colours[x]{
-                            equality_one = equality::NO;
+                    for x in 0..self.colours.len(){
+                        if equality_one == true && self.colours[x] != t2.colours[x]{
+                            equality_one = false;
                         }
                     }
             }
 
         }
-        if equality_one == equality::ONE{
-            return equality_one;
+        if equality_one == true{
+            println!("{:?}", "it's a match!");
+            return equality::ONE;
         } 
         if typeofequality >= 2 {
             if self.w == t2.w && self.h == t2.h{
-                    for x in 0..self.colours.len()-1{
+                    for x in 0..self.colours.len(){
                             if equality_two180==equality::TWO_180 && self.colours[self.colours.len()-1-x] != t2.colours[x]{ 
                                 equality_two180 = equality::NO; //180 (-x, -y)  
                             }
@@ -77,7 +90,7 @@ impl TextureMap{
                     for x in 0..self.colours.len(){
                         let w = self.w;
                         let h = self.h;
-                        let mut m = x%h;
+                        let m = x%h;
                         let i = m*w+(w-(x-m)/h)-1;  
                         
                         if equality_two90==equality::TWO_90 && self.colours[i] != t2.colours[x]{ 
@@ -92,20 +105,20 @@ impl TextureMap{
             }
         } 
         if equality_two180 == equality::TWO_180 {
-            return equality_two180;
+            return equality::TWO_180;
         }
         if equality_two90 == equality::TWO_90 {
-            return equality_two90;
+            return equality::TWO_90;
         }
-        if equality_two270 == equality::TWO_180{
-            return equality_two270;
+        if equality_two270 == equality::TWO_270{
+            return equality::TWO_270;
         }
         if typeofequality >= 3{
             if self.w == t2.w && self.h == t2.h{
                     for x in 0..self.colours.len(){
                         let w = self.w;
                         let h = self.h;
-                        let mut m = x%h;
+                        let m = x%h;
                         let i = (w-1-m)+(x-m)/w;
                         if eq_threex==equality::THREE_X && self.colours[i] != t2.colours[x]{ 
                                 eq_threex = equality::NO; //x (mirror x axis)
@@ -121,23 +134,24 @@ impl TextureMap{
             }
         
         if eq_threex == equality::THREE_X {
-            return eq_threex;
+            return equality::THREE_X;
         }
         if eq_threey == equality::THREE_Y {
-            return eq_threey;
+            return equality::THREE_Y;
         }
         return equality::NO
 
     }
 }
-#[derive(Debug, PartialEq)]
-#[derive(Clone)]
-pub struct Rgb{
-    r: u8,
-    g: u8,
-    b: u8
-}
 
+impl Rgb{
+    fn from(rgb:Option<(u8,u8,u8)>, ba:(u8,u8,u8)) -> Rgb{
+        if let Some(x) = rgb{
+            return Rgb{r:x.0, g: x.1, b: x.2}
+        }
+        Rgb{r:ba.0, g:ba.1, b:ba.2}
+    }
+}
 //todo()! -> implement an HashMap (obj_v, index_v) and an HashMap (obj_vt, index_vt)
 #[derive(Debug)]
 pub struct ObjF{
@@ -187,6 +201,11 @@ impl Obj{
             vertices_uvs: Vec::new(),
             texture_map: TextureMap{w:0, h:0, colours:Vec::new()},
             vt_precisionnumber: my_app.vt_precisionnumber,
+            y_is_up: my_app.y_is_up,
+            center_model: my_app.center_model_in_mesh,
+            background_color: Rgb{r:(my_app.background_color[0]*255.0) as u8
+                                 ,g:(my_app.background_color[1]*255.0) as u8
+                                 ,b:(my_app.background_color[2]*255.0) as u8},
         };
 
         let mut temp_v = HashMap::new();
@@ -343,7 +362,9 @@ impl Obj{
                 });
         }
         obj.number_of_v_and_f.1 = obj.faces.len() as i32;
-        let mut vec_tid: Vec<(i32, equality)> = Vec::new();
+        let mut tid: Vec<(Option<i32>, equality)> = Vec::new();
+        let mut unique_tid: Vec<TextureMap> = Vec::new();
+
         //println!("{:?}",obj);
 
         if my_app.debug_uv_mode{
@@ -352,7 +373,7 @@ impl Obj{
             obj.vertices_uvs.push(ObjVt{u:0.0, v:2.0});
             obj.vertices_uvs.push(ObjVt{u:2.0, v:2.0});
             obj.vertices_uvs.push(ObjVt{u:2.0, v:0.0});
-            obj.texture_map = TextureMap{w:2, h:2,colours:[Rgb{r:255,g:0,b:255},Rgb{r:0,g:0,b:0},Rgb{r:0,g:0,b:0},Rgb{r:255,g:0,b:255}].to_vec()};
+            obj.texture_map = TextureMap{w:2, h:2,colours:[Some(Rgb{r:255,g:0,b:255}),Some(Rgb{r:0,g:0,b:0}),Some(Rgb{r:0,g:0,b:0}),Some(Rgb{r:255,g:0,b:255})].to_vec()};
             for x in 0..obj.faces.len(){
                 obj.faces[x].a.1=1;
                 obj.faces[x].b.1=2;
@@ -362,7 +383,79 @@ impl Obj{
             //mtl will be the same but png is going to be a 2x2 of pink and black and there are going to be 4 vt's in the whole obj
             return obj;
         } 
-        //set up metadata, vertices, texture vertices, faces, textures
+        //set up textures
+        let mut is_texture_some = false;
+        let mut is_all_same_colour = true;
+        let mut last_colour: Option<Rgb> = None;
+        for x in 0..opcubes.len(){
+            for t in 0..6{
+                //what to do if texture is empty or all of the same colour?
+                is_texture_some = false;
+                last_colour = None;
+                is_all_same_colour = true;
+                //let mut pixels = 
+                for pixel in 0..opcubes[x].textures[t].colours.len(){
+                    //pixels.push(opcubes[x].textures[t].colours[pixel]); 
+                    //check the existence of each pixel
+                    if opcubes[x].textures[t].colours[pixel].is_some(){
+                        is_texture_some = true;
+                        //if this setting is true
+                        if my_app.monochrome{
+                            // and if it is not the first pixel
+                            if let Some(ref l) = last_colour{
+                                //if the next pixel is not equal to the last
+                                if l != &opcubes[x].textures[t].colours[pixel].clone().unwrap(){
+                                    //texture isn't all of the same colour
+                                    is_all_same_colour = false;
+                                }else {
+                                    last_colour = opcubes[x].textures[t].colours[pixel];
+                                }
+                            }
+                        }
+                    }
+                }
+                if !is_texture_some{
+                    tid.push((None, equality::NO));
+                }
+                if is_texture_some{
+                    //the texture is going to depend on if it is a single colour or more
+                    let tex = if is_all_same_colour{TextureMap{w:1,h:1, colours:[opcubes[x].textures[t].colours[0]].to_vec()}
+                            }else {opcubes[x].textures[t].clone()};
+                    if unique_tid.len()==0{
+                        //if all the texture is of a colour just push that colour
+                        unique_tid.push(tex);
+                        tid.push((Some(((x*6)+t) as i32), equality::NO));
+                        
+                    //if there is a unique texture already
+                    }else {
+                        //if it is just one colour check if that colour exists already
+                        if my_app.pattern_matching == 0{
+                            unique_tid.push(opcubes[x].textures[t].clone());
+                            tid.push((Some(((x*6)+t) as i32), equality::NO))
+                        }else{
+                            for i in 0..unique_tid.len(){
+                                match opcubes[x].textures[t].is_equal(&unique_tid[i], my_app.pattern_matching){
+                                    equality::NO =>{unique_tid.push(opcubes[x].textures[t].clone());tid.push((Some((unique_tid.len()-1) as i32), equality::NO))}
+                                    equality::ONE =>{tid.push((Some(i as i32), equality::ONE))}
+                                    equality::TWO_90 =>{tid.push((Some(i as i32), equality::TWO_90))}
+                                    equality::TWO_180 =>{tid.push((Some(i as i32), equality::TWO_180))}
+                                    equality::TWO_270 =>{tid.push((Some(i as i32), equality::TWO_270))}
+                                    equality::THREE_X =>{tid.push((Some(i as i32), equality::THREE_X))}
+                                    equality::THREE_Y =>{tid.push((Some(i as i32), equality::THREE_Y))}
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+            } 
+        }
+        println!("{:?}", unique_tid.len());
+        for x in 0..unique_tid.len(){
+            println!("{:?}", unique_tid[x].colours);
+            println!("{:?}x{:?}", unique_tid[x].w, unique_tid[x].h);
+
+        }
         todo!() 
 
     }
@@ -373,7 +466,7 @@ impl Obj{
         let mut mtl_file = File::create(format!("{}/{}.mtl",self.export_folder,self.name)).expect("creation failed");
                 mtl_file.write(x.as_bytes()).expect("write failed");
     }
-    fn write_obj(&mut self){
+    fn write_obj(&mut self, shape:(i32,i32,i32),lowest_coordinates:(i32,i32,i32)){
         let w = "#created with MagicaVoxel and VoxelOptimizer ";
         let nv = format!("v:{} - f:{}\n", self.number_of_v_and_f.0, self.number_of_v_and_f.1);
         let watermark = format!("{} - {}", w, nv);
@@ -389,8 +482,27 @@ impl Obj{
         //write vertices
         let mut list_of_v = String::new();
         for v in 0..self.number_of_v_and_f.0{
-            list_of_v = format!("{}v {:?} {:?} {:?}\n",
-                list_of_v,self.vertices[v as usize].x,self.vertices[v as usize].y,self.vertices[v as usize].z);
+            //is model center (0,0,0)?
+            let mut x = 0.0;
+            let mut y = 0.0;
+            let mut z = 0.0;
+
+            if self.center_model{
+                x = self.vertices[v as usize].x as f32 - lowest_coordinates.0 as f32+(shape.0 as f32/2.0);
+                y = self.vertices[v as usize].y as f32 - lowest_coordinates.1 as f32+(shape.1 as f32/2.0);
+                z = self.vertices[v as usize].z as f32 - lowest_coordinates.0 as f32+(shape.0 as f32/2.0);
+            }else {
+                x = self.vertices[v as usize].x as f32;
+                y = self.vertices[v as usize].y as f32;
+                z = self.vertices[v as usize].z as f32;
+            }
+            //is y the up vector?
+            if self.y_is_up{
+                list_of_v = format!("{}v {:?} {:?} {:?}\n",list_of_v,y,z,x);
+            }else {
+                list_of_v = format!("{}v {:?} {:?} {:?}\n",list_of_v,x,y,z);
+            }
+            
         }
         obj_file.write(list_of_v.as_bytes()).expect("write failed");
         //write vt
@@ -441,14 +553,14 @@ impl Obj{
         let mut writer = encoder.write_header().unwrap();
         let mut data = Vec::new(); // An array containing an RGB sequence
         for x in 0..self.texture_map.colours.len(){
-            data.push(self.texture_map.colours[x].r);
-            data.push(self.texture_map.colours[x].g);
-            data.push(self.texture_map.colours[x].b);
+            data.push(self.texture_map.colours[x].unwrap().r);
+            data.push(self.texture_map.colours[x].unwrap().g);
+            data.push(self.texture_map.colours[x].unwrap().b);
         }
         writer.write_image_data(&data).unwrap();
     }
-    pub fn export_all(&mut self){
-        self.write_obj();
+    pub fn export_all(&mut self, shape:(i32,i32,i32),lowest_coordinates:(i32,i32,i32)){
+        self.write_obj(shape, lowest_coordinates);
         self.write_mtl();
         self.write_png();
     }

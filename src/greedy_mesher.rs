@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use crate::vox_importer::*;
 use crate::vox_exporter::*;
-
+use crate::vox_exporter;
 
 use crate::{MyApp, vox_importer};
 
@@ -176,57 +176,83 @@ impl ColourMatrix{
             }
         }
     }
-    fn get_texturemap(&mut self, i: i32, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> Vec<Option<(u8,u8,u8)>>{
-        let mut vector_to_return: Vec<Option<(u8,u8,u8)>> = Vec::new();
+    fn get_texturemap(&mut self, i: i32, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> vox_exporter::TextureMap{
+        let mut vector_of_colours: Vec<Option<vox_exporter::Rgb>> = Vec::new();
+        let mut w = 1;
+        let mut h = 1;
         //top
         if i == 0{
+            w = x2-x1+1;
+            h = y2-y1+1;
             for y in y1..=y2{
-                for x in x1..=x2{                    
-                        vector_to_return.push(self.get_cube_colour(x,y,z2));
+                for x in x1..=x2{   
+                        let rgb = self.get_cube_colour(x,y,z2);                
+                        if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
         //bottom
         if i == 1{
+            w = x2-x1+1;
+            h = y2-y1+1;
             for y in y1..=y2{
                 for x in x1..=x2{
-                    vector_to_return.push(self.get_cube_colour(x2-x,y2-y,z1));
+                    let rgb = self.get_cube_colour(x2-x,y2-y,z1);
+                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
         //left
         if i == 2{
+            w = y2-y1+1;
+            h = z2-z1+1;
             for z in z1..=z2{
                 for y in y1..=y2{
-                    vector_to_return.push(self.get_cube_colour(x1,y2-y,z));
+                    let rgb = self.get_cube_colour(x1,y2-y,z);
+                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
         //right
         if i == 3{
+            w = y2-y1+1;
+            h = z2-z1+1;
             for z in z1..=z2{
                 for y in y1..=y2{
-                    vector_to_return.push(self.get_cube_colour(x2,y,z));
+                    let rgb = self.get_cube_colour(x2,y,z);
+                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
         //front
         if i == 4{
+            w = x2-x1+1;
+            h = z2-z1+1;
             for z in z1..=z2{
                 for x in x1..=x2{
-                    vector_to_return.push(self.get_cube_colour(x,y1,z));
+                    let rgb = self.get_cube_colour(x,y1,z);
+                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
         //back
         if i == 5{
+            w = x2-x1+1;
+            h = z2-z1+1;
             for z in z1..=z2{
                 for x in x1..=x2{
-                    vector_to_return.push(self.get_cube_colour(x2-x,y2,z));
+                    let rgb = self.get_cube_colour(x2-x,y2,z);
+                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
-        vector_to_return
+        vox_exporter::TextureMap{w:w as usize,h:h as usize, colours:vector_of_colours}
     }
 }
 pub struct BoolMatrix{
@@ -467,7 +493,7 @@ pub struct OptimizedCube{
 
     //used to evaluate the texture map of each face
     //pub cubes: Vec<Cube>,
-    pub textures: Vec<Vec<Option<(u8,u8,u8)>>>,
+    pub textures: Vec<vox_exporter::TextureMap>,
     //monochrome: bool,
     //-------------------indices----0 bottom left, 1 bottom right, 2 top right, 3 top left, 4-7 same thing but up and clockwise
     //important_vertices: [i32; 8]
@@ -523,6 +549,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
         }
 
     };
+    let t = std::time::Instant::now();
     if let Ok(ply) = &ply_result {
         let x = String::from(format!("Optimizing model with {} vertices and {} faces", &ply.number_of_v_and_f.0, &ply.number_of_v_and_f.1));
         let _ = my_app.sx.send(x);
@@ -591,39 +618,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     colourmatrix.set_size((highest_coordinates.0 - lowest_coordinates.0) as i32,
                         (highest_coordinates.1 - lowest_coordinates.1) as i32,
                         (highest_coordinates.2 - lowest_coordinates.2)as i32);
-    //println!("{:?}", colourmatrix.lowest_coordinates);
-    /*
-    let mut mapofcubes: MapOfCubes = MapOfCubes{Hashmap:HashMap::new(), Shape:(1,1,1),
-     Lowest_coordinates:(lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32)};
-
-    mapofcubes.set_shape((highest_coordinates.0 - lowest_coordinates.0) as i32,
-                        (highest_coordinates.1 - lowest_coordinates.1) as i32,
-                        (highest_coordinates.2 - lowest_coordinates.2)as i32);
-
-    for fa in &vector_of_f{
-        let index = (   ((fa.return_cube_position().0 - 0.5) as i32),
-                        ((fa.return_cube_position().1 - 0.5) as i32),
-                        ((fa.return_cube_position().2 - 0.5) as i32)   );
-
-        if let Some(mut cube) = mapofcubes.get_cube(index.0, index.1, index.2){
-            let i = match fa.dir {
-                DIRECTION::TOP => {0}
-                DIRECTION::BOTTOM => {1}
-                DIRECTION::LEFT => {2}
-                DIRECTION::RIGHT => {3}
-                DIRECTION::FRONT => {4}
-                DIRECTION::BACK => {5}
-            };
-            cube.faces[i] = Some(*fa);
-            mapofcubes.set_cube(index.0, index.1, index.2, cube);
-            //println!("{:?}", &fa);
-
-        } else {
-            let cu = Cube::from_face(fa);
-            mapofcubes.set_cube(index.0, index.1, index.2, cu);
-        }
-    }
-    */
+    
     println!("line 523");
     for fa in &vector_of_f{
         let index = (   ((fa.return_cube_position().0 - 0.5) as i32),
@@ -680,103 +675,8 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
                 }
             }
         }
-        /*
-        for l in 0..h_left.matrixb.len(){
-            if !h_right.matrixb[l] && h_left.matrixb[l]{
-                let mut w = 1;
-                while !h_right.matrixb[l+w]{                       
-                    if !h_front.matrixb[l+w] &&
-                       !h_back.matrixb[l+w] &&
-                       !h_top.matrixb[l+w] &&
-                       !h_bottom.matrixb[l+w]{
-                    //println!("inserting fake x cube", );
-                    let x = l%colourmatrix.shape.0 as usize;
-                    let y = ((l-x)/colourmatrix.shape.0 as usize)%colourmatrix.shape.1 as usize;
-                    let z = (l-(y*colourmatrix.shape.0 as usize)-x)/(colourmatrix.shape.0 as usize*colourmatrix.shape.1 as usize);
-                    //_____________________merged = false______ 
-                    colourmatrix.matrixb[z][y][x]=Some(false);
-                    println!("colourmatrix.matrixb[{:?}][{:?}][{:?}]", z,y,x);
-                    //println!("mapofcubes.set_cube{:?},{:?},{:?},{:?}",l.x+w,l.y,l.z, Cube::from_nothing((l.x as f32,l.y as f32,l.z as f32)));
-                    //println!("{:?}", mapofcubes.Hashmap.len());
-                    }
-                    w+=1;
-                    if l%(colourmatrix.shape.0 as usize) + w > colourmatrix.shape.0 as usize { break };
-                }
-            }
-        }
-        */
-        /*
-        for l in h_right.iter(){
-            if !h_left.contains(l){
-                let mut x = 1;
-                while !h_left.contains((l.x-x, l.y, lz2){
-                    mapofcubes.set_cube(l.x,l.y,l.z, Cube::from_nothing((l.x,l.y,l.z)));
-                    x+=1;
-                }
-            }
-        }
-        */
-        /*
-        println!("Not stuck line 365", );
-
-        for l in h_bottom.iter(){
-            //println!("{:?}", l);
-            if !h_top.contains(l){
-                let mut x = 1;
-                while !h_top.contains(&CubeIndexPosition::from((l.x as f32, l.y as f32, (l.z+x) as f32))){
-                    if !h_front.contains(&CubeIndexPosition::from((l.x as f32, l.y as f32, (l.z+x) as f32))) &&
-                       !h_back.contains(&CubeIndexPosition::from((l.x as f32, l.y as f32, (l.z+x) as f32))) &&
-                       !h_left.contains(&CubeIndexPosition::from((l.x as f32, l.y as f32, (l.z+x) as f32))) &&
-                       !h_right.contains(&CubeIndexPosition::from((l.x as f32, l.y as f32, (l.z+x) as f32))){
-                    mapofcubes.set_cube(l.x,l.y,l.z+x, Cube::from_nothing((l.x as f32,l.y as f32,(l.z+x) as f32)));
-                    }
-                    //println!("{:?}", x);
-                    x+=1;
-                }
-            }
-        }
-        */
-        /*
-        for l in h_top.iter(){
-            if !h_bottom.contains(l){
-                let mut x = 1;
-                while !h_bottom.contains((l.x, l.y, lz2-x){
-                    mapofcubes.set_cube(l.x,l.y,l.z, Cube::from_nothing((l.x,l.y,l.z)));
-                    x+=1;
-                }
-            }
-        }
-        */
-        /*
-        println!("Not stuck line 392", );
-
-        for l in h_front.iter(){
-            if !h_back.contains(l){
-                let mut x = 1;
-                while !h_back.contains(&CubeIndexPosition::from((l.x as f32, (l.y+x) as f32,l.z as f32))){
-                    if !h_left.contains(&CubeIndexPosition::from((l.x as f32, (l.y+x) as f32, l.z as f32))) &&
-                       !h_right.contains(&CubeIndexPosition::from((l.x as f32, (l.y+x) as f32, l.z as f32))) &&
-                       !h_top.contains(&CubeIndexPosition::from((l.x as f32, (l.y+x) as f32, l.z as f32))) &&
-                       !h_bottom.contains(&CubeIndexPosition::from((l.x as f32, (l.y+x) as f32, l.z as f32))){
-                    mapofcubes.set_cube(l.x,l.y+x,l.z, Cube::from_nothing((l.x as f32,(l.y+x) as f32,l.z as f32)));
-                    }
-                    x+=1;
-                }
-            }
-        }*/
-        /*
-        for l in h_back.iter(){
-            if !h_front.contains(l){
-                let mut x = 1;
-                while !h_front.contains((l.x, l.y-x,zl.2){
-                    mapofcubes.set_cube(l.x,l.y,l.z, Cube::from_nothing((l.x,l.y,l.z)));
-                    x+=1;
-                }
-            }
-        }
-        */
     }
-    println!("mapofcubes.len()={:?}", &colourmatrix.matrixb.len());
+    //println!("mapofcubes.len()={:?}", &colourmatrix.matrixb.len());
     //println!("{:?}", &mapofcubes);
     //if my_app.cull_optimization == false{
     let optimized_cubes = convert_to_optimized_cubes(&mut colourmatrix, my_app.cross,
@@ -787,9 +687,9 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     let x = String::from(format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
                 ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.texture_map.w, obj.texture_map.h));
         let _ = my_app.sx.send(x);
-    obj.export_all();
+    obj.export_all(colourmatrix.shape, (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
     println!("{:?}", "Finished optimizing mesh");
-    let x = String::from(format!("{}","Operation completed successfully!"));
+    let x = String::from(format!("{} in {:?} ","Operation completed successfully!",t.elapsed()));
         let _ = my_app.sx.send(x);
     /*
     }else{
@@ -808,8 +708,9 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     }
     */
 }
-
 use std::collections::HashMap;
+/*
+
 #[derive(Debug)]
 pub struct MapOfCubes {
     Hashmap: HashMap<(i32, i32, i32),Cube>,
@@ -976,7 +877,7 @@ impl MapOfCubes{
         vector_to_return
     }
 }
-
+*/
 #[derive(PartialEq)]
 #[derive(Debug)]
 pub enum CanBeMerged{

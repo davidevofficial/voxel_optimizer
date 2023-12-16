@@ -67,6 +67,8 @@ struct MyApp {
     debug_uv_mode: bool,
     cross: bool,
     cull_optimization: bool,
+    y_is_up: bool,
+    center_model_in_mesh: bool,
 }
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -173,8 +175,10 @@ impl eframe::App for MyApp {
                 }
                 ui.horizontal(|ui|{
                     ui.color_edit_button_rgb(&mut self.background_color);
-                    ui.label("Select the background colour (reccomended rgb: #000000)");
+                    ui.label("Select the background colour:");
                 });
+                ui.checkbox(&mut self.y_is_up, "Y vector is up");
+                ui.checkbox(&mut self.center_model_in_mesh, "Origin is center of the model");
                 ui.checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
         });
         preview_files_being_dropped(ctx);
@@ -189,7 +193,7 @@ impl eframe::App for MyApp {
         //save
         let mut b: Option<String> = None;
         if self.vt_precisionnumber < 10{b = Some(String::from("0"))}
-        let c = format!("{},{},{},{}{},{},{},{},{}"
+        let c = format!("{},{},{},{}{},{},{},{},{},{},{}"
                         , (self.monochrome as i32).to_string()
                         , self.pattern_matching.to_string()
                         , (self.manual_vt as i32).to_string()
@@ -199,6 +203,8 @@ impl eframe::App for MyApp {
                         , (self.texturemapping_invisiblefaces as i32).to_string()
                         , (self.cross as i32).to_string()
                         , (self.cull_optimization as i32).to_string()
+                        , (self.y_is_up as i32).to_string()
+                        , (self.center_model_in_mesh as i32).to_string()
                         );
         write("src/options.txt", c).unwrap();
         //thread::sleep(Duration::from_millis(10));
@@ -243,6 +249,8 @@ impl Default for MyApp{
             let tx_f = if c[11] == b'1' {true}else{false};
             let cro = if c[13] == b'1' {true}else{false};
             let cu_o = if c[15] == b'1' {true}else{false};
+            let y_up = if c[17] == b'1' {true}else{false};
+            let cmm= if c[19] == b'1' {true}else{false};
 
         Self{
             sx: sx,
@@ -261,6 +269,8 @@ impl Default for MyApp{
             debug_uv_mode: false,
             cross: cro,
             cull_optimization: cu_o,
+            y_is_up:y_up,
+            center_model_in_mesh: cmm,
         }
     }
 }

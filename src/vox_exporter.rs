@@ -42,6 +42,7 @@ pub struct TextureMap{
                         //however in this way I could implement an equality comparator for rgb struct
 }
 #[derive(PartialEq)]
+#[derive(Debug)]
 pub enum equality{
     NO,
     ONE,
@@ -59,12 +60,14 @@ impl TextureMap{
         } 
         //println!("comparing {:?} with {:?}",self, t2);
         let mut equality_one = true;
+        /*
+        let mut equality_one = true;
         let mut equality_two180 = equality::TWO_180;
         let mut equality_two90 = equality::TWO_90;
         let mut equality_two270 = equality::TWO_270;
         let mut eq_threex = equality::THREE_X;
         let mut eq_threey = equality::THREE_Y;
-
+        */
         if typeofequality >= 1{
             if self.w == t2.w && self.h == t2.h{
                     for x in 0..self.colours.len(){
@@ -76,10 +79,23 @@ impl TextureMap{
 
         }
         if equality_one == true{
-            println!("{:?}", "it's a match!");
+            //println!("{:?}", "it's a match! One");
             return equality::ONE;
         } 
         if typeofequality >= 2 {
+            if self.w == t2.h && self.h == t2.w{
+                let t1 = self.rotate();
+                if t1.is_equal(t2, 1) != equality::NO{return equality::TWO_90}
+            }
+            if self.w == t2.w && self.h == t2.h{
+                let t1 = self.rotate().rotate();
+                if t1.is_equal(t2, 1) != equality::NO{return equality::TWO_180}
+            }
+            if self.w == t2.h && self.h == t2.w{
+                let t1 = self.rotate().rotate().rotate();
+                if t1.is_equal(t2, 1) != equality::NO{return equality::TWO_270}
+            }
+            /*
             if self.w == t2.w && self.h == t2.h{
                     for x in 0..self.colours.len(){
                             if equality_two180==equality::TWO_180 && self.colours[self.colours.len()-1-x] != t2.colours[x]{ 
@@ -103,17 +119,28 @@ impl TextureMap{
                         } //270 (-y, x)
                     }
             }
+            */
         } 
+        /*
         if equality_two180 == equality::TWO_180 {
+            println!("{:?}", "it's a match! Two180");
             return equality::TWO_180;
         }
         if equality_two90 == equality::TWO_90 {
+            println!("{:?}", "it's a match! Two90");
             return equality::TWO_90;
         }
         if equality_two270 == equality::TWO_270{
+            println!("{:?}", "it's a match! Two270");
             return equality::TWO_270;
         }
+        */
         if typeofequality >= 3{
+            if self.w == t2.w && self.h == t2.h{
+                if self.flipx().is_equal(t2, 1) != equality::NO{return equality::THREE_X}
+                if self.flipy().is_equal(t2, 1) != equality::NO{return equality::THREE_Y}
+            }
+            /*
             if self.w == t2.w && self.h == t2.h{
                     for x in 0..self.colours.len(){
                         let w = self.w;
@@ -131,16 +158,76 @@ impl TextureMap{
                         }
                     
                 }
-            }
-        
+                */
+        }
+            
+        /*
         if eq_threex == equality::THREE_X {
+            println!("{:?}", "it's a match! Threex");
             return equality::THREE_X;
+
         }
         if eq_threey == equality::THREE_Y {
+            println!("{:?}", "it's a match! Threey");
             return equality::THREE_Y;
         }
         return equality::NO
+        */
+        return equality::NO
 
+    }
+    //_______________________________________x___y____
+    fn scalar_to_coordinates(w:i32, i:i32)->(i32,i32){
+        return ((i%w)as i32,((i-(i%w))/w) as i32);
+    }
+    //__________________________________x____y__________index______
+    fn coordinates_to_scalar(w:i32, xy:(i32,i32))->i32{
+        return xy.0+(xy.1*w);
+    }
+    fn rotate(&self)->TextureMap{
+        let mut buffer1 = Vec::new();
+        let h = self.w;
+        let w = self.h;
+        for x in 0..self.colours.len(){
+            let i = TextureMap::scalar_to_coordinates(self.w as i32, x as i32);
+            let ii = TextureMap::coordinates_to_scalar(self.w as i32, ((self.w as i32 -1 - i.1) as i32, i.0));
+            buffer1.push(self.colours[ii as usize]);
+        }
+        TextureMap{
+            w:w,
+            h:h,
+            colours: buffer1,
+        }
+    }
+    fn flipx(&self)->TextureMap{
+        let w = self.w;
+        let h = self.h;
+        let mut buffer1 = Vec::new();
+        for x in 0..self.colours.len(){
+            let i = TextureMap::scalar_to_coordinates(self.w as i32, x as i32);
+            let ii = TextureMap::coordinates_to_scalar(self.w as i32, (self.w as i32 - 1 - i.0, i.1));
+            buffer1.push(self.colours[ii as usize]);
+        }
+        TextureMap{
+            w:w,
+            h:h,
+            colours: buffer1,
+        }
+    }
+    fn flipy(&self)->TextureMap{
+        let w = self.w;
+        let h = self.h;
+        let mut buffer1 = Vec::new();
+        for x in 0..self.colours.len(){
+            let i = TextureMap::scalar_to_coordinates(self.w as i32, x as i32);
+            let ii = TextureMap::coordinates_to_scalar(self.w as i32, (i.0, self.w as i32 - 1 - i.1));
+            buffer1.push(self.colours[ii as usize]);
+        }
+        TextureMap{
+            w:w,
+            h:h,
+            colours: buffer1,
+        }
     }
 }
 
@@ -181,8 +268,8 @@ impl ObjV{
 #[derive(Default)]
 #[derive(Debug)]
 pub struct ObjVt{
-    u: f32,
-    v: f32
+    u: i32,
+    v: i32
 }
 fn add_two_tuples(a: (i32, i32, i32), b:(i32,i32,i32))->(i32,i32,i32){return (a.0+b.0, a.1+b.1, a.2+b.2)}
 impl Obj{
@@ -278,11 +365,6 @@ impl Obj{
 
 
         }
-
-        //push the vertices into the list (there is nothing more we can do)
-        //println!("{:?}", temp_v.len());
-        //println!("{:?}", temp_v);
-
         obj.number_of_v_and_f.0 = temp_v.len() as i32;
         for _x in 0..obj.number_of_v_and_f.0{
             obj.vertices.push(ObjV::default());
@@ -290,6 +372,9 @@ impl Obj{
         for (k,v) in &temp_v{           
             obj.vertices[(*v as usize)-1] = ObjV::from_xyz(k.0, k.1, k.2);
         }
+        //push the vertices into the list (there is nothing more we can do)
+        //println!("{:?}", temp_v.len());
+        //println!("{:?}", temp_v); 
         
 
         for x in 0..opcubes.len(){
@@ -364,15 +449,16 @@ impl Obj{
         obj.number_of_v_and_f.1 = obj.faces.len() as i32;
         let mut tid: Vec<(Option<i32>, equality)> = Vec::new();
         let mut unique_tid: Vec<TextureMap> = Vec::new();
-
+        let mut temp_vt: HashMap<(i32,i32),i32> = HashMap::new();
+        let mut positions = Vec::new();
         //println!("{:?}",obj);
 
         if my_app.debug_uv_mode{
             
-            obj.vertices_uvs.push(ObjVt{u:0.0, v:0.0});
-            obj.vertices_uvs.push(ObjVt{u:0.0, v:2.0});
-            obj.vertices_uvs.push(ObjVt{u:2.0, v:2.0});
-            obj.vertices_uvs.push(ObjVt{u:2.0, v:0.0});
+            obj.vertices_uvs.push(ObjVt{u:0, v:0});
+            obj.vertices_uvs.push(ObjVt{u:0, v:2});
+            obj.vertices_uvs.push(ObjVt{u:2, v:2});
+            obj.vertices_uvs.push(ObjVt{u:2, v:0});
             obj.texture_map = TextureMap{w:2, h:2,colours:[Some(Rgb{r:255,g:0,b:255}),Some(Rgb{r:0,g:0,b:0}),Some(Rgb{r:0,g:0,b:0}),Some(Rgb{r:255,g:0,b:255})].to_vec()};
             for x in 0..obj.faces.len(){
                 obj.faces[x].a.1=1;
@@ -384,15 +470,12 @@ impl Obj{
             return obj;
         } 
         //set up textures
-        let mut is_texture_some = false;
-        let mut is_all_same_colour = true;
-        let mut last_colour: Option<Rgb> = None;
         for x in 0..opcubes.len(){
             for t in 0..6{
+                //println!("opcubes[{:?}].textures[{:?}] = {:?}", x,t,opcubes[x].textures[t]);
                 //what to do if texture is empty or all of the same colour?
-                is_texture_some = false;
-                last_colour = None;
-                is_all_same_colour = true;
+                let mut is_texture_some = false;
+                let mut is_all_same_colour = true;
                 //let mut pixels = 
                 for pixel in 0..opcubes[x].textures[t].colours.len(){
                     //pixels.push(opcubes[x].textures[t].colours[pixel]); 
@@ -402,47 +485,69 @@ impl Obj{
                         //if this setting is true
                         if my_app.monochrome{
                             // and if it is not the first pixel
-                            if let Some(ref l) = last_colour{
+                            if pixel > 0{
                                 //if the next pixel is not equal to the last
-                                if l != &opcubes[x].textures[t].colours[pixel].clone().unwrap(){
+                                if &opcubes[x].textures[t].colours[pixel - 1].clone().unwrap() != &opcubes[x].textures[t].colours[pixel].clone().unwrap(){
                                     //texture isn't all of the same colour
                                     is_all_same_colour = false;
-                                }else {
-                                    last_colour = opcubes[x].textures[t].colours[pixel];
                                 }
                             }
                         }
                     }
                 }
+                //println!("is texture some = {:?}", is_texture_some);
+                //println!("is all same color = {:?}", is_all_same_colour);
                 if !is_texture_some{
                     tid.push((None, equality::NO));
-                }
-                if is_texture_some{
+                } else if is_texture_some{
                     //the texture is going to depend on if it is a single colour or more
-                    let tex = if is_all_same_colour{TextureMap{w:1,h:1, colours:[opcubes[x].textures[t].colours[0]].to_vec()}
-                            }else {opcubes[x].textures[t].clone()};
+                    let mut tex = opcubes[x].textures[t].clone();
+                    if is_all_same_colour{
+                        tex = TextureMap{w:1,h:1, colours:[opcubes[x].textures[t].colours[0]].to_vec()}
+                    }
+                    //println!("{:?}", tex);
+
                     if unique_tid.len()==0{
                         //if all the texture is of a colour just push that colour
                         unique_tid.push(tex);
-                        tid.push((Some(((x*6)+t) as i32), equality::NO));
+                        //tid.push((Some(((x*6)+t) as i32), equality::NO));
+                        tid.push((Some((unique_tid.len() - 1) as i32), equality::NO))
                         
                     //if there is a unique texture already
                     }else {
                         //if it is just one colour check if that colour exists already
                         if my_app.pattern_matching == 0{
-                            unique_tid.push(opcubes[x].textures[t].clone());
-                            tid.push((Some(((x*6)+t) as i32), equality::NO))
+                            unique_tid.push(tex.clone());
+                            tid.push((Some((unique_tid.len() - 1) as i32), equality::NO))
                         }else{
+                            let mut equ = equality::NO;
+                            let mut ii = 0;
                             for i in 0..unique_tid.len(){
-                                match opcubes[x].textures[t].is_equal(&unique_tid[i], my_app.pattern_matching){
-                                    equality::NO =>{unique_tid.push(opcubes[x].textures[t].clone());tid.push((Some((unique_tid.len()-1) as i32), equality::NO))}
-                                    equality::ONE =>{tid.push((Some(i as i32), equality::ONE))}
-                                    equality::TWO_90 =>{tid.push((Some(i as i32), equality::TWO_90))}
-                                    equality::TWO_180 =>{tid.push((Some(i as i32), equality::TWO_180))}
-                                    equality::TWO_270 =>{tid.push((Some(i as i32), equality::TWO_270))}
-                                    equality::THREE_X =>{tid.push((Some(i as i32), equality::THREE_X))}
-                                    equality::THREE_Y =>{tid.push((Some(i as i32), equality::THREE_Y))}
+
+                                if equ == equality::NO{
+                                    match tex.is_equal(&unique_tid[i], my_app.pattern_matching){
+                                        equality::NO =>{}
+                                        equality::ONE =>{ii=i as i32;equ = equality::ONE;}
+                                        equality::TWO_90 =>{ii=i as i32;equ = equality::TWO_90;}
+                                        equality::TWO_180 =>{ii=i as i32;equ = equality::TWO_180;}
+                                        equality::TWO_270 =>{ii=i as i32;equ = equality::TWO_270;}
+                                        equality::THREE_X =>{ii=i as i32;equ = equality::THREE_X;}
+                                        equality::THREE_Y =>{ii=i as i32;equ = equality::THREE_Y;}
+                                    }
                                 }
+                                //println!("opcubes[{:?}].textures[{:?}] equality::{:?} unique_tid[{:?}]",x,t,equ,i);
+                            }
+                            //println!("opcubes[{:?}].textures[{:?}] equality::{:?} with the rest of the textures",x,t,equ);
+                            if equ == equality::NO{
+                                unique_tid.push(tex.clone());
+                                tid.push((Some((unique_tid.len()-1) as i32), equality::NO));
+                            }
+                            if equ != equality::NO {
+                                //println!("pushing tid: {:?}", ii);
+                                //println!("lenght before: {:?}", tid.len());
+                                tid.push((Some(ii), equ));
+                                //println!("lenght after: {:?}", tid.len());
+
                             }
                         }
                         
@@ -450,13 +555,136 @@ impl Obj{
                 }
             } 
         }
-        println!("{:?}", unique_tid.len());
+        //println!("unique tid .len()={:?}", unique_tid.len());
+        //println!("tid .len()={:?}", tid.len());
+        let mut items = Vec::new();
         for x in 0..unique_tid.len(){
-            println!("{:?}", unique_tid[x].colours);
-            println!("{:?}x{:?}", unique_tid[x].w, unique_tid[x].h);
+            items.push(crunch::Item::new(x, unique_tid[x].w, unique_tid[x].h, crunch::Rotation::None));
+            positions.push((0,0));
+            //println!("tid[{:?}] = {:?}",x, tid[x]);
+            //println!("{:?}", unique_tid[x].colours);
+            //println!("{:?}x{:?}", unique_tid[x].w, unique_tid[x].h);
 
         }
-        todo!() 
+        let mut container = crunch::Rect::of_size(1, 1);
+        while pack(container, items.clone()).is_err(){
+            container.w *= 2;
+            container.h *= 2;
+            if container.w > 1000000{
+                panic!();
+            }
+        }
+        let packed = match pack(container, items) {
+            Ok(all_packed) => {println!("{:?}", "all packed");all_packed},
+            Err(some_packed) => {println!("{:?}", "some packed");some_packed},
+        };
+        let mut finaltexture = TextureMap{w:container.w, h:container.h, colours:Vec::new()};
+        for _x in 0..finaltexture.w*finaltexture.h{
+            finaltexture.colours.push(Some(obj.background_color));
+        }
+        for item in &packed {
+            positions[item.data] = (item.rect.x, item.rect.y);
+            for p in 0..unique_tid[item.data].colours.len(){
+                let pp = TextureMap::scalar_to_coordinates(unique_tid[item.data].w as i32,p as i32);
+                let ppp = (pp.0+item.rect.x as i32, pp.1+item.rect.y as i32);
+                let i =TextureMap::coordinates_to_scalar(container.w as i32, ppp);
+                finaltexture.colours[i as usize] = unique_tid[item.data].colours[p];
+            } 
+            let a = (item.rect.x as i32, item.rect.y as i32);
+            let b = (item.rect.x as i32, (item.rect.y+item.rect.h) as i32);
+            let c = ((item.rect.x+item.rect.w) as i32, (item.rect.y+item.rect.h) as i32);
+            let d = ((item.rect.x+item.rect.w) as i32, item.rect.y as i32);
+            if let Some(_pat) = temp_vt.get(&a) {
+            }else {
+                let l = temp_vt.len() as i32;
+                temp_vt.insert(a, l+1);
+            } 
+            if let Some(_pat) = temp_vt.get(&b) {
+            }else {
+                let l = temp_vt.len() as i32;
+                temp_vt.insert(b, l+1);
+            } 
+            if let Some(_pat) = temp_vt.get(&c) {
+            }else {
+                let l = temp_vt.len() as i32;
+                temp_vt.insert(c, l+1);
+            } 
+            if let Some(_pat) = temp_vt.get(&d) {
+            }else {
+                let l = temp_vt.len() as i32;
+                temp_vt.insert(d, l+1);
+            } 
+            //println!("data: {:?}, x: {:?}, y: {:?}", item.data, item.rect.x, item.rect.y);
+        }
+        for x in 0..obj.faces.len(){
+            let mut aa = 0;
+            let mut bb = 0;
+            let mut cc = 0;
+            let mut dd = 0;
+            if tid[x].0.is_some(){
+                let a = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32,
+                (unique_tid[tid[x].0.unwrap() as usize].h)as i32 + positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
+                let b = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32 + (unique_tid[tid[x].0.unwrap() as usize].w)as i32,
+                (unique_tid[tid[x].0.unwrap() as usize].h)as i32 + positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
+                let c = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32 + (unique_tid[tid[x].0.unwrap() as usize].w)as i32,
+                                     positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
+                let d = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32,
+                                     positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
+
+                match tid[x].1 {
+                    equality::NO => {
+                        aa = *a;
+                        bb = *b;
+                        cc = *c;
+                        dd = *d;
+                    }equality::ONE => {
+                        aa = *a;
+                        bb = *b;
+                        cc = *c;
+                        dd = *d;
+                    }equality::TWO_90=> {
+                        aa = *b;
+                        bb = *c;
+                        cc = *d;
+                        dd = *a;
+                    }equality::TWO_180=> {
+                        aa = *c;
+                        bb = *d;
+                        cc = *a;
+                        dd = *b;
+                    }equality::TWO_270=> {
+                        dd = *c;
+                        cc = *b;
+                        bb = *a;
+                        aa = *d;
+                    }equality::THREE_X=> {
+                        dd = *c;
+                        cc = *d;
+                        bb = *a;
+                        aa = *b;
+                    }equality::THREE_Y=> {
+                        dd = *a;
+                        cc = *b;
+                        bb = *c;
+                        aa = *d;
+                    
+                    }
+                }
+            }
+            obj.faces[x].a.1 = aa;
+            obj.faces[x].b.1 = bb;
+            obj.faces[x].c.1 = cc;
+            obj.faces[x].d.1 = dd;
+        }
+        //VT LIST______
+        for _x in 0..temp_vt.len(){
+            obj.vertices_uvs.push(ObjVt::default());
+        }
+        for (k,v) in &temp_vt{           
+            obj.vertices_uvs[(*v as usize)-1] = ObjVt{u: k.0, v: k.1};
+        }
+        obj.texture_map = finaltexture;
+        return obj;
 
     }
     fn write_mtl(&self){
@@ -511,20 +739,20 @@ impl Obj{
             if self.texture_map.w < 10{
                 self.vt_precisionnumber = 2;
             } else if self.texture_map.w < 100{
-                self.vt_precisionnumber = 4;
+                self.vt_precisionnumber = 3;
             } else if self.texture_map.w < 1000{
-                self.vt_precisionnumber = 5;
+                self.vt_precisionnumber = 4;
             } else if self.texture_map.w < 10000{
-                self.vt_precisionnumber = 6;
+                self.vt_precisionnumber = 5;
             }else if self.texture_map.w < 100000{
-                self.vt_precisionnumber = 7;
+                self.vt_precisionnumber = 6;
             }
         }
         println!("writing vt's with: {:?} digits", self.vt_precisionnumber);
         for vt in 0..self.vertices_uvs.len(){
             let x = self.vt_precisionnumber as usize;
-            let u = format!("{:.*}", x, (self.vertices_uvs[vt].u /self.texture_map.w as f32));
-            let v = format!("{:.*}", x, (self.vertices_uvs[vt].v /self.texture_map.h as f32));
+            let u = format!("{:.*}", x, (self.vertices_uvs[vt].u as f32/self.texture_map.w as f32) as f32);
+            let v = format!("{:.*}", x, (self.vertices_uvs[vt].v as f32/self.texture_map.h as f32) as f32);
             list_of_vt = format!("{}vt {u} {v}\n",list_of_vt);
         }
         obj_file.write(list_of_vt.as_bytes()).expect("write failed");

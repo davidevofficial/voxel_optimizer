@@ -182,35 +182,36 @@ impl ColourMatrix{
         let mut h = 1;
         //top
         if i == 0{
-            w = x2-x1+1;
-            h = y2-y1+1;
-            for y in y1..=y2{
-                for x in x1..=x2{   
-                        let rgb = self.get_cube_colour(x,y,z2);                
+            w = x2-x1;
+            h = y2-y1;
+            for y in y1..y2{
+                for x in x1..x2{   
+                        let rgb = self.get_cube_colour(x,y,z2-1);                
                         if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
-        //bottom
+        //bottom//
         if i == 1{
-            w = x2-x1+1;
-            h = y2-y1+1;
-            for y in y1..=y2{
-                for x in x1..=x2{
-                    let rgb = self.get_cube_colour(x2-x,y2-y,z1);
+            w = x2-x1;
+            h = y2-y1;
+            for y in (y1..y2).rev(){
+                for x in (x1..x2).rev(){
+                    //let rgb = self.get_cube_colour(x2-1-x,y2-1-y,z1);
+                    let rgb = self.get_cube_colour(x,y,z1);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
-        //left
+        //left//
         if i == 2{
-            w = y2-y1+1;
-            h = z2-z1+1;
-            for z in z1..=z2{
-                for y in y1..=y2{
-                    let rgb = self.get_cube_colour(x1,y2-y,z);
+            w = y2-y1;
+            h = z2-z1;
+            for z in z1..z2{
+                for y in (y1..y2).rev(){
+                    let rgb = self.get_cube_colour(x1,y,z);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
@@ -218,11 +219,11 @@ impl ColourMatrix{
         }
         //right
         if i == 3{
-            w = y2-y1+1;
-            h = z2-z1+1;
-            for z in z1..=z2{
-                for y in y1..=y2{
-                    let rgb = self.get_cube_colour(x2,y,z);
+            w = y2-y1;
+            h = z2-z1;
+            for z in z1..z2{
+                for y in y1..y2{
+                    let rgb = self.get_cube_colour(x2-1,y,z);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
@@ -230,23 +231,23 @@ impl ColourMatrix{
         }
         //front
         if i == 4{
-            w = x2-x1+1;
-            h = z2-z1+1;
-            for z in z1..=z2{
-                for x in x1..=x2{
+            w = x2-x1;
+            h = z2-z1;
+            for z in z1..z2{
+                for x in x1..x2{
                     let rgb = self.get_cube_colour(x,y1,z);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
-        //back
+        //back//
         if i == 5{
-            w = x2-x1+1;
-            h = z2-z1+1;
-            for z in z1..=z2{
-                for x in x1..=x2{
-                    let rgb = self.get_cube_colour(x2-x,y2,z);
+            w = x2-x1;
+            h = z2-z1;
+            for z in z1..z2{
+                for x in (x1..x2).rev(){
+                    let rgb = self.get_cube_colour(x,y2-1,z);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
@@ -493,6 +494,7 @@ pub struct OptimizedCube{
 
     //used to evaluate the texture map of each face
     //pub cubes: Vec<Cube>,
+    //____________Top,Bottom,Left,Right,Front,Back
     pub textures: Vec<vox_exporter::TextureMap>,
     //monochrome: bool,
     //-------------------indices----0 bottom left, 1 bottom right, 2 top right, 3 top left, 4-7 same thing but up and clockwise
@@ -618,8 +620,6 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     colourmatrix.set_size((highest_coordinates.0 - lowest_coordinates.0) as i32,
                         (highest_coordinates.1 - lowest_coordinates.1) as i32,
                         (highest_coordinates.2 - lowest_coordinates.2)as i32);
-    
-    println!("line 523");
     for fa in &vector_of_f{
         let index = (   ((fa.return_cube_position().0 - 0.5) as i32),
                         ((fa.return_cube_position().1 - 0.5) as i32),
@@ -1021,7 +1021,7 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
     */
     let mut txt = Vec::new();
     for x in 0..6{
-        txt.push(mymap.get_texturemap(x, i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1));
+        txt.push(mymap.get_texturemap(x, i, i+shape.0, j, j+shape.1, k, k+shape.2));
     }
     mymap.merge_slice(i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1);
 

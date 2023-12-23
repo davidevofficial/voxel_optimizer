@@ -229,6 +229,14 @@ impl TextureMap{
             colours: buffer1,
         }
     }
+    fn is_texture_some(&self)->bool{
+        for pixel in 0..self.colours.len(){
+            if self.colours[pixel].is_some(){
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 impl Rgb{
@@ -474,14 +482,13 @@ impl Obj{
             for t in 0..6{
                 //println!("opcubes[{:?}].textures[{:?}] = {:?}", x,t,opcubes[x].textures[t]);
                 //what to do if texture is empty or all of the same colour?
-                let mut is_texture_some = false;
+                let is_texture_some = opcubes[x].textures[t].is_texture_some();
                 let mut is_all_same_colour = true;
                 //let mut pixels = 
                 for pixel in 0..opcubes[x].textures[t].colours.len(){
                     //pixels.push(opcubes[x].textures[t].colours[pixel]); 
                     //check the existence of each pixel
-                    if opcubes[x].textures[t].colours[pixel].is_some(){
-                        is_texture_some = true;
+                    if is_texture_some{
                         //if this setting is true
                         if my_app.monochrome{
                             // and if it is not the first pixel
@@ -508,7 +515,12 @@ impl Obj{
                     //the texture is going to depend on if it is a single colour or more
                     let mut tex = opcubes[x].textures[t].clone();
                     if is_all_same_colour{
-                        tex = TextureMap{w:1,h:1, colours:[opcubes[x].textures[t].colours[0]].to_vec()}
+                        let mut c = obj.background_color;
+                        let mut i = 0;  
+                        while opcubes[x].textures[t].colours[i].is_some() == false{
+                            i+=1;
+                        }      
+                        tex = TextureMap{w:1,h:1, colours:[opcubes[x].textures[t].colours[i]].to_vec()}
                     }
                     //println!("{:?}", tex);
 
@@ -566,16 +578,18 @@ impl Obj{
         for x in 0..unique_tid.len(){
             items.push(crunch::Item::new(x, unique_tid[x].w, unique_tid[x].h, crunch::Rotation::None));
             positions.push((0,0));
+            
             //println!("tid[{:?}] = {:?}",x, tid[x]);
             //println!("{:?}", unique_tid[x].colours);
             //println!("{:?}x{:?}", unique_tid[x].w, unique_tid[x].h);
 
         }
+        println!("{:?} unique textures", unique_tid.len());
         let mut container = crunch::Rect::of_size(1, 1);
         while pack(container, items.clone()).is_err(){
             container.w *= 2;
             container.h *= 2;
-            if container.w > 1000000{
+            if container.w > 100000{
                 panic!();
             }
         }
@@ -713,7 +727,7 @@ impl Obj{
         obj_file.write(oname.as_bytes()).expect("write failed");
         obj_file.write(mtllibname.as_bytes()).expect("write failed");
         //write vertices
-        let mut list_of_v = String::new();
+        //let mut list_of_v = String::new();
         for v in 0..self.number_of_v_and_f.0{
             //is model center (0,0,0)?
             let mut x = 0.0;
@@ -734,16 +748,23 @@ impl Obj{
             }
             //is y the up vector?
             if self.y_is_up{
-                list_of_v = format!("{}v {:?} {:?} {:?}\n",list_of_v,y,z,x);
+                //list_of_v = format!("{}v {:?} {:?} {:?}\n",list_of_v,y,z,x);
+                writeln!(&mut obj_file, "v {:?} {:?} {:?}",y,z,x);
             }else {
-                list_of_v = format!("{}v {:?} {:?} {:?}\n",list_of_v,x,y,z);
+                //list_of_v = format!("{}v {:?} {:?} {:?}\n",list_of_v,x,y,z);
+                writeln!(&mut obj_file, "v {:?} {:?} {:?}",x,y,z);
+
+
             }
             
         }
-        obj_file.write(list_of_v.as_bytes()).expect("write failed");
+        //obj_file.write(list_of_v.as_bytes()).expect("write failed");
         //write vt
         let mut list_of_vt = String::new();
         if self.vt_precisionnumber == 0 && self.texture_map.w!=2 && self.texture_map.h!=2{
+            if self.texture_map.w == 1{
+                self.vt_precisionnumber = 0;
+            }
             if self.texture_map.w < 10{
                 self.vt_precisionnumber = 2;
             } else if self.texture_map.w < 100{
@@ -767,15 +788,22 @@ impl Obj{
         //write usemtl
         obj_file.write(USEMTL.as_bytes()).expect("write failed");
         //write faces
-        let mut list_of_f = String::new();
+        //let mut list_of_f = String::new();
         for f in 0..self.number_of_v_and_f.1{
+            /*
             list_of_f = format!("{}f {}/{} {}/{} {}/{} {}/{}\n",
                 list_of_f,self.faces[f as usize].a.0,self.faces[f as usize].a.1
                 ,self.faces[f as usize].b.0,self.faces[f as usize].b.1
                 ,self.faces[f as usize].c.0,self.faces[f as usize].c.1
                 ,self.faces[f as usize].d.0,self.faces[f as usize].d.1);
+                */
+            writeln!(&mut obj_file, "f {}/{} {}/{} {}/{} {}/{}"
+                ,self.faces[f as usize].a.0,self.faces[f as usize].a.1
+                ,self.faces[f as usize].b.0,self.faces[f as usize].b.1
+                ,self.faces[f as usize].c.0,self.faces[f as usize].c.1
+                ,self.faces[f as usize].d.0,self.faces[f as usize].d.1);
         }
-        obj_file.write(list_of_f.as_bytes()).expect("write failed");
+        //obj_file.write(list_of_f.as_bytes()).expect("write failed");
 
 
 

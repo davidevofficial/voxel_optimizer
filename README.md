@@ -11,11 +11,11 @@ This program was made to optimize the meshes that are exported by **MagicaVoxel*
 Before explaining how it works I wanted to say that this program unfortunately only works for **windows**, if you know a little bit of rust you can contribute to other major platforms such as linux and mac. Also while this program doesn't use much cpu the better the cpu the faster will be the processes, the cpu also has to support multithreading to a certain capacity (Most of the cpu's will do the job). Last but not least to run this program you need a minimal amount of ram but it has to be at least as big as the models you are compressing (for example: you are converting 10 models 50mb each, 1 free gb of ram is reccomended).
 
 # Usage and benchmarks
-To get started just download the latest release (release v1.0) and extract it in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder). To run the program double click onto the executable and two windows will open, ignore the black one.
+To get started just **download the latest release (release v1.0.1)** and **extract it** in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder). To run the program **double click** onto the executable and two windows will open, ignore the black one.
 You'll have something like this:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c930e08-efdb-42a0-88d3-89a8794076ba).
 As you can see on the top there are instructions to follow, however there are many options which I will explain later below with also a series of benchmarks (tests to check how quick and efficient are the various settings). 
 
-To convert models to an optimized and superior form you first have to create the models in magicavoxel and export them using the second option (.ply) and then drag and drop every file you want to convert (you can and you should do more than one at the time, tip: Control + A selects all the files in a folder) like so:
+To convert models to an optimized and superior form you first have to create the models in magicavoxel and export them using the second option (.ply) and then **drag and drop** every file you want to convert (you can and you should do more than one at the time, tip: Control + A selects all the files in a folder) like so:
 
 https://github.com/davidevofficial/voxel_optimizer/assets/127616649/4568ff63-293d-4748-83a3-ced18711c548
 
@@ -103,7 +103,7 @@ Reccomended: 3 if you don't have to manually edit textures.
 
 ## Enable manual settings of the precision levels
 
-with precisions level I mean the amount of digits after the dot in the output .obj file for each vt, in this image that number is 3: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/96b4f7d4-b264-480e-8f6a-3b5457c23ab6)
+"precisions level" is the amount of digits after the dot in the output .obj file for each vt; in this image that number is 3: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/96b4f7d4-b264-480e-8f6a-3b5457c23ab6)
 
 If the setting is off the program automatically detects the amount of digits otherwise you can specify it yourself
 
@@ -113,7 +113,7 @@ Reccomended: OFF
 1. Manually set digits numbers
 2. more control
 ### Pro if it is off: 
-1. You don't have to manyally set digits numbers
+1. You don't have to manually set digits numbers
 
 ## Background Colour
 
@@ -161,7 +161,7 @@ To benchmark I'll use the .vox files that magicavoxel comes by default and I'll 
 
 Here are the results: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/399a6c50-14c5-401f-bc97-3b4995e0a816)
 
-As you can see the VoxelOptimizer output is clearly smaller than magicavoxel's one, it took my program about 45 seconds which is a little more than magicavoxel. In the benchmark folder of this repository you can find all of the data (.vox files, .ply files, my output, magica output).
+As you can see the VoxelOptimizer output is half the magicavoxel's one, it took my program about 45 seconds which is a little more than magicavoxel. In the benchmark folder of this repository you can find all of the data (.vox files, .ply files, my output, magicavoxel output).
 
 
 # License and contributions

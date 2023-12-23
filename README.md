@@ -165,7 +165,7 @@ As you can see the VoxelOptimizer output is clearly smaller than magicavoxel's o
 
 
 # License and contributions
-I would be glad for any pull request, discussion, issues you have to make this program better and also a little hand for porting this to mac and linux (or maybe a wasm version in the future). 
+I would be glad for any pull request, discussion, issues you have to make this program better and also a little help for porting this to mac and linux (or maybe a wasm version in the future). 
 
 License: you may modify and copy for private use the software but you cannot redistribute or sell it.
 

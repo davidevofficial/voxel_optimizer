@@ -184,7 +184,7 @@ impl ColourMatrix{
         if i == 0{
             w = x2-x1;
             h = y2-y1;
-            for y in y1..y2{
+            for y in (y1..y2).rev(){
                 for x in x1..x2{   
                         let rgb = self.get_cube_colour(x,y,z2-1);                
                         if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
@@ -196,8 +196,8 @@ impl ColourMatrix{
         if i == 1{
             w = x2-x1;
             h = y2-y1;
-            for y in (y1..y2).rev(){
-                for x in (x1..x2).rev(){
+            for y in (y1..y2){
+                for x in (x1..x2){
                     //let rgb = self.get_cube_colour(x2-1-x,y2-1-y,z1);
                     let rgb = self.get_cube_colour(x,y,z1);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
@@ -209,7 +209,7 @@ impl ColourMatrix{
         if i == 2{
             w = y2-y1;
             h = z2-z1;
-            for z in z1..z2{
+            for z in (z1..z2).rev(){
                 for y in (y1..y2).rev(){
                     let rgb = self.get_cube_colour(x1,y,z);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
@@ -221,8 +221,8 @@ impl ColourMatrix{
         if i == 3{
             w = y2-y1;
             h = z2-z1;
-            for z in z1..z2{
-                for y in y1..y2{
+            for z in (z1..z2).rev(){
+                for y in (y1..y2){
                     let rgb = self.get_cube_colour(x2-1,y,z);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
@@ -233,7 +233,7 @@ impl ColourMatrix{
         if i == 4{
             w = x2-x1;
             h = z2-z1;
-            for z in z1..z2{
+            for z in (z1..z2).rev(){
                 for x in x1..x2{
                     let rgb = self.get_cube_colour(x,y1,z);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
@@ -245,7 +245,7 @@ impl ColourMatrix{
         if i == 5{
             w = x2-x1;
             h = z2-z1;
-            for z in z1..z2{
+            for z in (z1..z2).rev(){
                 for x in (x1..x2).rev(){
                     let rgb = self.get_cube_colour(x,y2-1,z);
                     if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
@@ -537,7 +537,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     let ply_result:Result<ply, vox_importer::vox_importer_errors> = match content {
         Ok(content) => {
             //println!("{}", content);
-            let x = format!("{}{}" ,String::from("parsing:"), path.to_string_lossy().to_string());
+            let x = format!("{}{}" ,String::from("parsing:"), &path.to_string_lossy().to_string());
             let _ = my_app.sx.send(x);
             parse_ply(&content)
             //my_app.status = "parsing" ; parse(content)
@@ -683,13 +683,13 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
      (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
 
     println!("{:?} optimized cubes in total", optimized_cubes.len());
-    let mut obj = Obj::from_optimized_cubes(path, &my_app, &optimized_cubes);
+    let mut obj = Obj::from_optimized_cubes(path.clone(), &my_app, &optimized_cubes);
     let x = String::from(format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
                 ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.texture_map.w, obj.texture_map.h));
         let _ = my_app.sx.send(x);
     obj.export_all(colourmatrix.shape, (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
     println!("{:?}", "Finished optimizing mesh");
-    let x = String::from(format!("{} in {:?} ","Operation completed successfully!",t.elapsed()));
+    let x = String::from(format!("{} {:?} in {:?}! ","Converted",path.to_string_lossy().to_string(),t.elapsed()));
         let _ = my_app.sx.send(x);
     /*
     }else{
@@ -894,8 +894,8 @@ pub fn convert_to_optimized_cubes(cubes: &mut ColourMatrix, cross: bool, lowest_
         starting_position: (0,0,0),
     }
      */
-    println!("{:?}", lowest_coordinates);
-    println!("{:?}", cubes.shape);
+    //println!("{:?}", lowest_coordinates);
+    //println!("{:?}", cubes.shape);
     for z in lowest_coordinates.2..cubes.shape.2+lowest_coordinates.2+1{
         for y in lowest_coordinates.1..cubes.shape.1+lowest_coordinates.1+1{
             for x in lowest_coordinates.0..cubes.shape.0+lowest_coordinates.0+1{

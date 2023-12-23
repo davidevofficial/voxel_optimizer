@@ -55,7 +55,7 @@ struct MyApp {
     dropped_files: Vec<egui::DroppedFile>,
     picked_path: Option<String>,
     pub status: String,
-    pub converting: bool,
+    pub requestrepaint: bool,
 
     monochrome: bool,
     pattern_matching: i32,
@@ -124,7 +124,7 @@ impl eframe::App for MyApp {
                     if self.picked_path.is_some() {
                         for i in &from_files_to_paths(self.dropped_files.clone()) {
                             if is_valid_ply(i) {
-                                println!("valid!");
+                                //println!("valid!");
                                 self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy().to_string());
                                 let i_clone = i.clone();
                                 let mut my_app_clone = self.clone();
@@ -208,6 +208,10 @@ impl eframe::App for MyApp {
                         );
         write("src/options.txt", c).unwrap();
         //thread::sleep(Duration::from_millis(10));
+        if self.requestrepaint{
+            ctx.request_repaint();
+            self.requestrepaint = false;
+        }
         //ctx.request_repaint()
     }
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>){panic!()}
@@ -217,6 +221,7 @@ impl MyApp {
         match self.rx.lock().expect("REASON").try_recv() {
             Ok(message) => {
                 self.status = message;
+                self.requestrepaint = true;
             }
             Err(_) => (),
         }
@@ -258,7 +263,7 @@ impl Default for MyApp{
             dropped_files: vec![],
             picked_path: None,
             status: "".to_string(),
-            converting: false,
+            requestrepaint: false,
             monochrome: m,
             pattern_matching: p,
             is_texturesize_powerof2: tn_s,

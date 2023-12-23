@@ -190,7 +190,7 @@ impl TextureMap{
         let w = self.h;
         for x in 0..self.colours.len(){
             let i = TextureMap::scalar_to_coordinates(self.w as i32, x as i32);
-            let ii = TextureMap::coordinates_to_scalar(self.w as i32, ((self.w as i32 -1 - i.1) as i32, i.0));
+            let ii = TextureMap::coordinates_to_scalar(w as i32, ((w as i32 -1 - i.1) as i32, i.0));
             buffer1.push(self.colours[ii as usize]);
         }
         TextureMap{
@@ -220,7 +220,7 @@ impl TextureMap{
         let mut buffer1 = Vec::new();
         for x in 0..self.colours.len(){
             let i = TextureMap::scalar_to_coordinates(self.w as i32, x as i32);
-            let ii = TextureMap::coordinates_to_scalar(self.w as i32, (i.0, self.w as i32 - 1 - i.1));
+            let ii = TextureMap::coordinates_to_scalar(self.w as i32, (i.0, self.h as i32 - 1 - i.1));
             buffer1.push(self.colours[ii as usize]);
         }
         TextureMap{
@@ -274,7 +274,7 @@ pub struct ObjVt{
 fn add_two_tuples(a: (i32, i32, i32), b:(i32,i32,i32))->(i32,i32,i32){return (a.0+b.0, a.1+b.1, a.2+b.2)}
 impl Obj{
     pub fn from_optimized_cubes(path: PathBuf,my_app: &MyApp, opcubes: &Vec<OptimizedCube>) -> Obj{
-        println!("my_app.vt_precisionnumber:{:?}", my_app.vt_precisionnumber);
+        //println!("my_app.vt_precisionnumber:{:?}", my_app.vt_precisionnumber);
         let x =path.file_name().unwrap().to_str().unwrap().to_string().trim_end_matches(".ply").to_string();
         let y = x.replace(" ", "");
         let xx = my_app.picked_path.clone().unwrap().to_string();
@@ -487,10 +487,15 @@ impl Obj{
                             // and if it is not the first pixel
                             if pixel > 0{
                                 //if the next pixel is not equal to the last
-                                if &opcubes[x].textures[t].colours[pixel - 1].clone().unwrap() != &opcubes[x].textures[t].colours[pixel].clone().unwrap(){
-                                    //texture isn't all of the same colour
-                                    is_all_same_colour = false;
+                                let previousp = &opcubes[x].textures[t].colours[pixel - 1].clone();
+                                let currentp = &opcubes[x].textures[t].colours[pixel].clone();
+                                if previousp.is_some() && currentp.is_some(){
+                                    if previousp.unwrap() != currentp.unwrap(){
+                                        //texture isn't all of the same colour
+                                        is_all_same_colour = false;
+                                    }
                                 }
+                                
                             }
                         }
                     }
@@ -575,7 +580,7 @@ impl Obj{
             }
         }
         let packed = match pack(container, items) {
-            Ok(all_packed) => {println!("{:?}", "all packed");all_packed},
+            Ok(all_packed) => {all_packed},
             Err(some_packed) => {println!("{:?}", "some packed");some_packed},
         };
         let mut finaltexture = TextureMap{w:container.w, h:container.h, colours:Vec::new()};
@@ -617,10 +622,10 @@ impl Obj{
             //println!("data: {:?}, x: {:?}, y: {:?}", item.data, item.rect.x, item.rect.y);
         }
         for x in 0..obj.faces.len(){
-            let mut aa = 0;
-            let mut bb = 0;
-            let mut cc = 0;
-            let mut dd = 0;
+            let mut aa = 1;
+            let mut bb = 1;
+            let mut cc = 1;
+            let mut dd = 1;
             if tid[x].0.is_some(){
                 let a = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32,
                 (unique_tid[tid[x].0.unwrap() as usize].h)as i32 + positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
@@ -716,9 +721,12 @@ impl Obj{
             let mut z = 0.0;
 
             if self.center_model{
-                x = self.vertices[v as usize].x as f32 - lowest_coordinates.0 as f32+(shape.0 as f32/2.0);
-                y = self.vertices[v as usize].y as f32 - lowest_coordinates.1 as f32+(shape.1 as f32/2.0);
-                z = self.vertices[v as usize].z as f32 - lowest_coordinates.0 as f32+(shape.0 as f32/2.0);
+                let center = (lowest_coordinates.0 as f32+(shape.0 as f32/2.0),
+                    lowest_coordinates.1 as f32+(shape.1 as f32/2.0),
+                    lowest_coordinates.2 as f32+(shape.2 as f32/2.0));
+                x = self.vertices[v as usize].x as f32 - center.0;
+                y = self.vertices[v as usize].y as f32 - center.1;
+                z = self.vertices[v as usize].z as f32 - center.2;
             }else {
                 x = self.vertices[v as usize].x as f32;
                 y = self.vertices[v as usize].y as f32;
@@ -748,11 +756,11 @@ impl Obj{
                 self.vt_precisionnumber = 6;
             }
         }
-        println!("writing vt's with: {:?} digits", self.vt_precisionnumber);
+        //println!("writing vt's with: {:?} digits", self.vt_precisionnumber);
         for vt in 0..self.vertices_uvs.len(){
             let x = self.vt_precisionnumber as usize;
             let u = format!("{:.*}", x, (self.vertices_uvs[vt].u as f32/self.texture_map.w as f32) as f32);
-            let v = format!("{:.*}", x, (self.vertices_uvs[vt].v as f32/self.texture_map.h as f32) as f32);
+            let v = format!("{:.*}", x, 1.0-(self.vertices_uvs[vt].v as f32/self.texture_map.h as f32) as f32);
             list_of_vt = format!("{}vt {u} {v}\n",list_of_vt);
         }
         obj_file.write(list_of_vt.as_bytes()).expect("write failed");
@@ -781,9 +789,16 @@ impl Obj{
         let mut writer = encoder.write_header().unwrap();
         let mut data = Vec::new(); // An array containing an RGB sequence
         for x in 0..self.texture_map.colours.len(){
-            data.push(self.texture_map.colours[x].unwrap().r);
-            data.push(self.texture_map.colours[x].unwrap().g);
-            data.push(self.texture_map.colours[x].unwrap().b);
+            let p = self.texture_map.colours[x];
+            if p.is_some(){
+                data.push(p.unwrap().r);
+                data.push(p.unwrap().g);
+                data.push(p.unwrap().b);
+            }else{
+                data.push(self.background_color.r);
+                data.push(self.background_color.g);
+                data.push(self.background_color.b);
+            }
         }
         writer.write_image_data(&data).unwrap();
     }

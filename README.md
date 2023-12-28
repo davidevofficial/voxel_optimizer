@@ -11,7 +11,9 @@ This program was made to optimize the meshes that are exported by **MagicaVoxel*
 Before explaining how it works I wanted to say that this program unfortunately only works for **windows**, if you know a little bit of rust you can contribute to other major platforms such as linux and mac. Also while this program doesn't use much cpu the better the cpu the faster will be the processes, the cpu also has to support multithreading to a certain capacity (Most of the cpu's will do the job). Last but not least to run this program you need a minimal amount of ram but it has to be at least as big as the models you are compressing (for example: you are converting 10 models 50mb each, 1 free gb of ram is reccomended).
 
 # Usage and benchmarks
-To get started just **download the latest release (release v1.0.1)** and **extract it** in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder). To run the program **double click** onto the executable and two windows will open, ignore the black one.
+Watch this video: https://www.youtube.com/watch?v=KspAgJy-C9A or follow this instructions to get started. 
+
+**download the latest release (release v1.0.1)** and **extract it** in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder). To run the program **double click** onto the executable and two windows will open, ignore the black one.
 You'll have something like this:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c930e08-efdb-42a0-88d3-89a8794076ba).
 As you can see on the top there are instructions to follow, however there are many options which I will explain later below with also a series of benchmarks (tests to check how quick and efficient are the various settings). 
 

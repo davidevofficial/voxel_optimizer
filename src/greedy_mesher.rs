@@ -533,7 +533,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     let x= format!("{}{}",String::from("converting:"), path.to_string_lossy().to_string());
     let _ = my_app.sx.send(x);
     my_app.status = String::from("Reading...");
-    let content = read_ply(&path.to_string_lossy().to_string());
+    let content = read_file(&path.to_string_lossy().to_string());
     let ply_result:Result<ply, vox_importer::vox_importer_errors> = match content {
         Ok(content) => {
             //println!("{}", content);
@@ -708,7 +708,42 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     }
     */
 }
-use std::collections::HashMap;
+pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
+    let x= format!("{}{}",String::from("converting:"), path.to_string_lossy().to_string());
+    let _ = my_app.sx.send(x);
+    my_app.status = String::from("Reading...");
+    let content = read_file(&path.to_string_lossy().to_string());
+    let vox_result:Result<Vox, vox_importer::vox_importer_errors> = match content {
+        Ok(content) => {
+            //println!("{}", content);
+            let x = format!("{}{}" ,String::from("parsing:"), &path.to_string_lossy().to_string());
+            let _ = my_app.sx.send(x);
+            parse_vox(&content)
+            //my_app.status = "parsing" ; parse(content)
+        },
+        Err(error) => {
+            println!("couldn't read!");
+            let x = String::from(format!("Error while Reading!!! {}",error.to_string()));
+            let _ = my_app.sx.send(x);
+
+            return;
+        }
+
+    };
+    let t = std::time::Instant::now();
+    if let Ok(Vox) = &vox_result {
+        let x = String::from(format!("Optimizing model"));
+        let _ = my_app.sx.send(x);
+
+        //println!("{:?}", &ply);
+    }
+    if let Err(e) = &vox_result {
+        let x = String::from(format!("Error while parsing!!! {}" ,e));
+        let _ = my_app.sx.send(x);
+        println!("{}", e);
+    }
+    let mut vox = vox_result.unwrap();
+}
 
 #[derive(PartialEq)]
 #[derive(Debug)]

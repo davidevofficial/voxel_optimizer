@@ -17,14 +17,14 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 
 use eframe::egui::FontId;
 use eframe::egui::RichText;
-use crate::vox_importer::is_valid_ply;
+use crate::vox_importer::{is_valid_ply,is_vox};
 use crate::greedy_mesher::*;
-
 
 
 fn main() -> Result<(), eframe::Error> {
 
     println!("Hello, world!");
+    
     //icon
     let bytes_png = read("src/icon.png").unwrap();
     let icon: eframe::IconData = eframe::IconData::try_from_png_bytes(&bytes_png).unwrap();
@@ -56,7 +56,7 @@ struct MyApp {
     picked_path: Option<String>,
     pub status: String,
     pub requestrepaint: bool,
-
+    //settings
     monochrome: bool,
     pattern_matching: i32,
     is_texturesize_powerof2: bool,
@@ -69,6 +69,14 @@ struct MyApp {
     cull_optimization: bool,
     y_is_up: bool,
     center_model_in_mesh: bool,
+    //vox settings
+    all_in_one_mesh: bool,
+    transparency: bool,
+    emission: bool,
+    roughness: bool,
+    metal: bool,
+    //specular: bool,
+    refraction: bool,
 }
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -133,7 +141,14 @@ impl eframe::App for MyApp {
                                 });
                                 //thread::sleep(Duration::from_millis((2000/self.dropped_files.len()).try_into().unwrap()));
                                 //greedy_mesher::convert(self, i);
-                            } else {
+                            } else if is_vox(i) {
+                                self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy().to_string());
+                                let i_clone = i.clone();
+                                let mut my_app_clone = self.clone();
+                                thread::spawn(move ||{
+                                  greedy_mesher::convert_vox(&mut my_app_clone, i_clone);
+                                });
+                            }else{
                                 println!("invalid!");
                                 self.status = String::from("Invalid file/files!!!");
                             }
@@ -180,6 +195,15 @@ impl eframe::App for MyApp {
                 ui.checkbox(&mut self.y_is_up, "Y vector is up");
                 ui.checkbox(&mut self.center_model_in_mesh, "Origin is center of the model");
                 ui.checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
+                ui.separator();
+                ui.label("Options if you optimize .vox files:");
+                ui.checkbox(&mut self.all_in_one_mesh, "Enable all the meshes to be in one file");
+                ui.checkbox(&mut self.transparency, "Enable transparency");
+                ui.checkbox(&mut self.emission, "Enable the creation of an emission map");
+                ui.checkbox(&mut self.metal, "Enable metal to be in red channel of extra texture map");
+                ui.checkbox(&mut self.roughness, "Enable roughness to be in green channel of extra texture map");
+                ui.checkbox(&mut self.refraction, "Enable refraction to be in blue channel of extra texture map");
+
         });
         preview_files_being_dropped(ctx);
         if self.manual_vt == false{
@@ -193,7 +217,7 @@ impl eframe::App for MyApp {
         //save
         let mut b: Option<String> = None;
         if self.vt_precisionnumber < 10{b = Some(String::from("0"))}
-        let c = format!("{},{},{},{}{},{},{},{},{},{},{}"
+        let c = format!("{},{},{},{}{},{},{},{},{},{},{},{},{},{},{},{},{}"
                         , (self.monochrome as i32).to_string()
                         , self.pattern_matching.to_string()
                         , (self.manual_vt as i32).to_string()
@@ -205,6 +229,12 @@ impl eframe::App for MyApp {
                         , (self.cull_optimization as i32).to_string()
                         , (self.y_is_up as i32).to_string()
                         , (self.center_model_in_mesh as i32).to_string()
+                        , (self.all_in_one_mesh as i32).to_string()
+                        , (self.transparency as i32).to_string()
+                        , (self.emission as i32).to_string()
+                        , (self.roughness as i32).to_string()
+                        , (self.metal as i32).to_string()
+                        , (self.refraction as i32).to_string()
                         );
         write("src/options.txt", c).unwrap();
         //thread::sleep(Duration::from_millis(10));
@@ -256,6 +286,13 @@ impl Default for MyApp{
             let cu_o = if c[15] == b'1' {true}else{false};
             let y_up = if c[17] == b'1' {true}else{false};
             let cmm= if c[19] == b'1' {true}else{false};
+            let all_in_one_mesh = if c[21] == b'1' {true}else{false}; 
+            let transparency = if c[23] == b'1' {true}else{false}; 
+            let emission = if c[25] == b'1' {true}else{false}; 
+            let roughness = if c[27] == b'1' {true}else{false}; 
+            let metal = if c[29] == b'1' {true}else{false}; 
+            let refraction = if c[31] == b'1' {true}else{false}; 
+
 
         Self{
             sx: sx,
@@ -276,6 +313,12 @@ impl Default for MyApp{
             cull_optimization: cu_o,
             y_is_up:y_up,
             center_model_in_mesh: cmm,
+            all_in_one_mesh: all_in_one_mesh,
+            transparency: transparency,
+            emission: emission,
+            roughness: roughness,
+            metal: metal,
+            refraction: refraction,
         }
     }
 }

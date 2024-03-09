@@ -28,6 +28,7 @@ pub struct Obj{
 }
 #[derive(Copy, Debug, PartialEq)]
 #[derive(Clone)]
+#[derive(Default)]
 pub struct Rgb{
     pub r: u8,
     pub g: u8,
@@ -814,6 +815,7 @@ impl Obj{
         let mut encoder = png::Encoder::new(w, self.texture_map.w as u32, self.texture_map.h as u32); 
         encoder.set_color(png::ColorType::Rgb);
         encoder.set_depth(png::BitDepth::Eight);
+        encoder.set_compression(png::Compression::Best);
         let mut writer = encoder.write_header().unwrap();
         let mut data = Vec::new(); // An array containing an RGB sequence
         for x in 0..self.texture_map.colours.len(){

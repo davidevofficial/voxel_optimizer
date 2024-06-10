@@ -1,26 +1,29 @@
+//! [main.rs] is the frontend and manager of the persistance of data, built using egui, 
+//!it creates a native window to drop files and change settings to convert them using multithreading
+//!to speed uo the process
 mod vox_importer;
 mod greedy_mesher;
 mod uv_unwrapping;
 mod texture_mapping;
 mod vox_exporter;
 
-use rfd::FileDialog;
-use eframe;
-use eframe::{egui, IconData};
+//use rfd::FileDialog;
+//use eframe;
+use eframe::{egui};
 
 use std::fs::read;
 use std::fs::write;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+//use std::time::Duration;
 use std::sync::mpsc::{channel, Sender, Receiver};
 
 use eframe::egui::FontId;
 use eframe::egui::RichText;
 use crate::vox_importer::{is_valid_ply,is_vox};
-use crate::greedy_mesher::*;
 
 
+/// Initiates the native window and calls the [`update`] method every frame. 
 fn main() -> Result<(), eframe::Error> {
 
     println!("Hello, world!");
@@ -48,6 +51,12 @@ fn main() -> Result<(), eframe::Error> {
         Box::new(|_cc| Box::<MyApp>::default()),
     )
 }
+///Saves the data needed to run the app
+/// # Contains
+///
+/// * Sender and Receiver (to send and receive status data from the processes)
+/// * List of dropped_files and picked export path
+/// * All the setttings for converting and optimize
 #[derive(Clone, Debug)]
 struct MyApp {
     sx: Sender<String>,
@@ -133,7 +142,7 @@ impl eframe::App for MyApp {
                         for i in &from_files_to_paths(self.dropped_files.clone()) {
                             if is_valid_ply(i) {
                                 //println!("valid!");
-                                self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy().to_string());
+                                self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy());
                                 let i_clone = i.clone();
                                 let mut my_app_clone = self.clone();
                                 thread::spawn(move ||{
@@ -142,7 +151,7 @@ impl eframe::App for MyApp {
                                 //thread::sleep(Duration::from_millis((2000/self.dropped_files.len()).try_into().unwrap()));
                                 //greedy_mesher::convert(self, i);
                             } else if is_vox(i) {
-                                self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy().to_string());
+                                self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy());
                                 let i_clone = i.clone();
                                 let mut my_app_clone = self.clone();
                                 thread::spawn(move ||{
@@ -185,7 +194,7 @@ impl eframe::App for MyApp {
                 ui.add(egui::Slider::new(&mut self.pattern_matching, 0..=3).text("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry"));
                 
                 ui.checkbox(&mut self.manual_vt, "Enable manual setting of the precision levels?");
-                if self.manual_vt == true {
+                if self.manual_vt {
                     ui.add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
                 }
                 ui.horizontal(|ui|{
@@ -206,7 +215,7 @@ impl eframe::App for MyApp {
 
         });
         preview_files_being_dropped(ctx);
-        if self.manual_vt == false{
+        if !self.manual_vt{
             self.vt_precisionnumber = 0;
         }
         self.update_status();
@@ -218,23 +227,23 @@ impl eframe::App for MyApp {
         let mut b: Option<String> = None;
         if self.vt_precisionnumber < 10{b = Some(String::from("0"))}
         let c = format!("{},{},{},{}{},{},{},{},{},{},{},{},{},{},{},{},{}"
-                        , (self.monochrome as i32).to_string()
-                        , self.pattern_matching.to_string()
-                        , (self.manual_vt as i32).to_string()
+                        , (self.monochrome as i32)
+                        , self.pattern_matching
+                        , (self.manual_vt as i32)
                         , if b.is_some(){b.unwrap()}else{String::new()}
-                        , (self.vt_precisionnumber as i32).to_string()
-                        , (self.is_texturesize_powerof2 as i32).to_string()
-                        , (self.texturemapping_invisiblefaces as i32).to_string()
-                        , (self.cross as i32).to_string()
-                        , (self.cull_optimization as i32).to_string()
-                        , (self.y_is_up as i32).to_string()
-                        , (self.center_model_in_mesh as i32).to_string()
-                        , (self.all_in_one_mesh as i32).to_string()
-                        , (self.transparency as i32).to_string()
-                        , (self.emission as i32).to_string()
-                        , (self.roughness as i32).to_string()
-                        , (self.metal as i32).to_string()
-                        , (self.refraction as i32).to_string()
+                        , (self.vt_precisionnumber as i32)
+                        , (self.is_texturesize_powerof2 as i32)
+                        , (self.texturemapping_invisiblefaces as i32)
+                        , (self.cross as i32)
+                        , (self.cull_optimization as i32)
+                        , (self.y_is_up as i32)
+                        , (self.center_model_in_mesh as i32)
+                        , (self.all_in_one_mesh as i32)
+                        , (self.transparency as i32)
+                        , (self.emission as i32)
+                        , (self.roughness as i32)
+                        , (self.metal as i32)
+                        , (self.refraction as i32)
                         );
         write("src/options.txt", c).unwrap();
         //thread::sleep(Duration::from_millis(10));
@@ -247,6 +256,10 @@ impl eframe::App for MyApp {
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>){panic!()}
 }
 impl MyApp {
+    ///Receives the message from rx and
+    ///
+    ///* updates the status bar
+    ///* Asks for a repaint (otherwise it would get stuck the status bar with no repaints)
     fn update_status(&mut self) {
         match self.rx.lock().expect("REASON").try_recv() {
             Ok(message) => {
@@ -256,7 +269,7 @@ impl MyApp {
             Err(_) => (),
         }
     }
-
+    /*
     fn sav(&self){
         let c = format!("{},{},{},{},{},{},{}"
                         , (self.monochrome as i32).to_string()
@@ -268,7 +281,7 @@ impl MyApp {
                         , (self.cross as i32).to_string());
         write("src/options.txt", c).unwrap();
     }
-
+    */
 
 }
 impl Default for MyApp{
@@ -295,7 +308,7 @@ impl Default for MyApp{
 
 
         Self{
-            sx: sx,
+            sx,
             rx: Arc::new(Mutex::new(rx)),
             dropped_files: vec![],
             picked_path: None,
@@ -313,12 +326,12 @@ impl Default for MyApp{
             cull_optimization: cu_o,
             y_is_up:y_up,
             center_model_in_mesh: cmm,
-            all_in_one_mesh: all_in_one_mesh,
-            transparency: transparency,
-            emission: emission,
-            roughness: roughness,
-            metal: metal,
-            refraction: refraction,
+            all_in_one_mesh,
+            transparency,
+            emission,
+            roughness,
+            metal,
+            refraction,
         }
     }
 }
@@ -334,6 +347,7 @@ impl Default for MyApp{
         self.vt_precisionnumber = if c[6] == b'1' {10 + c[7]-&fourtyeight}else{c[7]-&fourtyeight};
     }
 */
+///Creates the semi-transparent black window for visualizing what you are dropping into the application
 fn preview_files_being_dropped(ctx: &egui::Context) {
     use egui::*;
     use std::fmt::Write as _;
@@ -365,6 +379,7 @@ fn preview_files_being_dropped(ctx: &egui::Context) {
             );
         }
     }
+///Convert an egui::DroppedFile to a std::path::PathBuf
 fn from_files_to_paths(droppedfiles: Vec<egui::DroppedFile>) -> Vec<std::path::PathBuf>{
     let mut v: Vec<std::path::PathBuf> = vec![];
     for file in droppedfiles {if let Some(path) = file.path {
@@ -372,9 +387,14 @@ fn from_files_to_paths(droppedfiles: Vec<egui::DroppedFile>) -> Vec<std::path::P
     }};
     v
 }
+///Same as [`from_files_to_paths`] but accepts only a string as an argument
 fn from_string_to_path(pickedpath: String) -> Vec<std::path::PathBuf>{
+    let v = vec![std::path::PathBuf::from(pickedpath)];
+    v
+    /*
     let mut v = vec![];
     v.push(std::path::PathBuf::from(pickedpath));
     v
+    */
 }
 

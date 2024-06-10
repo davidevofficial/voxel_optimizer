@@ -5,10 +5,10 @@ use std::fs::File;
 use std::io::{Write, Read};
 use std::io::BufWriter;
 use std::path::Path;
-use crate::greedy_mesher::OptimizedCube;
+use crate::greedy_mesher::{OptimizedCube};
 use crate::MyApp;
 use std::collections::HashMap;
-use png;
+
 use crunch::*;
 #[derive(Debug)]
 pub struct Obj{
@@ -44,20 +44,20 @@ pub struct TextureMap{
 }
 #[derive(PartialEq)]
 #[derive(Debug)]
-pub enum equality{
-    NO,
-    ONE,
-    TWO_90,
-    TWO_180,
-    TWO_270,
-    THREE_X,
-    THREE_Y,
+pub enum Equality{
+    No,
+    One,
+    Two90,
+    Two180,
+    Two270,
+    ThreeX,
+    ThreeY,
 }
 impl TextureMap{
-    fn is_equal(&self, t2: &TextureMap, typeofequality: i32) -> equality{
+    fn is_equal(&self, t2: &TextureMap, typeofequality: i32) -> Equality{
 
         if typeofequality == 0 || self.colours.len() != t2.colours.len(){
-            return equality::NO;
+            return Equality::No;
         } 
         //println!("comparing {:?} with {:?}",self, t2);
         let mut equality_one = true;
@@ -69,32 +69,29 @@ impl TextureMap{
         let mut eq_threex = equality::THREE_X;
         let mut eq_threey = equality::THREE_Y;
         */
-        if typeofequality >= 1{
-            if self.w == t2.w && self.h == t2.h{
-                    for x in 0..self.colours.len(){
-                        if equality_one == true && self.colours[x] != t2.colours[x]{
-                            equality_one = false;
-                        }
+        if typeofequality >= 1 && self.w == t2.w && self.h == t2.h {
+                for x in 0..self.colours.len(){
+                    if equality_one == true && self.colours[x] != t2.colours[x]{
+                        equality_one = false;
                     }
-            }
-
+                }
         }
-        if equality_one == true{
+        if equality_one{
             //println!("{:?}", "it's a match! One");
-            return equality::ONE;
+            return Equality::One;
         } 
         if typeofequality >= 2 {
             if self.w == t2.h && self.h == t2.w{
                 let t1 = self.rotate();
-                if t1.is_equal(t2, 1) != equality::NO{return equality::TWO_90}
+                if t1.is_equal(t2, 1) != Equality::No{return Equality::Two90}
             }
             if self.w == t2.w && self.h == t2.h{
                 let t1 = self.rotate().rotate();
-                if t1.is_equal(t2, 1) != equality::NO{return equality::TWO_180}
+                if t1.is_equal(t2, 1) != Equality::No{return Equality::Two180}
             }
             if self.w == t2.h && self.h == t2.w{
                 let t1 = self.rotate().rotate().rotate();
-                if t1.is_equal(t2, 1) != equality::NO{return equality::TWO_270}
+                if t1.is_equal(t2, 1) != Equality::No{return Equality::Two270}
             }
             /*
             if self.w == t2.w && self.h == t2.h{
@@ -136,30 +133,9 @@ impl TextureMap{
             return equality::TWO_270;
         }
         */
-        if typeofequality >= 3{
-            if self.w == t2.w && self.h == t2.h{
-                if self.flipx().is_equal(t2, 1) != equality::NO{return equality::THREE_X}
-                if self.flipy().is_equal(t2, 1) != equality::NO{return equality::THREE_Y}
-            }
-            /*
-            if self.w == t2.w && self.h == t2.h{
-                    for x in 0..self.colours.len(){
-                        let w = self.w;
-                        let h = self.h;
-                        let m = x%h;
-                        let i = (w-1-m)+(x-m)/w;
-                        if eq_threex==equality::THREE_X && self.colours[i] != t2.colours[x]{ 
-                                eq_threex = equality::NO; //x (mirror x axis)
-                            }
-                        let i = m+((h-1)-(x-m)/w)*w;
-                        if eq_threey==equality::THREE_Y && self.colours[i] != t2.colours[x]{ 
-                                eq_threey = equality::NO; //y (mirror y axis)
-                            }
-                            
-                        }
-                    
-                }
-                */
+        if typeofequality >= 3 && self.w == t2.w && self.h == t2.h{
+            if self.flipx().is_equal(t2, 1) != Equality::No{return Equality::ThreeX}
+            if self.flipy().is_equal(t2, 1) != Equality::No{return Equality::ThreeY}
         }
             
         /*
@@ -174,16 +150,16 @@ impl TextureMap{
         }
         return equality::NO
         */
-        return equality::NO
+        Equality::No //return
 
     }
     //_______________________________________x___y____
     fn scalar_to_coordinates(w:i32, i:i32)->(i32,i32){
-        return ((i%w)as i32,((i-(i%w))/w) as i32);
+        ((i%w),((i-(i%w))/w)) //return
     }
     //__________________________________x____y__________index______
     fn coordinates_to_scalar(w:i32, xy:(i32,i32))->i32{
-        return xy.0+(xy.1*w);
+        xy.0+(xy.1*w) //return
     }
     fn rotate(&self)->TextureMap{
         let mut buffer1 = Vec::new();
@@ -191,12 +167,12 @@ impl TextureMap{
         let w = self.h;
         for x in 0..self.colours.len(){
             let i = TextureMap::scalar_to_coordinates(self.w as i32, x as i32);
-            let ii = TextureMap::coordinates_to_scalar(w as i32, ((w as i32 -1 - i.1) as i32, i.0));
+            let ii = TextureMap::coordinates_to_scalar(w as i32, ((w as i32 -1 - i.1), i.0));
             buffer1.push(self.colours[ii as usize]);
         }
         TextureMap{
-            w:w,
-            h:h,
+            w,
+            h,
             colours: buffer1,
         }
     }
@@ -210,8 +186,8 @@ impl TextureMap{
             buffer1.push(self.colours[ii as usize]);
         }
         TextureMap{
-            w:w,
-            h:h,
+            w,
+            h,
             colours: buffer1,
         }
     }
@@ -225,8 +201,8 @@ impl TextureMap{
             buffer1.push(self.colours[ii as usize]);
         }
         TextureMap{
-            w:w,
-            h:h,
+            w,
+            h,
             colours: buffer1,
         }
     }
@@ -236,7 +212,7 @@ impl TextureMap{
                 return true;
             }
         }
-        return false;
+        false //return
     }
 }
 
@@ -258,6 +234,7 @@ pub struct ObjF{
     c: (i32, i32),
     d: (i32, i32),
 }
+///Vertices of a .obj file
 #[derive(Default)]
 #[derive(Debug)]
 pub struct ObjV{
@@ -268,24 +245,43 @@ pub struct ObjV{
 impl ObjV{
     fn from_xyz(x:i32, y:i32, z:i32) -> ObjV{
         ObjV{
-            x:x,
-            y:y,
-            z:z,
+            x,
+            y,
+            z,
         }
     }
 }
+
 #[derive(Default)]
 #[derive(Debug)]
 pub struct ObjVt{
     u: i32,
     v: i32
 }
+/// Adds two xyz tuples together.
+///[Rust Book](https://doc.rust-lang.org/book/)
+///See also [`ObjV`]
+/// # Arguments
+///
+/// * `a: (i32,i32,i32)` - The first tuple.
+/// * `b: (i32,i32,i32)` - The second tuple.
+///
+/// # Returns
+///
+/// * The sum of `a` and `b` as a tuple 'c'.
+///
+/// # Examples
+///
+/// ```
+/// let result = add((2,2,2), (3,2,1));
+/// assert_eq!(result, (5,4,3));
+/// ```
 fn add_two_tuples(a: (i32, i32, i32), b:(i32,i32,i32))->(i32,i32,i32){return (a.0+b.0, a.1+b.1, a.2+b.2)}
 impl Obj{
     pub fn from_optimized_cubes(path: PathBuf,my_app: &MyApp, opcubes: &Vec<OptimizedCube>) -> Obj{
         //println!("my_app.vt_precisionnumber:{:?}", my_app.vt_precisionnumber);
         let x =path.file_name().unwrap().to_str().unwrap().to_string().trim_end_matches(".ply").to_string();
-        let y = x.replace(" ", "");
+        let y = x.replace(' ', "");
         let xx = my_app.picked_path.clone().unwrap().to_string();
         let yy = xx.replace("\\", "/");
         let mut obj = Obj {
@@ -303,7 +299,6 @@ impl Obj{
                                  ,g:(my_app.background_color[1]*255.0) as u8
                                  ,b:(my_app.background_color[2]*255.0) as u8},
         };
-
         let mut temp_v = HashMap::new();
         let mut n = 0;
         for i in 0..opcubes.len(){
@@ -379,7 +374,7 @@ impl Obj{
             obj.vertices.push(ObjV::default());
         }
         for (k,v) in &temp_v{           
-            obj.vertices[(*v as usize)-1] = ObjV::from_xyz(k.0, k.1, k.2);
+            obj.vertices[*v-1] = ObjV::from_xyz(k.0, k.1, k.2);
         }
         //push the vertices into the list (there is nothing more we can do)
         //println!("{:?}", temp_v.len());
@@ -456,7 +451,7 @@ impl Obj{
                 });
         }
         obj.number_of_v_and_f.1 = obj.faces.len() as i32;
-        let mut tid: Vec<(Option<i32>, equality)> = Vec::new();
+        let mut tid: Vec<(Option<i32>, Equality)> = Vec::new();
         let mut unique_tid: Vec<TextureMap> = Vec::new();
         let mut temp_vt: HashMap<(i32,i32),i32> = HashMap::new();
         let mut positions = Vec::new();
@@ -497,11 +492,11 @@ impl Obj{
                                 //if the next pixel is not equal to the last
                                 let previousp = &opcubes[x].textures[t].colours[pixel - 1].clone();
                                 let currentp = &opcubes[x].textures[t].colours[pixel].clone();
-                                if previousp.is_some() && currentp.is_some(){
-                                    if previousp.unwrap() != currentp.unwrap(){
-                                        //texture isn't all of the same colour
-                                        is_all_same_colour = false;
-                                    }
+                                if previousp.is_some() && 
+                                   currentp.is_some() &&
+                                   previousp.unwrap() != currentp.unwrap() {
+                                    //texture isn't all of the same colour
+                                    is_all_same_colour = false;
                                 }
                                 
                             }
@@ -511,56 +506,56 @@ impl Obj{
                 //println!("is texture some = {:?}", is_texture_some);
                 //println!("is all same color = {:?}", is_all_same_colour);
                 if !is_texture_some{
-                    tid.push((None, equality::NO));
+                    tid.push((None, Equality::No));
                 } else if is_texture_some{
                     //the texture is going to depend on if it is a single colour or more
                     let mut tex = opcubes[x].textures[t].clone();
                     if is_all_same_colour{
-                        let mut c = obj.background_color;
+                        let c = obj.background_color;
                         let mut i = 0;  
-                        while opcubes[x].textures[t].colours[i].is_some() == false{
+                        while opcubes[x].textures[t].colours[i].is_none(){
                             i+=1;
                         }      
                         tex = TextureMap{w:1,h:1, colours:[opcubes[x].textures[t].colours[i]].to_vec()}
                     }
                     //println!("{:?}", tex);
 
-                    if unique_tid.len()==0{
+                    if unique_tid.is_empty(){
                         //if all the texture is of a colour just push that colour
                         unique_tid.push(tex);
                         //tid.push((Some(((x*6)+t) as i32), equality::NO));
-                        tid.push((Some((unique_tid.len() - 1) as i32), equality::NO))
+                        tid.push((Some((unique_tid.len() - 1) as i32), Equality::No))
                         
                     //if there is a unique texture already
                     }else {
                         //if it is just one colour check if that colour exists already
                         if my_app.pattern_matching == 0{
                             unique_tid.push(tex.clone());
-                            tid.push((Some((unique_tid.len() - 1) as i32), equality::NO))
+                            tid.push((Some((unique_tid.len() - 1) as i32), Equality::No))
                         }else{
-                            let mut equ = equality::NO;
+                            let mut equ = Equality::No;
                             let mut ii = 0;
                             for i in 0..unique_tid.len(){
 
-                                if equ == equality::NO{
+                                if equ == Equality::No{
                                     match tex.is_equal(&unique_tid[i], my_app.pattern_matching){
-                                        equality::NO =>{}
-                                        equality::ONE =>{ii=i as i32;equ = equality::ONE;}
-                                        equality::TWO_90 =>{ii=i as i32;equ = equality::TWO_90;}
-                                        equality::TWO_180 =>{ii=i as i32;equ = equality::TWO_180;}
-                                        equality::TWO_270 =>{ii=i as i32;equ = equality::TWO_270;}
-                                        equality::THREE_X =>{ii=i as i32;equ = equality::THREE_X;}
-                                        equality::THREE_Y =>{ii=i as i32;equ = equality::THREE_Y;}
+                                        Equality::No =>{}
+                                        Equality::One =>{ii=i as i32;equ = Equality::One;}
+                                        Equality::Two90 =>{ii=i as i32;equ = Equality::Two90;}
+                                        Equality::Two180 =>{ii=i as i32;equ = Equality::Two180;}
+                                        Equality::Two270 =>{ii=i as i32;equ = Equality::Two270;}
+                                        Equality::ThreeX =>{ii=i as i32;equ = Equality::ThreeX;}
+                                        Equality::ThreeY =>{ii=i as i32;equ = Equality::ThreeY;}
                                     }
                                 }
                                 //println!("opcubes[{:?}].textures[{:?}] equality::{:?} unique_tid[{:?}]",x,t,equ,i);
                             }
                             //println!("opcubes[{:?}].textures[{:?}] equality::{:?} with the rest of the textures",x,t,equ);
-                            if equ == equality::NO{
+                            if equ == Equality::No{
                                 unique_tid.push(tex.clone());
-                                tid.push((Some((unique_tid.len()-1) as i32), equality::NO));
+                                tid.push((Some((unique_tid.len()-1) as i32), Equality::No));
                             }
-                            if equ != equality::NO {
+                            if equ != Equality::No {
                                 //println!("pushing tid: {:?}", ii);
                                 //println!("lenght before: {:?}", tid.len());
                                 tid.push((Some(ii), equ));
@@ -652,37 +647,37 @@ impl Obj{
                                      positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
 
                 match tid[x].1 {
-                    equality::NO => {
+                    Equality::No => {
                         aa = *a;
                         bb = *b;
                         cc = *c;
                         dd = *d;
-                    }equality::ONE => {
+                    }Equality::One => {
                         aa = *a;
                         bb = *b;
                         cc = *c;
                         dd = *d;
-                    }equality::TWO_90=> {
+                    }Equality::Two90=> {
                         aa = *b;
                         bb = *c;
                         cc = *d;
                         dd = *a;
-                    }equality::TWO_180=> {
+                    }Equality::Two180=> {
                         aa = *c;
                         bb = *d;
                         cc = *a;
                         dd = *b;
-                    }equality::TWO_270=> {
+                    }Equality::Two270=> {
                         dd = *c;
                         cc = *b;
                         bb = *a;
                         aa = *d;
-                    }equality::THREE_X=> {
+                    }Equality::ThreeX=> {
                         dd = *c;
                         cc = *d;
                         bb = *a;
                         aa = *b;
-                    }equality::THREE_Y=> {
+                    }Equality::ThreeY=> {
                         dd = *a;
                         cc = *b;
                         bb = *c;
@@ -704,15 +699,18 @@ impl Obj{
             obj.vertices_uvs[(*v as usize)-1] = ObjVt{u: k.0, v: k.1};
         }
         obj.texture_map = finaltexture;
-        return obj;
+        obj //return
 
     }
+    ///[.obj and .mtl file specs][https://www.wikiwand.com/en/Wavefront_.obj_file#Physically-based_Rendering]
+    ///
+    ///
     fn write_mtl(&self){
         let x = format!("#@DL2023 - w:{:?}, h:{:?}\nnewmtl x\nmap_Kd {}.png", self.texture_map.w, self.texture_map.h, self.name);
         //todo!() -> write this to file
         //println!("export/{}.mtl",self.name);
         let mut mtl_file = File::create(format!("{}/{}.mtl",self.export_folder,self.name)).expect("creation failed");
-                mtl_file.write(x.as_bytes()).expect("write failed");
+                mtl_file.write_all(x.as_bytes()).expect("write failed");
     }
     fn write_obj(&mut self, shape:(i32,i32,i32),lowest_coordinates:(i32,i32,i32)){
         let w = "#created with MagicaVoxel and VoxelOptimizer ";
@@ -721,7 +719,7 @@ impl Obj{
         let name = &self.name;
         let oname = format!("o {}\n", name);
         let mtllibname = format!("mtllib {}.mtl\n", name);
-        let USEMTL = format!("usemtl x\n");
+        let usemtl = format!("usemtl x\n");
         let mut obj_file = File::create(format!("{}/{}.obj",self.export_folder,self.name)).unwrap();
 
         obj_file.write(watermark.as_bytes()).expect("write failed");
@@ -787,7 +785,7 @@ impl Obj{
         }
         obj_file.write(list_of_vt.as_bytes()).expect("write failed");
         //write usemtl
-        obj_file.write(USEMTL.as_bytes()).expect("write failed");
+        obj_file.write(usemtl.as_bytes()).expect("write failed");
         //write faces
         //let mut list_of_f = String::new();
         for f in 0..self.number_of_v_and_f.1{
@@ -836,5 +834,13 @@ impl Obj{
         self.write_obj(shape, lowest_coordinates);
         self.write_mtl();
         self.write_png();
+        /*
+        tokio::try_join!(
+            self.write_obj(shape, lowest_coordinates),
+            self.write_mtl(),
+            self.write_png()
+        )
+        .expect("Failed to export");
+        */
     }
 }

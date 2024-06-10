@@ -1,6 +1,6 @@
 use std::path::PathBuf;
-use std::vec;
-use std::collections::HashSet;
+
+
 
 use crate::vox_importer::*;
 use crate::vox_exporter::*;
@@ -39,7 +39,7 @@ impl ColourMatrix{
             for y in 0..shapey{
                 self.matrixc[z as usize].push(Vec::new());
                 self.matrixb[z as usize].push(Vec::new());
-                for x in 0..shapex{
+                for _x in 0..shapex{
                     self.matrixc[z as usize][y as usize].push(None);
                     self.matrixb[z as usize][y as usize].push(None);
                 }
@@ -56,7 +56,7 @@ impl ColourMatrix{
         let xx = x-self.lowest_coordinates.0;
         let yy = y-self.lowest_coordinates.1;
         let zz = z-self.lowest_coordinates.2;
-        return (xx as usize,yy as usize,zz as usize);
+        (xx as usize,yy as usize,zz as usize) //return
     }
     /*
     fn index_to_pos(&self, x:i32, y:i32, z:i32)->(i32,i32,i32){
@@ -68,7 +68,7 @@ impl ColourMatrix{
     */
     fn vector_to_scalar_index(&mut self, x:i32, y:i32, z:i32)->usize{
         let (xx,yy,zz) = self.pos_to_index(x,y,z);
-        return (self.shape.0*self.shape.1*(zz as i32)+self.shape.0*(yy as i32)+(xx as i32)) as usize;
+        (self.shape.0*self.shape.1*(zz as i32)+self.shape.0*(yy as i32)+(xx as i32)) as usize //return
     }
     fn get_cube_colour(&mut self, x: i32, y:i32, z: i32)->Option<(u8,u8,u8)>{
         /*
@@ -84,12 +84,12 @@ impl ColourMatrix{
         let (xx,yy,zz) = self.pos_to_index(x, y, z);
         if let Some(z) = self.matrixc.get(zz) {
             if let Some(y) = z.get(yy) {
-                if let Some(x) = y.get(xx) {
+                if let Some(_x) = y.get(xx) {
                     return self.matrixc[zz][yy][xx];
                 }
             }
         }
-        return None;
+        None //return
         //return self.matrixc.get(zz)?.get(yy)?.get(xx)?;
     }
     fn get_cube_bool(&mut self, x: i32, y:i32, z: i32)->Option<bool>{
@@ -111,7 +111,7 @@ impl ColourMatrix{
                 }
             }
         }
-        return None;
+        None //return
     }
     fn set_cube_colour(&mut self, i:(i32,i32,i32), rgb:(u8,u8,u8)){
         /*
@@ -141,7 +141,7 @@ impl ColourMatrix{
                 //println!("self.Hashmap.get({:?},{:?},{:?};)={:?}",x,y,z,self.Hashmap.get(&(x,y,z)));
                 match cube{
                     None => {return CanBeMerged::No;}
-                    Some(w) => {if w == true{
+                    Some(w) => {if w{
                                 if !is_all_not_merged{is_slice_already_merged = true;
                                 }else{is_slice_already_merged=false}
                                 }else{is_all_not_merged=true;}}
@@ -153,7 +153,7 @@ impl ColourMatrix{
         if is_slice_already_merged{
             return CanBeMerged::Cross;
         }
-        return CanBeMerged::Yes;
+        CanBeMerged::Yes //return
     }
     fn is_slice_some(&mut self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> bool {
         for z in z1..=z2{
@@ -165,7 +165,7 @@ impl ColourMatrix{
                 } 
             }
         }
-        return true;
+        true //return
     }
     fn merge_slice(&mut self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32){
         for z in z1..=z2{
@@ -187,7 +187,7 @@ impl ColourMatrix{
             for y in (y1..y2).rev(){
                 for x in x1..x2{   
                         let rgb = self.get_cube_colour(x,y,z2-1);                
-                        if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                        if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
@@ -200,7 +200,7 @@ impl ColourMatrix{
                 for x in (x1..x2){
                     //let rgb = self.get_cube_colour(x2-1-x,y2-1-y,z1);
                     let rgb = self.get_cube_colour(x,y,z1);
-                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
@@ -212,7 +212,7 @@ impl ColourMatrix{
             for z in (z1..z2).rev(){
                 for y in (y1..y2).rev(){
                     let rgb = self.get_cube_colour(x1,y,z);
-                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
@@ -224,7 +224,7 @@ impl ColourMatrix{
             for z in (z1..z2).rev(){
                 for y in (y1..y2){
                     let rgb = self.get_cube_colour(x2-1,y,z);
-                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
@@ -236,7 +236,7 @@ impl ColourMatrix{
             for z in (z1..z2).rev(){
                 for x in x1..x2{
                     let rgb = self.get_cube_colour(x,y1,z);
-                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
@@ -248,7 +248,7 @@ impl ColourMatrix{
             for z in (z1..z2).rev(){
                 for x in (x1..x2).rev(){
                     let rgb = self.get_cube_colour(x,y2-1,z);
-                    if let None = rgb{vector_of_colours.push(None);}else if let Some(c) = rgb{
+                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
                         vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
@@ -312,53 +312,53 @@ impl BoolMatrix{
                 }
             }
         }
-        return false;
+        false //return
     }
     fn set_cube_bool(&mut self, i:(i32,i32,i32), b:bool){
         let ii = self.pos_to_index(i.0,i.1,i.2);
-        self.matrixb[ii.2 as usize][ii.1 as usize][ii.0 as usize]=b;
+        self.matrixb[ii.2][ii.1][ii.0]=b;
     }
     fn contains(&mut self, x:usize, y:usize, z:usize)->bool{
-        return self.matrixb[z][y][x] == true;
+        self.matrixb[z][y][x] == true //return
     }
 }
 #[derive(Debug, Copy, Clone)]
 pub struct Cube{
     //0= top, 1= bottom, 2= left, 3= right, 4= front, 5= back
-    faces: [Option<cube_f>;6], //(it was about to be outdated even before I uncommented this mess LOL DEATH_EMOJI)
+    faces: [Option<CubeF>;6], //(it was about to be outdated even before I uncommented this mess LOL DEATH_EMOJI)
     position: (f32, f32, f32),
     colour: (u8, u8, u8),
     merged: bool
 }
 impl Cube{
-    fn from_face(f: &cube_f) -> Cube{
+    fn from_face(f: &CubeF) -> Cube{
         let m = false;
         let faces = match f.dir {
-            DIRECTION::TOP =>    {[Some(f.clone()),None,None,None,None,None]}
-            DIRECTION::BOTTOM => {[None,Some(f.clone()),None,None,None,None]}
-            DIRECTION::LEFT =>   {[None,None,Some(f.clone()),None,None,None]}
-            DIRECTION::RIGHT =>  {[None,None,None,Some(f.clone()),None,None]}
-            DIRECTION::FRONT =>  {[None,None,None,None,Some(f.clone()),None]}
-            DIRECTION::BACK =>   {[None,None,None,None,None,Some(f.clone())]}
+            Direction::Top =>    {[Some(*f),None,None,None,None,None]}
+            Direction::Bottom => {[None,Some(*f),None,None,None,None]}
+            Direction::Left =>   {[None,None,Some(*f),None,None,None]}
+            Direction::Right =>  {[None,None,None,Some(*f),None,None]}
+            Direction::Front =>  {[None,None,None,None,Some(*f),None]}
+            Direction::Back =>   {[None,None,None,None,None,Some(*f)]}
         };
         let po = match f.dir{
-            DIRECTION::TOP =>    {(f.position.0,f.position.1, f.position.2 - 0.5)}
-            DIRECTION::BOTTOM => {(f.position.0,f.position.1, f.position.2 + 0.5)}
-            DIRECTION::LEFT =>   {(f.position.0 + 0.5,f.position.1, f.position.2)}
-            DIRECTION::RIGHT =>  {(f.position.0 - 0.5,f.position.1, f.position.2)}
-            DIRECTION::FRONT =>  {(f.position.0,f.position.1 + 0.5, f.position.2)}
-            DIRECTION::BACK =>   {(f.position.0,f.position.1 - 0.5, f.position.2)}
+            Direction::Top =>    {(f.position.0,f.position.1, f.position.2 - 0.5)}
+            Direction::Bottom => {(f.position.0,f.position.1, f.position.2 + 0.5)}
+            Direction::Left =>   {(f.position.0 + 0.5,f.position.1, f.position.2)}
+            Direction::Right =>  {(f.position.0 - 0.5,f.position.1, f.position.2)}
+            Direction::Front =>  {(f.position.0,f.position.1 + 0.5, f.position.2)}
+            Direction::Back =>   {(f.position.0,f.position.1 - 0.5, f.position.2)}
         };
         Cube{
             position: po,
-            faces: faces,
+            faces,
             colour: f.colour,
             merged: m,
         }
     }
     fn from_nothing(position: (f32, f32, f32))-> Cube{
         Cube{
-            position: position,
+            position,
             faces: [None,None,None,None,None,None],
             colour: (0,0,0),
             merged: false,
@@ -366,125 +366,87 @@ impl Cube{
     }
 }
 #[derive(Copy, Clone, Debug)]
-pub struct cube_f{
+pub struct CubeF{
     position: (f32, f32, f32),
-    dir: DIRECTION,
+    dir: Direction,
     colour: (u8,u8,u8),
     //vertices_indices: [i32;4]
 }
 #[derive(Copy, Clone, Debug)]
-pub enum DIRECTION{
-    TOP,
-    BOTTOM,
-    LEFT,
-    RIGHT,
-    FRONT,
-    BACK
+pub enum Direction{
+    Top,
+    Bottom,
+    Left,
+    Right,
+    Front,
+    Back
 }
-pub struct cube_v{
+pub struct CubeV{
     x: i32,
     y: i32,
     z: i32
 }
-pub struct cube_vt{
+pub struct CubeVt{
     u: f32,
     v: f32
 }
-impl cube_f {
-    fn from_vertices(a: &v, b: &v, c: &v, d: &v) -> cube_f {
+//todo!()->improve from_vertices to support vectors if possible
+impl CubeF {
+    ///Returns a Face of the cube from 4 vertex
+    ///
+    ///Calculates average position, average colour and direction which is the cross product of the vectors a->b, b->c
+    fn from_vertices(a: &v, b: &v, c: &v, d: &v) -> CubeF {
         let po = ((a.x + b.x + c.x + d.x) / 4.0,
                   (a.y + b.y + c.y + d.y) / 4.0,
                   (a.z + b.z + c.z + d.z) / 4.0);
+        //Calculate the two vectors 6cycles
+        let va = (b.x - a.x, b.y - a.y, b.z - a.z);
+        let vb = (c.x - b.x, c.y - b.y, c.z - b.z);
+        //cross product 9cycles
+        //result = Normal of the face e.g. (-1, 0, 0) = Direction::Left
+        let vc: (f32,f32,f32) = (
+            va.1*vb.2-va.2*vb.1,
+            va.2*vb.0-va.0*vb.2,
+            va.0*vb.1-va.1*vb.0);
+        //let mut di: Direction = Direction::Front;
+        let dir = if vc.0 != 0.0{
+            if vc.0 < 0.0{
+                Direction::Left
+            }else{
+                Direction::Right
+            }
+        }else if vc.1 != 0.0 {
+            if vc.1 > 0.0{
+                Direction::Top
+            }else{
+                Direction::Bottom
+            }
+        }else if vc.2 > 0.0{
+            Direction::Back
+        }else{
+            Direction::Front
+        };
+
         
-        let mut di: DIRECTION = DIRECTION::TOP;
-        //either top or bottom
-        if a.z == b.z && b.z == c.z && c.z == d.z{
-            let top_left = (po.0-0.5, po.1+0.5, po.2);
-            let top_right = (po.0 + 0.5, po.1 +0.5, po.2);
-            let bottom_left = (po.0 - 0.5, po.1 - 0.5, po.2);
-            let bottom_right = (po.0 + 0.5, po.1 - 0.5, po.2);
-            //top
-            if  (a.x, a.y, a.z) == top_left && (b.x, b.y, b.z) == bottom_left ||
-                (a.x, a.y, a.z) == bottom_left && (b.x, b.y, b.z) == bottom_right||
-                (a.x, a.y, a.z) == bottom_right && (b.x, b.y, b.z) == top_right ||
-                (a.x, a.y, a.z) == top_right && (b.x, b.y, b.z) == top_left{di = DIRECTION::TOP;}
-            //not top 
-            else{
-                di = DIRECTION::BOTTOM;
-            }
-        }
-        //either front or back
-        if a.y == b.y && b.y == c.y && c.y == d.y{
-            let top_left = (po.0-0.5, po.1, po.2 + 0.5);
-            let top_right = (po.0 + 0.5, po.1, po.2 + 0.5);
-            let bottom_left = (po.0 - 0.5, po.1, po.2 -0.5);
-            let bottom_right = (po.0 + 0.5, po.1, po.2 -0.5);
-            //front
-            if  (a.x, a.y, a.z) == top_left && (b.x, b.y, b.z) == bottom_left ||
-                (a.x, a.y, a.z) == bottom_left && (b.x, b.y, b.z) == bottom_right||
-                (a.x, a.y, a.z) == bottom_right && (b.x, b.y, b.z) == top_right ||
-                (a.x, a.y, a.z) == top_right && (b.x, b.y, b.z) == top_left{di = DIRECTION::FRONT;}
-            //back
-            else{
-                di = DIRECTION::BACK;
-            }
-        }
-        //either left or right (Actually either right or left for unknown reasons)
-        if a.x == b.x && b.x == c.x && c.x == d.x{
-            let top_left = (po.0, po.1 -0.5, po.2 + 0.5);
-            let top_right = (po.0, po.1 +0.5, po.2 + 0.5);
-            let bottom_left = (po.0, po.1 -0.5, po.2 -0.5);
-            let bottom_right = (po.0, po.1 +0.5, po.2 -0.5);
-            //left
-            if  (a.x, a.y, a.z) == top_left && (b.x, b.y, b.z) == bottom_left ||
-                (a.x, a.y, a.z) == bottom_left && (b.x, b.y, b.z) == bottom_right||
-                (a.x, a.y, a.z) == bottom_right && (b.x, b.y, b.z) == top_right ||
-                (a.x, a.y, a.z) == top_right && (b.x, b.y, b.z) == top_left{di = DIRECTION::RIGHT;}
-            //right
-             else{
-                di = DIRECTION::LEFT;
-            }
-        }
-        
-        /*
-        let di: DIRECTION = if a.x != b.x {
-            if b.y != c.y {
-                DIRECTION::TOP
-            } else if b.z != c.z {
-                DIRECTION::FRONT
-            } else { DIRECTION::TOP }
-        } else if a.y != b.y {
-            if b.x != c.x {
-                DIRECTION::BOTTOM
-            } else if b.z != c.z {
-                DIRECTION::RIGHT
-            } else { DIRECTION::TOP }
-        } else if a.z != b.z {
-            if b.x != c.x {
-                DIRECTION::BACK
-            } else if b.y != c.y {
-                DIRECTION::LEFT
-            } else { DIRECTION::TOP }}else { DIRECTION::TOP };
-        */
         let col = (a.r, a.g, a.b);
 
-        cube_f {
+        CubeF {
             position: po,
-            dir: di,
+            dir,
             colour: col,
             //vertices_indices:
         }
     }
     fn return_cube_position(&self) -> (f32, f32, f32) {
         let po = match self.dir {
-            DIRECTION::TOP =>    {(self.position.0,self.position.1, self.position.2 - 0.5)}
-            DIRECTION::BOTTOM => {(self.position.0,self.position.1, self.position.2 + 0.5)}
-            DIRECTION::LEFT =>   {(self.position.0 + 0.5,self.position.1, self.position.2)}
-            DIRECTION::RIGHT =>  {(self.position.0 - 0.5,self.position.1, self.position.2)}
-            DIRECTION::FRONT =>  {(self.position.0,self.position.1 + 0.5, self.position.2)}
-            DIRECTION::BACK =>   {(self.position.0,self.position.1 - 0.5, self.position.2)}
+            Direction::Top =>    {(self.position.0,self.position.1, self.position.2 - 0.5)}
+            Direction::Bottom => {(self.position.0,self.position.1, self.position.2 + 0.5)}
+            Direction::Left =>   {(self.position.0 + 0.5,self.position.1, self.position.2)}
+            Direction::Right =>  {(self.position.0 - 0.5,self.position.1, self.position.2)}
+            Direction::Front =>  {(self.position.0,self.position.1 + 0.5, self.position.2)}
+            Direction::Back =>   {(self.position.0,self.position.1 - 0.5, self.position.2)}
         };
-        return ((po.0),(po.1),(po.2));
+        ((po.0),(po.1),(po.2)) //return
     }
 }
 #[derive(Debug)]
@@ -524,11 +486,12 @@ impl CubeIndexPosition{
         }
     }
     fn to_tuple_xyz(&self)->(i32,i32,i32){
-        return (self.x, self.y, self.z);
+        (self.x, self.y, self.z) //return
     }
 }
 //*/
 //pub(crate) fn convert(my_app: &mut MyApp, path: &std::path::PathBuf, monochrome: &bool, pattern_matching: &bool, is_texturesize_powerof2: &bool, texturemapping_invisiblefaces: &bool, manual_vt: &bool, vt_precisionnumber: &u8, background_color: [f32;3], debug_uv_mode: bool){
+
 pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     let x= format!("{}{}",String::from("converting:"), path.to_string_lossy().to_string());
     let _ = my_app.sx.send(x);
@@ -544,7 +507,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
         },
         Err(error) => {
             println!("couldn't read!");
-            let x = String::from(format!("Error while Reading!!! {}",error.to_string()));
+            let x = format!("Error while Reading!!! {}",error.to_string());
             let _ = my_app.sx.send(x);
 
             return;
@@ -553,13 +516,13 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     };
     let t = std::time::Instant::now();
     if let Ok(ply) = &ply_result {
-        let x = String::from(format!("Optimizing model with {} vertices and {} faces", &ply.number_of_v_and_f.0, &ply.number_of_v_and_f.1));
+        let x = format!("Optimizing model with {} vertices and {} faces", &ply.number_of_v_and_f.0, &ply.number_of_v_and_f.1);
         let _ = my_app.sx.send(x);
 
         //println!("{:?}", &ply);
     }
     if let Err(e) = &ply_result {
-        let x = String::from(format!("Error while parsing!!! {}" ,e));
+        let x = format!("Error while parsing!!! {}" ,e);
         let _ = my_app.sx.send(x);
         println!("{}", e);
     }
@@ -589,7 +552,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     //println!("{:?}",&ply);
 
     //get size
-    let mut vector_of_f: Vec<cube_f> = Vec::new();
+    let mut vector_of_f: Vec<CubeF> = Vec::new();
     let mut lowest_coordinates = (99999.0,99999.0,99999.0);
     let mut highest_coordinates = (-99999.0, -99999.0, -99999.0);
     for v in &ply.vertices{
@@ -611,7 +574,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
         let b: &v = &ply.vertices[f.vs.1 as usize];
         let c: &v = &ply.vertices[f.vs.2 as usize];
         let d: &v = &ply.vertices[f.vs.3 as usize];
-        let fa = cube_f::from_vertices(a, b, c, d);
+        let fa = CubeF::from_vertices(a, b, c, d);
         vector_of_f.push(fa);
     }
 
@@ -636,7 +599,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
             println!("bad fa: {:?}, fa.return_cube_position()->{:?}", fa, fa.return_cube_position());
         }
     }
-    if my_app.cull_optimization == true{
+    if my_app.cull_optimization{
         let mut h_top = BoolMatrix::from_size(colourmatrix.shape.0, colourmatrix.shape.1, colourmatrix.shape.2, colourmatrix.lowest_coordinates);
         let mut h_bottom = BoolMatrix::from_size(colourmatrix.shape.0, colourmatrix.shape.1, colourmatrix.shape.2, colourmatrix.lowest_coordinates);
         let mut h_left = BoolMatrix::from_size(colourmatrix.shape.0, colourmatrix.shape.1, colourmatrix.shape.2, colourmatrix.lowest_coordinates);
@@ -647,12 +610,12 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
         for fa in &vector_of_f{
             let i = CubeIndexPosition::new(fa.return_cube_position());
                 match fa.dir{
-                DIRECTION::TOP    => {h_top.set_cube_bool(i.to_tuple_xyz(), true);}
-                DIRECTION::BOTTOM => {h_bottom.set_cube_bool(i.to_tuple_xyz(), true);}
-                DIRECTION::LEFT   => {h_left.set_cube_bool(i.to_tuple_xyz(), true);}
-                DIRECTION::RIGHT  => {h_right.set_cube_bool(i.to_tuple_xyz(), true);}
-                DIRECTION::FRONT  => {h_front.set_cube_bool(i.to_tuple_xyz(), true);}
-                DIRECTION::BACK   => {h_back.set_cube_bool(i.to_tuple_xyz(), true);}
+                Direction::Top    => {h_top.set_cube_bool(i.to_tuple_xyz(), true);}
+                Direction::Bottom => {h_bottom.set_cube_bool(i.to_tuple_xyz(), true);}
+                Direction::Left   => {h_left.set_cube_bool(i.to_tuple_xyz(), true);}
+                Direction::Right  => {h_right.set_cube_bool(i.to_tuple_xyz(), true);}
+                Direction::Front  => {h_front.set_cube_bool(i.to_tuple_xyz(), true);}
+                Direction::Back   => {h_back.set_cube_bool(i.to_tuple_xyz(), true);}
                 }
             
         }
@@ -683,13 +646,13 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
      (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
 
     println!("{:?} optimized cubes in total", optimized_cubes.len());
-    let mut obj = Obj::from_optimized_cubes(path.clone(), &my_app, &optimized_cubes);
-    let x = String::from(format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
-                ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.texture_map.w, obj.texture_map.h));
+    let mut obj = Obj::from_optimized_cubes(path.clone(), my_app, &optimized_cubes);
+    let x = format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
+                ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.texture_map.w, obj.texture_map.h);
         let _ = my_app.sx.send(x);
     obj.export_all(colourmatrix.shape, (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
     println!("{:?}", "Finished optimizing mesh");
-    let x = String::from(format!("{} {:?} in {:?}! ","Converted",path.to_string_lossy().to_string(),t.elapsed()));
+    let x = format!("{} {:?} in {:?}! ","Converted",path.to_string_lossy().to_string(),t.elapsed());
         let _ = my_app.sx.send(x);
     /*
     }else{
@@ -709,7 +672,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     */
 }
 pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
-    let x= format!("{}{}",String::from("converting:"), path.to_string_lossy().to_string());
+    let x= format!("{}{}",String::from("converting:"), path.to_string_lossy());
     let _ = my_app.sx.send(x);
     my_app.status = String::from("Reading...");
     let content = read_file(&path.to_string_lossy().to_string());
@@ -723,7 +686,7 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
         },
         Err(error) => {
             println!("couldn't read!");
-            let x = String::from(format!("Error while Reading!!! {}",error.to_string()));
+            let x = format!("Error while Reading!!! {}",error.to_string());
             let _ = my_app.sx.send(x);
 
             return;
@@ -732,13 +695,13 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
     };
     let t = std::time::Instant::now();
     if let Ok(Vox) = &vox_result {
-        let x = String::from(format!("Optimizing model"));
+        let x = format!("Optimizing model");
         let _ = my_app.sx.send(x);
 
         //println!("{:?}", &ply);
     }
     if let Err(e) = &vox_result {
-        let x = String::from(format!("Error while parsing!!! {}" ,e));
+        let x = format!("Error while parsing!!! {}" ,e);
         let _ = my_app.sx.send(x);
         println!("{}", e);
     }
@@ -767,7 +730,7 @@ pub fn convert_to_optimized_cubes(cubes: &mut ColourMatrix, cross: bool, lowest_
         for y in lowest_coordinates.1..cubes.shape.1+lowest_coordinates.1+1{
             for x in lowest_coordinates.0..cubes.shape.0+lowest_coordinates.0+1{
                 //println!("x:{:?} y:{:?} z:{:?}", x as i32,y as i32,z as i32);
-                if let Some(opcube) = find_dimensions(cubes, (x as i32, y as i32, z as i32), &cross) {
+                if let Some(opcube) = find_dimensions(cubes, (x, y, z), &cross) {
 
                     cs.push(opcube);
                 }
@@ -783,16 +746,14 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
     let mut shape = (1, 1, 1);
     //println!("{:?}", shape);
     //let mut cubes: std::vec::Vec<T> = Vec::new();
-
-
     //is the first cube a some value?
-    if mymap.is_slice_some(index_we_are_at.0 as i32, index_we_are_at.0 as i32,
-                             index_we_are_at.1 as i32, index_we_are_at.1 as i32,
-                              index_we_are_at.2 as i32, index_we_are_at.2 as i32){
+    if mymap.is_slice_some(index_we_are_at.0, index_we_are_at.0,
+                             index_we_are_at.1, index_we_are_at.1,
+                              index_we_are_at.2, index_we_are_at.2){
         //can it be merged?
-        match mymap.can_slice_be_merged(index_we_are_at.0 as i32, index_we_are_at.0 as i32,
-                             index_we_are_at.1 as i32, index_we_are_at.1 as i32,
-                              index_we_are_at.2 as i32, index_we_are_at.2 as i32){
+        match mymap.can_slice_be_merged(index_we_are_at.0, index_we_are_at.0,
+                             index_we_are_at.1, index_we_are_at.1,
+                              index_we_are_at.2, index_we_are_at.2){
             CanBeMerged::No => {return None;}
             CanBeMerged::Cross => {return None;}
             CanBeMerged::Yes => { 
@@ -818,9 +779,9 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
 
     let mut v_cached = Vec::new();
     //x
-    let i = index_we_are_at.0.clone();
-    let j = index_we_are_at.1.clone();
-    let k = index_we_are_at.2.clone();
+    let i = index_we_are_at.0;
+    let j = index_we_are_at.1;
+    let k = index_we_are_at.2;
     //println!("{:?}", "has it crashed yet? 1.1");
     //println!("i:{:?} j:{:?} k:{:?}", i, j, k);
     while (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k) == CanBeMerged::Yes) ||
@@ -898,34 +859,34 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
     //println!("{:?}", shape);
     Some(OptimizedCube{
         dimensions: (shape.0 as u16, shape.1 as u16, shape.2 as u16),
-        starting_position: (index_we_are_at.0 as i32, index_we_are_at.1 as i32, index_we_are_at.2 as i32),
+        starting_position: (index_we_are_at.0, index_we_are_at.1, index_we_are_at.2),
         textures: txt,
 
     })
 }
 
 fn cache_sanitization(mut v_cached: Vec<CanBeMerged>, cross: bool) -> Vec<CanBeMerged>{
-    if v_cached.len() != 0{
+    if !v_cached.is_empty(){
     if cross {
-        while v_cached.len() != 0 && v_cached[v_cached.len()-1] == CanBeMerged::Cross{
+        while !v_cached.is_empty() && v_cached[v_cached.len()-1] == CanBeMerged::Cross{
             v_cached.pop();
         }
-        return v_cached;
+        v_cached //return
 
     } else {
         let mut is_not_mergeable = false;
         let mut i = 0;
-        while v_cached.len() != 0 && (i <= v_cached.len()-1) && is_not_mergeable == false{
+        while !v_cached.is_empty() && (i < v_cached.len()) && !is_not_mergeable{
             if v_cached[i] == CanBeMerged::Yes{
                 i += 1;
             }else{
                 is_not_mergeable = true;
             }
         }
-        while i <= v_cached.len() -1 {
+        while i < v_cached.len() {
             v_cached.pop();
         }
-        return v_cached;
+        v_cached //return
     }
     }else {
         Vec::new()

@@ -3,8 +3,6 @@
 //!to speed uo the process
 mod vox_importer;
 mod greedy_mesher;
-mod uv_unwrapping;
-mod texture_mapping;
 mod vox_exporter;
 
 //use rfd::FileDialog;
@@ -39,8 +37,8 @@ fn main() -> Result<(), eframe::Error> {
      */
     let options = eframe::NativeOptions{
         drag_and_drop_support: true,
-        initial_window_pos: Some(egui::pos2(400.0,50.0)),
-        initial_window_size: Some(egui::vec2(1000.0, 600.0)),
+        initial_window_pos: Some(egui::pos2(300.0,100.0)),
+        initial_window_size: Some(egui::vec2(1050.0, 600.0)),
         run_and_return: false,
         icon_data: Some(icon),
         ..Default::default()
@@ -78,14 +76,16 @@ struct MyApp {
     cull_optimization: bool,
     y_is_up: bool,
     center_model_in_mesh: bool,
+    normals: bool,
     //vox settings
     all_in_one_mesh: bool,
     transparency: bool,
     emission: bool,
     roughness: bool,
     metal: bool,
-    //specular: bool,
     refraction: bool,
+    specular: bool,
+    glass_creates_more_mesh:bool,
 }
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -94,8 +94,8 @@ impl eframe::App for MyApp {
                 ui.label(RichText::new("Voxel Optimizer").font(FontId::proportional(40.0)));
                 ui.label(RichText::new("@davidevofficial - 2023").font(FontId::proportional(9.0)));
                 ui.separator();
-                ui.label("First change the settings and then Drag-and-drop files onto the window then click the convert button to convert them into an optimized .obj file, \
-                for more help check the documentation here: https://github.com/davidevofficial/voxel_optimizer/");
+                ui.label("First change the settings and Drag-and-drop files onto the window.Click the convert button to convert them into an optimized .obj file.
+                         For more help check the documentation here: https://github.com/davidevofficial/voxel_optimizer/ or send me an email at: davidevufficial@gmail.com");
             });
         });
         egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui|{
@@ -182,36 +182,64 @@ impl eframe::App for MyApp {
         });
         egui::CentralPanel::default().show(ctx, |ui| {
             //ui.columns(2, |columns|{
+            ui.columns(2, |columns|{
+                //First column
+                //Algorithm
+                columns[0].separator();
+                columns[0].label("Algorithm Options");
+                columns[0].checkbox(&mut self.cross, "Enable cross-overlapping optimization");
+                columns[0].checkbox(&mut self.monochrome, "Enable solid color faces to be one pixel on the texture map");
+                columns[0].checkbox(&mut self.glass_creates_more_mesh, "Let Glass be more accurate (only for.vox)");;
+                columns[0].label("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry");
+                columns[0].add(egui::Slider::new(&mut self.pattern_matching, 0..=3));
+                columns[0].separator();
+                //Export
+                columns[0].label("Export Options");
+                columns[0].checkbox(&mut self.manual_vt, "Enable manual setting of the precision levels?");
+                if self.manual_vt {
+                    columns[0].add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
+                }else{
+                    columns[0].label("");
+                }
+                columns[0].horizontal(|ui|{
+                    ui.color_edit_button_rgb(&mut self.background_color);
+                    ui.label("Select the background colour:");
+                });
+                columns[0].checkbox(&mut self.y_is_up, "Y vector is up");
+                columns[0].checkbox(&mut self.center_model_in_mesh, "Origin is center of the model");
+                columns[0].checkbox(&mut self.normals, "Enable normals on the final export");
+                columns[0].separator();
+
+                //second column
+                //Debug Option
+                columns[1].label("Debug Option");
+                columns[1].checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
+                columns[1].separator();
+                //PLY
+                columns[1].separator();
+                columns[1].label(".ply compatibility Option ");
+                columns[1].checkbox(&mut self.cull_optimization, "Enable de-cull optimization");
+                columns[1].label("");
+
+                //VOX
+                columns[1].separator();
+                columns[1].label(".vox specific Options");
+                columns[1].checkbox(&mut self.all_in_one_mesh, "Enable all the meshes to be in one file");
+                columns[1].checkbox(&mut self.transparency, "Enable transparency");
+                columns[1].checkbox(&mut self.emission, "Enable the creation of an emission map");
+                columns[1].checkbox(&mut self.roughness, "Enable roughness to be in red channel of extra texture map");
+                columns[1].checkbox(&mut self.metal, "Enable metal to be in green channel of extra texture map");
+                columns[1].checkbox(&mut self.refraction, "Enable index of refraction to be in blue channel of extra texture map");
+                columns[1].checkbox(&mut self.specular, "Enable specular to be in alpha channel of extra texture map");
+                columns[1].separator();
+            });
                 //first column
                 // Show dropped files (if any):
                 //second column
                 //ui.checkbox(&mut self.is_texturesize_powerof2, "Should the texture width and height both be a power of 2?");
                 //ui.checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
-                ui.checkbox(&mut self.cross, "Enable cross-overlapping optimization");
-                ui.checkbox(&mut self.cull_optimization, "Enable de-cull optimization");
-                ui.checkbox(&mut self.monochrome, "Enable solid color faces to be one pixel on the texture map");
-                //columns[1].checkbox(&mut self.pattern_matching, "Should similar faces be mapped on the same part of the texture map?");
-                ui.add(egui::Slider::new(&mut self.pattern_matching, 0..=3).text("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry"));
                 
-                ui.checkbox(&mut self.manual_vt, "Enable manual setting of the precision levels?");
-                if self.manual_vt {
-                    ui.add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
-                }
-                ui.horizontal(|ui|{
-                    ui.color_edit_button_rgb(&mut self.background_color);
-                    ui.label("Select the background colour:");
-                });
-                ui.checkbox(&mut self.y_is_up, "Y vector is up");
-                ui.checkbox(&mut self.center_model_in_mesh, "Origin is center of the model");
-                ui.checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
-                ui.separator();
-                ui.label("Options if you optimize .vox files:");
-                ui.checkbox(&mut self.all_in_one_mesh, "Enable all the meshes to be in one file");
-                ui.checkbox(&mut self.transparency, "Enable transparency");
-                ui.checkbox(&mut self.emission, "Enable the creation of an emission map");
-                ui.checkbox(&mut self.metal, "Enable metal to be in red channel of extra texture map");
-                ui.checkbox(&mut self.roughness, "Enable roughness to be in green channel of extra texture map");
-                ui.checkbox(&mut self.refraction, "Enable refraction to be in blue channel of extra texture map");
+
 
         });
         preview_files_being_dropped(ctx);
@@ -226,7 +254,7 @@ impl eframe::App for MyApp {
         //save
         let mut b: Option<String> = None;
         if self.vt_precisionnumber < 10{b = Some(String::from("0"))}
-        let c = format!("{},{},{},{}{},{},{},{},{},{},{},{},{},{},{},{},{}"
+        let c = format!("{},{},{},{}{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}"
                         , (self.monochrome as i32)
                         , self.pattern_matching
                         , (self.manual_vt as i32)
@@ -244,6 +272,9 @@ impl eframe::App for MyApp {
                         , (self.roughness as i32)
                         , (self.metal as i32)
                         , (self.refraction as i32)
+                        , (self.specular as i32)
+                        , (self.normals as i32)
+                        , (self.glass_creates_more_mesh as i32)
                         );
         write("src/options.txt", c).unwrap();
         //thread::sleep(Duration::from_millis(10));
@@ -304,8 +335,10 @@ impl Default for MyApp{
             let emission = if c[25] == b'1' {true}else{false}; 
             let roughness = if c[27] == b'1' {true}else{false}; 
             let metal = if c[29] == b'1' {true}else{false}; 
-            let refraction = if c[31] == b'1' {true}else{false}; 
-
+            let refraction = if c[31] == b'1' {true}else{false};
+            let specular = if c[33] == b'1' {true}else{false};  
+            let normals = if c[35] == b'1' {true}else{false};
+            let glass_creates_more_mesh = if c[37] == b'1' {true}else{false};
 
         Self{
             sx,
@@ -332,6 +365,9 @@ impl Default for MyApp{
             roughness,
             metal,
             refraction,
+            specular,
+            normals,
+            glass_creates_more_mesh,
         }
     }
 }

@@ -183,12 +183,6 @@ impl Vox{
                     let ry = Vector3::from_tuple(ch.rotation.1.to_vector());
                     let rz = Vector3::from_tuple(ch.rotation.2.to_vector());
                     let mut new_position = column_times_matrix(c, (rx,ry,rz));
-                    /*
-                    let new_x = Scalar::from_number(ch.xyzi[v].x as i32) * Vector3::from_tuple(ch.rotation.0.to_vector());
-                    let new_y = Scalar::from_number(ch.xyzi[v].y as i32) * Vector3::from_tuple(ch.rotation.1.to_vector());
-                    let new_z = Scalar::from_number(ch.xyzi[v].z as i32) * Vector3::from_tuple(ch.rotation.2.to_vector());
-                    */
-                    //let mut new_position = new_x+ new_y+ new_z;
                     let sign = Vector3::is_positive(&new_position.to());
                     if !sign.0{
                         new_position.x += ch.size.0 as i32;
@@ -857,7 +851,7 @@ pub struct VoxCubes{
 impl VoxCubes{
     pub fn from(x:u8,y:u8,z:u8,i:u8)->VoxCubes{return VoxCubes{x,y,z,i};}
 }
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Matl{
     pub id: u8,
     //albedo
@@ -866,7 +860,8 @@ pub struct Matl{
     //roughness map (r channel)
     pub roughness: f32, //_rough 0<=x<=1
     //refraction map (a channel)
-    pub ior: f32, //_ior = _ri - 1.0, 0<=_ior<=2
+    ///_ior = _ri - 1.0, 0<=_ior<=2
+    pub ior: f32, 
     //metallic map (g and b channel)
     pub specular: f32, //_sp 0<=x<=1
     pub metallic: f32, //_metal 0<=x<=1
@@ -1098,7 +1093,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
         let j = vox_bytes[i];
         i+=8;
         //Id
-        m.id = vox_bytes[i];
+        m.id = x as u8;
         i+=4;
         //number of attributes
         let mut n_of_attributes = vox_bytes[i];

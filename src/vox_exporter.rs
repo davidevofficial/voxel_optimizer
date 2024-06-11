@@ -6,7 +6,7 @@ use std::io::{Write, Read};
 use std::io::BufWriter;
 use std::path::Path;
 use crate::greedy_mesher::{OptimizedCube};
-use crate::MyApp;
+use crate::{vox_importer, MyApp};
 use std::collections::HashMap;
 
 use crunch::*;
@@ -17,10 +17,16 @@ pub struct Obj{
     pub export_folder: String,
     pub number_of_v_and_f: (i32, i32),
     //--number of v, vt and f
+    pub is_vox: bool,
     pub faces: Vec<ObjF>,
     pub vertices: Vec<ObjV>,
     pub vertices_uvs: Vec<ObjVt>,
+    pub vertices_normals: Vec<ObjVn>,
     pub texture_map: TextureMap,
+    pub material_map: Option<MaterialMap>,
+    pub materials: Option<Vec<vox_importer::Matl>>,
+    ///allowed materials in order are 0: Albedo, 1: Alpha, 2: Rgb_e, 3: Roughness, 4: Metal, 5:Spec, 6: Ior (total len = 7) 
+    pub allowed_materials: (bool, bool, bool, bool, bool, bool, bool),
     pub vt_precisionnumber: u8,
     pub y_is_up: bool,
     pub center_model: bool,
@@ -34,7 +40,18 @@ pub struct Rgb{
     pub g: u8,
     pub b: u8
 }
+#[derive(Debug, Clone)]
+pub struct MaterialMap{
+    pub w: usize,
+    pub h: usize,
+    pub id: Vec<u8>,
+    pub materials: Vec<vox_importer::Matl>,
+}
+impl MaterialMap{
+    fn from(w:usize, h:usize, materials: Vec<vox_importer::Matl>){
 
+    }
+}
 #[derive(Debug, Clone)]
 pub struct TextureMap{
     pub w: usize,
@@ -229,10 +246,10 @@ impl Rgb{
 pub struct ObjF{
     // index_v|index_vt
     // (x,y,z),(u,v)
-    a: (i32, i32),
-    b: (i32, i32),
-    c: (i32, i32),
-    d: (i32, i32),
+    a: (i32, i32, i32),
+    b: (i32, i32, i32),
+    c: (i32, i32, i32),
+    d: (i32, i32, i32),
 }
 ///Vertices of a .obj file
 #[derive(Default)]
@@ -252,11 +269,16 @@ impl ObjV{
     }
 }
 
-#[derive(Default)]
-#[derive(Debug)]
+#[derive(Default,Debug,Clone,Copy)]
 pub struct ObjVt{
     u: i32,
     v: i32
+}
+#[derive(Debug,Default,Clone,Copy)]
+pub struct ObjVn{
+    nx: i32,
+    ny: i32,
+    nz: i32,
 }
 /// Adds two xyz tuples together.
 ///[Rust Book](https://doc.rust-lang.org/book/)
@@ -278,12 +300,23 @@ pub struct ObjVt{
 /// ```
 fn add_two_tuples(a: (i32, i32, i32), b:(i32,i32,i32))->(i32,i32,i32){return (a.0+b.0, a.1+b.1, a.2+b.2)}
 impl Obj{
-    pub fn from_optimized_cubes(path: PathBuf,my_app: &MyApp, opcubes: &Vec<OptimizedCube>) -> Obj{
+    pub fn from_optimized_cubes(path: PathBuf,my_app: &MyApp, opcubes: &Vec<OptimizedCube>, is_vox:bool, materials: Option<Vec<vox_importer::Matl>>) -> Obj{
         //println!("my_app.vt_precisionnumber:{:?}", my_app.vt_precisionnumber);
-        let x =path.file_name().unwrap().to_str().unwrap().to_string().trim_end_matches(".ply").to_string();
+
+        let x = if !is_vox{path.file_name().unwrap().to_str().unwrap().to_string().trim_end_matches(".ply").to_string()}
+                        else{path.file_name().unwrap().to_str().unwrap().to_string().trim_end_matches(".vox").to_string()};
         let y = x.replace(' ', "");
         let xx = my_app.picked_path.clone().unwrap().to_string();
         let yy = xx.replace("\\", "/");
+        let allowed_materials = {
+            (true,
+            my_app.transparency,
+            my_app.emission,
+            my_app.roughness,
+            my_app.metal,
+            my_app.refraction,
+            my_app.specular)
+        };
         let mut obj = Obj {
             name: y,
             export_folder: yy,
@@ -298,7 +331,29 @@ impl Obj{
             background_color: Rgb{r:(my_app.background_color[0]*255.0) as u8
                                  ,g:(my_app.background_color[1]*255.0) as u8
                                  ,b:(my_app.background_color[2]*255.0) as u8},
+            is_vox,
+            material_map: None,
+            materials,
+            allowed_materials,
+            vertices_normals: Vec::new(),
+
         };
+        //If normals then write normals
+        if my_app.normals{
+            //Top
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: 1, nz: 0 });
+            //Bottom
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: -1, nz: 0 });
+            //Forward
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: 0, nz: 1 });
+            //Backwards
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: 0, nz: -1 });
+            //Right
+            obj.vertices_normals.push(ObjVn { nx: 1, ny: 0, nz: 0 });
+            //Left
+            obj.vertices_normals.push(ObjVn { nx: -1, ny: 0, nz: 0 });
+        }
+
         let mut temp_v = HashMap::new();
         let mut n = 0;
         for i in 0..opcubes.len(){
@@ -409,45 +464,45 @@ impl Obj{
 
                 //face 1 top
                 obj.faces.push(ObjF{
-                    a:(*temp_v.get(&(e.x,e.y,e.z)).unwrap() as i32,0),
-                    b:(*temp_v.get(&(f.x,f.y,f.z)).unwrap() as i32,0),
-                    c:(*temp_v.get(&(g.x,g.y,g.z)).unwrap() as i32,0),
-                    d:(*temp_v.get(&(h.x,h.y,h.z)).unwrap() as i32,0),
+                    a:(*temp_v.get(&(e.x,e.y,e.z)).unwrap() as i32,0,1),
+                    b:(*temp_v.get(&(f.x,f.y,f.z)).unwrap() as i32,0,1),
+                    c:(*temp_v.get(&(g.x,g.y,g.z)).unwrap() as i32,0,1),
+                    d:(*temp_v.get(&(h.x,h.y,h.z)).unwrap() as i32,0,1),
                 });
                 //face 2 bottom
                 obj.faces.push(ObjF{
-                    a:(*temp_v.get(&(d.x,d.y,d.z)).unwrap() as i32,0),
-                    b:(*temp_v.get(&(c.x,c.y,c.z)).unwrap() as i32,0),
-                    c:(*temp_v.get(&(b.x,b.y,b.z)).unwrap() as i32,0),
-                    d:(*temp_v.get(&(a.x,a.y,a.z)).unwrap() as i32,0),
+                    a:(*temp_v.get(&(d.x,d.y,d.z)).unwrap() as i32,0,2),
+                    b:(*temp_v.get(&(c.x,c.y,c.z)).unwrap() as i32,0,2),
+                    c:(*temp_v.get(&(b.x,b.y,b.z)).unwrap() as i32,0,2),
+                    d:(*temp_v.get(&(a.x,a.y,a.z)).unwrap() as i32,0,2),
                 });
                 //face 3 left
                 obj.faces.push(ObjF{
-                    a:(*temp_v.get(&(d.x,d.y,d.z)).unwrap() as i32,0),
-                    b:(*temp_v.get(&(a.x,a.y,a.z)).unwrap() as i32,0),
-                    c:(*temp_v.get(&(e.x,e.y,e.z)).unwrap() as i32,0),
-                    d:(*temp_v.get(&(h.x,h.y,h.z)).unwrap() as i32,0),
+                    a:(*temp_v.get(&(d.x,d.y,d.z)).unwrap() as i32,0,6),
+                    b:(*temp_v.get(&(a.x,a.y,a.z)).unwrap() as i32,0,6),
+                    c:(*temp_v.get(&(e.x,e.y,e.z)).unwrap() as i32,0,6),
+                    d:(*temp_v.get(&(h.x,h.y,h.z)).unwrap() as i32,0,6),
                 });
                 //face 4 right
                 obj.faces.push(ObjF{
-                    a:(*temp_v.get(&(b.x,b.y,b.z)).unwrap() as i32,0),
-                    b:(*temp_v.get(&(c.x,c.y,c.z)).unwrap() as i32,0),
-                    c:(*temp_v.get(&(g.x,g.y,g.z)).unwrap() as i32,0),
-                    d:(*temp_v.get(&(f.x,f.y,f.z)).unwrap() as i32,0),
+                    a:(*temp_v.get(&(b.x,b.y,b.z)).unwrap() as i32,0,5),
+                    b:(*temp_v.get(&(c.x,c.y,c.z)).unwrap() as i32,0,5),
+                    c:(*temp_v.get(&(g.x,g.y,g.z)).unwrap() as i32,0,5),
+                    d:(*temp_v.get(&(f.x,f.y,f.z)).unwrap() as i32,0,5),
                 });
                 //face 5 front
                 obj.faces.push(ObjF{
-                    a:(*temp_v.get(&(a.x,a.y,a.z)).unwrap() as i32,0),
-                    b:(*temp_v.get(&(b.x,b.y,b.z)).unwrap() as i32,0),
-                    c:(*temp_v.get(&(f.x,f.y,f.z)).unwrap() as i32,0),
-                    d:(*temp_v.get(&(e.x,e.y,e.z)).unwrap() as i32,0),
+                    a:(*temp_v.get(&(a.x,a.y,a.z)).unwrap() as i32,0,3),
+                    b:(*temp_v.get(&(b.x,b.y,b.z)).unwrap() as i32,0,3),
+                    c:(*temp_v.get(&(f.x,f.y,f.z)).unwrap() as i32,0,3),
+                    d:(*temp_v.get(&(e.x,e.y,e.z)).unwrap() as i32,0,3),
                 });
                 //face 6 back
                 obj.faces.push(ObjF{
-                    a:(*temp_v.get(&(c.x,c.y,c.z)).unwrap() as i32,0),
-                    b:(*temp_v.get(&(d.x,d.y,d.z)).unwrap() as i32,0),
-                    c:(*temp_v.get(&(h.x,h.y,h.z)).unwrap() as i32,0),
-                    d:(*temp_v.get(&(g.x,g.y,g.z)).unwrap() as i32,0),
+                    a:(*temp_v.get(&(c.x,c.y,c.z)).unwrap() as i32,0,4),
+                    b:(*temp_v.get(&(d.x,d.y,d.z)).unwrap() as i32,0,4),
+                    c:(*temp_v.get(&(h.x,h.y,h.z)).unwrap() as i32,0,4),
+                    d:(*temp_v.get(&(g.x,g.y,g.z)).unwrap() as i32,0,4),
                 });
         }
         obj.number_of_v_and_f.1 = obj.faces.len() as i32;
@@ -699,32 +754,61 @@ impl Obj{
             obj.vertices_uvs[(*v as usize)-1] = ObjVt{u: k.0, v: k.1};
         }
         obj.texture_map = finaltexture;
+        //dbg!(&my_app.normals, &obj.vertices_normals);
         obj //return
-
     }
     ///[.obj and .mtl file specs][https://www.wikiwand.com/en/Wavefront_.obj_file#Physically-based_Rendering]
     ///
     ///
     fn write_mtl(&self){
-        let x = format!("#@DL2023 - w:{:?}, h:{:?}\nnewmtl x\nmap_Kd {}.png", self.texture_map.w, self.texture_map.h, self.name);
+
+        let transparency = if self.allowed_materials.1 &&self.is_vox{format!("\nTr 0.001\nmap_d -imfchain l {}.png",self.name)}
+                                      else{"".to_owned()};
+        let emission = if self.allowed_materials.2 &&self.is_vox{format!("\nmap_Ke {}_emit.png",self.name)
+                                }else{"".to_owned()};
+        let roughness = if self.allowed_materials.3 &&self.is_vox{format!("\nmap_Pr {}_extra.png -imfchain r",self.name)
+                                }else{"".to_owned()};
+        let metallic = if self.allowed_materials.4 && self.is_vox{format!("\nmap_Pm {}_extra.png -imfchain g",self.name)
+                                }else{"".to_owned()};
+        let specular = if self.allowed_materials.5 &&self.is_vox{format!("\nmap_Ns {}_extra.png -imfchain b",self.name)
+                                }else{"".to_owned()};
+        let ior = if self.allowed_materials.6 && self.is_vox{format!("\nmap_Ni {}_extra.png -imfchain l",self.name)
+                                }else{"".to_owned()};
+        let x = format!("#@DL2023 - w:{:?}, h:{:?}\nnewmtl x{}\nmap_Kd {}.png{}{}{}{}{}",
+                                self.texture_map.w,
+                                self.texture_map.h,
+                                transparency,
+                                self.name,
+                                emission, roughness, metallic, specular, ior);
         //todo!() -> write this to file
         //println!("export/{}.mtl",self.name);
         let mut mtl_file = File::create(format!("{}/{}.mtl",self.export_folder,self.name)).expect("creation failed");
                 mtl_file.write_all(x.as_bytes()).expect("write failed");
     }
     fn write_obj(&mut self, shape:(i32,i32,i32),lowest_coordinates:(i32,i32,i32)){
+
+        //Meta data
         let w = "#created with MagicaVoxel and VoxelOptimizer ";
         let nv = format!("v:{} - f:{}\n", self.number_of_v_and_f.0, self.number_of_v_and_f.1);
         let watermark = format!("{} - {}", w, nv);
         let name = &self.name;
         let oname = format!("o {}\n", name);
         let mtllibname = format!("mtllib {}.mtl\n", name);
-        let usemtl = format!("usemtl x\n");
+        let usemtl = "usemtl x\n".to_string();
         let mut obj_file = File::create(format!("{}/{}.obj",self.export_folder,self.name)).unwrap();
-
-        obj_file.write(watermark.as_bytes()).expect("write failed");
-        obj_file.write(oname.as_bytes()).expect("write failed");
-        obj_file.write(mtllibname.as_bytes()).expect("write failed");
+        obj_file.write_all(watermark.as_bytes()).expect("write failed");
+        obj_file.write_all(oname.as_bytes()).expect("write failed");
+        obj_file.write_all(mtllibname.as_bytes()).expect("write failed");
+        if !self.vertices_normals.is_empty(){
+            for v in 0..self.vertices_normals.len(){
+                //let vn = &format!("{}vn {} {} {}\n",vn, v.nx, v.ny, v.nz);
+                writeln!(&mut obj_file,  "vn {} {} {}",
+                    &self.vertices_normals[v].nx,
+                    &self.vertices_normals[v].ny,
+                    &self.vertices_normals[v].nz);
+            }
+        }
+        //obj_file.write_all(vn.as_bytes()).expect("write failed");
         //write vertices
         //let mut list_of_v = String::new();
         for v in 0..self.number_of_v_and_f.0{
@@ -757,6 +841,7 @@ impl Obj{
             }
             
         }
+
         //obj_file.write(list_of_v.as_bytes()).expect("write failed");
         //write vt
         let mut list_of_vt = String::new();
@@ -765,15 +850,15 @@ impl Obj{
                 self.vt_precisionnumber = 0;
             }
             if self.texture_map.w < 10{
-                self.vt_precisionnumber = 2;
-            } else if self.texture_map.w < 100{
                 self.vt_precisionnumber = 3;
-            } else if self.texture_map.w < 1000{
+            } else if self.texture_map.w < 100{
                 self.vt_precisionnumber = 4;
-            } else if self.texture_map.w < 10000{
+            } else if self.texture_map.w < 1000{
                 self.vt_precisionnumber = 5;
-            }else if self.texture_map.w < 100000{
+            } else if self.texture_map.w < 10000{
                 self.vt_precisionnumber = 6;
+            }else if self.texture_map.w < 100000{
+                self.vt_precisionnumber = 7;
             }
         }
         //println!("writing vt's with: {:?} digits", self.vt_precisionnumber);
@@ -783,31 +868,131 @@ impl Obj{
             let v = format!("{:.*}", x, 1.0-(self.vertices_uvs[vt].v as f32/self.texture_map.h as f32) as f32);
             list_of_vt = format!("{}vt {u} {v}\n",list_of_vt);
         }
-        obj_file.write(list_of_vt.as_bytes()).expect("write failed");
+        obj_file.write_all(list_of_vt.as_bytes()).expect("write failed");
         //write usemtl
-        obj_file.write(usemtl.as_bytes()).expect("write failed");
+        obj_file.write_all(usemtl.as_bytes()).expect("write failed");
         //write faces
-        //let mut list_of_f = String::new();
-        for f in 0..self.number_of_v_and_f.1{
-            /*
-            list_of_f = format!("{}f {}/{} {}/{} {}/{} {}/{}\n",
-                list_of_f,self.faces[f as usize].a.0,self.faces[f as usize].a.1
-                ,self.faces[f as usize].b.0,self.faces[f as usize].b.1
-                ,self.faces[f as usize].c.0,self.faces[f as usize].c.1
-                ,self.faces[f as usize].d.0,self.faces[f as usize].d.1);
-                */
+        if !self.vertices_normals.is_empty(){
+            for f in 0..self.number_of_v_and_f.1{
+                let face = &self.faces[f as usize];
+                writeln!(&mut obj_file, "f {}/{}/{} {}/{}/{} {}/{}/{} {}/{}/{}"
+                ,face.a.0,face.a.1,face.a.2
+                ,face.b.0,face.b.1,face.b.2
+                ,face.c.0,face.c.1,face.c.2
+                ,face.d.0,face.d.1,face.d.2);
+                
+            }
+            
+        }else{
+            for f in 0..self.number_of_v_and_f.1{
             writeln!(&mut obj_file, "f {}/{} {}/{} {}/{} {}/{}"
                 ,self.faces[f as usize].a.0,self.faces[f as usize].a.1
                 ,self.faces[f as usize].b.0,self.faces[f as usize].b.1
                 ,self.faces[f as usize].c.0,self.faces[f as usize].c.1
                 ,self.faces[f as usize].d.0,self.faces[f as usize].d.1);
+            }
         }
-        //obj_file.write(list_of_f.as_bytes()).expect("write failed");
-
-
-
     }
     fn write_png(&self){
+        if self.is_vox{
+        let map = self.material_map.clone().unwrap();
+        let file = File::create(format!("{}/{}.png",self.export_folder,self.name)).unwrap();
+        let file_e = if self.allowed_materials.2{Some(File::create(
+            format!("{}/{}_emit.png",self.export_folder,self.name)).unwrap())
+        }else{None};
+        let file_o = if self.allowed_materials.2{Some(File::create(
+            format!("{}/{}_extra.png",self.export_folder,self.name)).unwrap())
+        }else{None};
+        let ref mut w = BufWriter::new(file);
+        let mut encoder = png::Encoder::new(w,map.w as u32, map.h as u32);
+        encoder.set_depth(png::BitDepth::Eight);
+        encoder.set_compression(png::Compression::Best); 
+        encoder.set_color(png::ColorType::Rgb);
+
+        //Emission png
+        let mut writer_e = None;
+        if self.allowed_materials.2{
+            let mut encoder_e = png::Encoder::new(BufWriter::new(file_e.unwrap()),map.w as u32, map.h as u32);
+            encoder_e.set_depth(png::BitDepth::Eight);
+            encoder_e.set_compression(png::Compression::Best); 
+            encoder_e.set_color(png::ColorType::Rgb);
+            writer_e = Some(encoder_e.write_header().unwrap());
+        }
+        //The other RGBA .png
+        let mut writer_o = None;
+        if self.allowed_materials.3||self.allowed_materials.4||self.allowed_materials.5||self.allowed_materials.6{
+            let mut encoder_o = png::Encoder::new(BufWriter::new(file_o.unwrap()),map.w as u32, map.h as u32);
+            encoder_o.set_depth(png::BitDepth::Eight);
+            encoder_o.set_compression(png::Compression::Best); 
+            encoder_o.set_color(png::ColorType::Rgba);
+            writer_o = Some(encoder_o.write_header().unwrap());
+        }
+
+        //If there is transparency do a RGBA png
+        if self.allowed_materials.1{
+            encoder.set_color(png::ColorType::Rgba);
+            let mut writer = encoder.write_header().unwrap();
+            let mut data = Vec::new(); // An array containing an RGBA sequence
+            let mut data_e = Vec::new();
+            let mut data_o = Vec::new();
+            for x in 0..map.id.len(){
+                let m = &map.materials[map.id[x]as usize];
+                data.push(m.rgb.r);
+                data.push(m.rgb.g);
+                data.push(m.rgb.b);
+                data.push((m.transparent*255.0) as u8);
+                data_e.push(m.rgb_e.unwrap().r);
+                data_e.push(m.rgb_e.unwrap().g);
+                data_e.push(m.rgb_e.unwrap().b);
+                data_o.push((m.roughness*self.allowed_materials.3 as i32 as f32*255.0) as u8);
+                data_o.push((m.metallic*self.allowed_materials.4 as i32 as f32*255.0) as u8);
+                data_o.push((m.ior/2.0*self.allowed_materials.5 as i32 as f32*255.0) as u8);
+                data_o.push((m.specular*self.allowed_materials.6 as i32 as f32*255.0) as u8);
+            }
+            //Albedo + Transparency map
+            writer.write_image_data(&data).unwrap();
+            //Emission map
+            if writer_e.is_some(){
+                writer_e.unwrap().write_image_data(&data_e).unwrap();
+            }
+            //Extra map
+            if writer_o.is_some(){
+                writer_o.unwrap().write_image_data(&data_o).unwrap();
+            }
+        //If no transparency then write a RGB map
+        }else{
+            let mut writer = encoder.write_header().unwrap();
+            let mut data = Vec::new(); // An array containing an RGBA sequence
+            let mut data_e = Vec::new();
+            let mut data_o = Vec::new();
+            for x in 0..map.id.len(){
+                let m = &map.materials[map.id[x]as usize];
+                data.push(m.rgb.r);
+                data.push(m.rgb.g);
+                data.push(m.rgb.b);
+                //data.push((m.transparent*255) as u8);
+                data_e.push(m.rgb_e.unwrap().r);
+                data_e.push(m.rgb_e.unwrap().g);
+                data_e.push(m.rgb_e.unwrap().b);
+                data_o.push((m.roughness*self.allowed_materials.3 as i32 as f32*255.0) as u8);
+                data_o.push((m.metallic*self.allowed_materials.4 as i32 as f32*255.0) as u8);
+                data_o.push((m.ior/2.0*self.allowed_materials.5 as i32 as f32*255.0) as u8);
+                data_o.push((m.specular*self.allowed_materials.6 as i32 as f32*255.0) as u8);
+            }
+            //Albedo Map
+            writer.write_image_data(&data).unwrap();
+            //Emission Map
+            if writer_e.is_some(){
+                writer_e.unwrap().write_image_data(&data_e).unwrap();
+            }
+            //Extra Map
+            if writer_o.is_some(){
+                writer_o.unwrap().write_image_data(&data_o).unwrap();
+            }
+
+        }
+
+        }else{
         let file = File::create(format!("{}/{}.png",self.export_folder,self.name)).unwrap();
         let ref mut w = BufWriter::new(file);
         let mut encoder = png::Encoder::new(w, self.texture_map.w as u32, self.texture_map.h as u32); 
@@ -829,6 +1014,7 @@ impl Obj{
             }
         }
         writer.write_image_data(&data).unwrap();
+        }
     }
     pub fn export_all(&mut self, shape:(i32,i32,i32),lowest_coordinates:(i32,i32,i32)){
         self.write_obj(shape, lowest_coordinates);

@@ -1,11 +1,7 @@
 use std::path::PathBuf;
-
-
-
 use crate::vox_importer::*;
 use crate::vox_exporter::*;
 use crate::vox_exporter;
-
 use crate::{MyApp, vox_importer};
 
 
@@ -396,7 +392,7 @@ impl CubeF {
     ///
     ///Calculates average position, average colour and direction which is the cross product of the vectors a->b, b->c
     fn from_vertices(a: &v, b: &v, c: &v, d: &v) -> CubeF {
-        let po = ((a.x + b.x + c.x + d.x) / 4.0,
+        let mut po = ((a.x + b.x + c.x + d.x) / 4.0,
                   (a.y + b.y + c.y + d.y) / 4.0,
                   (a.z + b.z + c.z + d.z) / 4.0);
         //Calculate the two vectors 6cycles
@@ -408,25 +404,20 @@ impl CubeF {
             va.1*vb.2-va.2*vb.1,
             va.2*vb.0-va.0*vb.2,
             va.0*vb.1-va.1*vb.0);
+        po.0 -= vc.0/2.0;
+        po.1 -= vc.1/2.0;
+        po.2 -= vc.2/2.0;
         //let mut di: Direction = Direction::Front;
-        let dir = if vc.0 != 0.0{
-            if vc.0 < 0.0{
-                Direction::Left
-            }else{
-                Direction::Right
-            }
-        }else if vc.1 != 0.0 {
-            if vc.1 > 0.0{
-                Direction::Top
-            }else{
-                Direction::Bottom
-            }
-        }else if vc.2 > 0.0{
-            Direction::Back
-        }else{
-            Direction::Front
+        
+        let dir = match vc {
+            (1.0,0.0,0.0) => Direction::Right,
+            (-1.0,0.0,0.0) => Direction::Left,
+            (0.0,1.0,0.0) => Direction::Top,
+            (0.0,-1.0,0.0) => Direction::Bottom,
+            (0.0,0.0,1.0) => Direction::Back,
+            (0.0,0.0,-1.0) => Direction::Right,
+            _ => panic!("Invalid cross product. Error code 205"),
         };
-
         
         let col = (a.r, a.g, a.b);
 
@@ -437,16 +428,8 @@ impl CubeF {
             //vertices_indices:
         }
     }
-    fn return_cube_position(&self) -> (f32, f32, f32) {
-        let po = match self.dir {
-            Direction::Top =>    {(self.position.0,self.position.1, self.position.2 - 0.5)}
-            Direction::Bottom => {(self.position.0,self.position.1, self.position.2 + 0.5)}
-            Direction::Left =>   {(self.position.0 + 0.5,self.position.1, self.position.2)}
-            Direction::Right =>  {(self.position.0 - 0.5,self.position.1, self.position.2)}
-            Direction::Front =>  {(self.position.0,self.position.1 + 0.5, self.position.2)}
-            Direction::Back =>   {(self.position.0,self.position.1 - 0.5, self.position.2)}
-        };
-        ((po.0),(po.1),(po.2)) //return
+    fn return_cube_index(&self) -> (i32, i32, i32) {
+        ((self.position.0 - 0.5) as i32,(self.position.1 -0.5) as i32,(self.position.2 - 0.5) as i32) //return
     }
 }
 #[derive(Debug)]
@@ -584,9 +567,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
                         (highest_coordinates.1 - lowest_coordinates.1) as i32,
                         (highest_coordinates.2 - lowest_coordinates.2)as i32);
     for fa in &vector_of_f{
-        let index = (   ((fa.return_cube_position().0 - 0.5) as i32),
-                        ((fa.return_cube_position().1 - 0.5) as i32),
-                        ((fa.return_cube_position().2 - 0.5) as i32)   );
+        let index = ( fa.return_cube_index() );
          if index.0 <= colourmatrix.shape.0 + colourmatrix.lowest_coordinates.0
          && index.1 <= colourmatrix.shape.1 + colourmatrix.lowest_coordinates.1 
          && index.2 <= colourmatrix.shape.2 + colourmatrix.lowest_coordinates.2
@@ -596,8 +577,9 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
             colourmatrix.set_cube_colour(index, fa.colour);
             colourmatrix.set_cube_bool(index, false);
         }else {
-            println!("bad fa: {:?}, fa.return_cube_position()->{:?}", fa, fa.return_cube_position());
+            println!("bad fa: {:?}, fa.return_cube_position()->{:?}", fa, fa.return_cube_index());
         }
+        //let i = 18446744073709551615;
     }
     if my_app.cull_optimization{
         let mut h_top = BoolMatrix::from_size(colourmatrix.shape.0, colourmatrix.shape.1, colourmatrix.shape.2, colourmatrix.lowest_coordinates);
@@ -608,14 +590,14 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
         let mut h_back = BoolMatrix::from_size(colourmatrix.shape.0, colourmatrix.shape.1, colourmatrix.shape.2, colourmatrix.lowest_coordinates);
         //println!("There are {:?} faces", &vector_of_f.len());
         for fa in &vector_of_f{
-            let i = CubeIndexPosition::new(fa.return_cube_position());
+                let i = fa.return_cube_index();
                 match fa.dir{
-                Direction::Top    => {h_top.set_cube_bool(i.to_tuple_xyz(), true);}
-                Direction::Bottom => {h_bottom.set_cube_bool(i.to_tuple_xyz(), true);}
-                Direction::Left   => {h_left.set_cube_bool(i.to_tuple_xyz(), true);}
-                Direction::Right  => {h_right.set_cube_bool(i.to_tuple_xyz(), true);}
-                Direction::Front  => {h_front.set_cube_bool(i.to_tuple_xyz(), true);}
-                Direction::Back   => {h_back.set_cube_bool(i.to_tuple_xyz(), true);}
+                Direction::Top    => {h_top.set_cube_bool(i, true);}
+                Direction::Bottom => {h_bottom.set_cube_bool(i, true);}
+                Direction::Left   => {h_left.set_cube_bool(i, true);}
+                Direction::Right  => {h_right.set_cube_bool(i, true);}
+                Direction::Front  => {h_front.set_cube_bool(i, true);}
+                Direction::Back   => {h_back.set_cube_bool(i, true);}
                 }
             
         }
@@ -646,7 +628,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
      (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
 
     println!("{:?} optimized cubes in total", optimized_cubes.len());
-    let mut obj = Obj::from_optimized_cubes(path.clone(), my_app, &optimized_cubes);
+    let mut obj = Obj::from_optimized_cubes(path.clone(), my_app, &optimized_cubes, false, None);
     let x = format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
                 ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.texture_map.w, obj.texture_map.h);
         let _ = my_app.sx.send(x);

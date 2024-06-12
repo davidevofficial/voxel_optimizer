@@ -339,19 +339,32 @@ impl Obj{
 
         };
         //If normals then write normals
-        if my_app.normals{
+        if my_app.normals && !my_app.y_is_up{
+            //Top
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: 0, nz: 1 });
+            //Bottom
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: 0, nz: -1 });
+            //Forward
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: -1, nz: 0 });
+            //Backwards
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: 1, nz: 0 });
+            //Right
+            obj.vertices_normals.push(ObjVn { nx: 1, ny: 0, nz: 0 });
+            //Left
+            obj.vertices_normals.push(ObjVn { nx: -1, ny: 0, nz: 0 });
+        }else if my_app.normals && my_app.y_is_up{
             //Top
             obj.vertices_normals.push(ObjVn { nx: 0, ny: 1, nz: 0 });
             //Bottom
             obj.vertices_normals.push(ObjVn { nx: 0, ny: -1, nz: 0 });
             //Forward
-            obj.vertices_normals.push(ObjVn { nx: 0, ny: 0, nz: 1 });
-            //Backwards
-            obj.vertices_normals.push(ObjVn { nx: 0, ny: 0, nz: -1 });
-            //Right
-            obj.vertices_normals.push(ObjVn { nx: 1, ny: 0, nz: 0 });
-            //Left
             obj.vertices_normals.push(ObjVn { nx: -1, ny: 0, nz: 0 });
+            //Backwards
+            obj.vertices_normals.push(ObjVn { nx: 1, ny: 0, nz: 0 });
+            //Right
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: 0, nz: 1 });
+            //Left
+            obj.vertices_normals.push(ObjVn { nx: 0, ny: 0, nz: -1 });
         }
 
         let mut temp_v = HashMap::new();
@@ -437,28 +450,36 @@ impl Obj{
         
 
         for x in 0..opcubes.len(){
-                let a = ObjV::from_xyz(opcubes[x].starting_position.0,
+                let a = ObjV::from_xyz(
+                     opcubes[x].starting_position.0,
                      opcubes[x].starting_position.1,
                      opcubes[x].starting_position.2);
-                let b = ObjV::from_xyz(opcubes[x].starting_position.0+opcubes[x].dimensions.0 as i32,
+                let b = ObjV::from_xyz(
+                     opcubes[x].starting_position.0+opcubes[x].dimensions.0 as i32,
                      opcubes[x].starting_position.1,
                      opcubes[x].starting_position.2);
-                let c = ObjV::from_xyz(opcubes[x].starting_position.0+opcubes[x].dimensions.0 as i32,
+                let c = ObjV::from_xyz(
+                     opcubes[x].starting_position.0+opcubes[x].dimensions.0 as i32,
                      opcubes[x].starting_position.1+opcubes[x].dimensions.1 as i32,
                      opcubes[x].starting_position.2);
-                let d = ObjV::from_xyz(opcubes[x].starting_position.0,
+                let d = ObjV::from_xyz(
+                     opcubes[x].starting_position.0,
                      opcubes[x].starting_position.1+opcubes[x].dimensions.1 as i32,
                      opcubes[x].starting_position.2);
-                let e = ObjV::from_xyz(opcubes[x].starting_position.0,
+                let e = ObjV::from_xyz(
+                     opcubes[x].starting_position.0,
                      opcubes[x].starting_position.1,
                      opcubes[x].starting_position.2+opcubes[x].dimensions.2 as i32);
-                let f = ObjV::from_xyz(opcubes[x].starting_position.0+opcubes[x].dimensions.0 as i32,
+                let f = ObjV::from_xyz(
+                     opcubes[x].starting_position.0+opcubes[x].dimensions.0 as i32,
                      opcubes[x].starting_position.1,
                      opcubes[x].starting_position.2+opcubes[x].dimensions.2 as i32);
-                let g = ObjV::from_xyz(opcubes[x].starting_position.0+opcubes[x].dimensions.0 as i32,
+                let g = ObjV::from_xyz(
+                     opcubes[x].starting_position.0+opcubes[x].dimensions.0 as i32,
                      opcubes[x].starting_position.1+opcubes[x].dimensions.1 as i32,
                      opcubes[x].starting_position.2+opcubes[x].dimensions.2 as i32);
-                let h = ObjV::from_xyz(opcubes[x].starting_position.0,
+                let h = ObjV::from_xyz(
+                     opcubes[x].starting_position.0,
                      opcubes[x].starting_position.1+opcubes[x].dimensions.1 as i32,
                      opcubes[x].starting_position.2+opcubes[x].dimensions.2 as i32);
 

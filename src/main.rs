@@ -212,9 +212,9 @@ impl eframe::App for MyApp {
 
                 //second column
                 //Debug Option
+                columns[1].separator();
                 columns[1].label("Debug Option");
                 columns[1].checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
-                columns[1].separator();
                 //PLY
                 columns[1].separator();
                 columns[1].label(".ply compatibility Option ");

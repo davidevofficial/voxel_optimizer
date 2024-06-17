@@ -1461,8 +1461,11 @@ impl Obj{
         if self.vt_precisionnumber == 0{
             if w == 1{
                 self.vt_precisionnumber = 0;
-            }
-            if w < 10{
+            } else if w==2{
+                self.vt_precisionnumber = 1;
+            } else if w <= 4{
+                self.vt_precisionnumber = 2;
+            } else if w < 10{
                 self.vt_precisionnumber = 3;
             } else if w < 100{
                 self.vt_precisionnumber = 4;

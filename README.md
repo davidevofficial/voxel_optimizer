@@ -22,6 +22,8 @@ To convert models to an optimized and superior form you first have to create the
 https://github.com/davidevofficial/voxel_optimizer/assets/127616649/4568ff63-293d-4748-83a3-ced18711c548
 
 The default options are the best if you care about output file size, however depending on your needs you might need to change some, so here is every setting and its explanation pros and cons.
+##Coordinate system
+![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c5fa9d9-6584-4475-af6d-90826c0d9a98)
 
 ## Cross-overlapping optimization
 

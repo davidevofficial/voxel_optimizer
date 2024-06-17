@@ -219,7 +219,7 @@ impl eframe::App for MyApp {
                 //second column
                 //Debug Option
                 columns[1].separator();
-                columns[1].hyperlink_to("Debug Option","enable-uv-debug-mode");
+                columns[1].hyperlink_to("Debug Option","https://github.com/davidevofficial/voxel_optimizer/#enable-uv-debug-mode");
                 columns[1].checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
                 //PLY
                 columns[1].separator();

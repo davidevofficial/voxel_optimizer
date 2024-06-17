@@ -264,7 +264,7 @@ To benchmark I'll use the .vox files that magicavoxel comes by default and I'll 
 MV = magicavoxel, VO = voxeloptimizer
 
 | Model Name            | MV Export size | MV Export speed | VO Export Size  | VO Export speed |
-|------------------- ---|----------------|-----------------|-----------------|-----------------|
+|-----------------------|----------------|-----------------|-----------------|-----------------|
 |3x3x3                  |4.41kb          |N/A              |2.73kb           |73ms             |
 |Lightsabers            |14.8kb          |N/A              |7.4kb            |98ms             |
 |Castle+Chr_knight+Cars |276.2kb         |N/A              |126.5kb          |485ms            |

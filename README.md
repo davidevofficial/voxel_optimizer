@@ -46,6 +46,7 @@ With the option the green and blue part become united: ![image](https://github.c
 
 **Pros**: 
 1. Reduces File Size
+
 **Cons**: 
 1. Slightly slower
 2. The cubes overlap generating too much overdraw (in some software this results in bad behaviour)
@@ -78,6 +79,7 @@ Becomes this on the texture map (1x1 square):
 **Pros**: 
 1. Greatly reduces File Size
 2. Can use the next setting (pattern matching) at its fullest
+
 **Cons**: 
 1. Slightly slower
 2. Cannot manually modify the texture of the face since if you modify a pixel you modify all the face
@@ -92,6 +94,7 @@ If it is on each texture will be flipped, rotated and then compared to each othe
 
 **Pros**: 
 1. Greatly reduces File Size
+
 **Cons**: 
 1. Anything higher than 0 makes it way slower
 2. Cannot manually modify the texture of a face without modifying the texture of all the faces equal to that one.
@@ -104,6 +107,7 @@ This setting only works when you have materials (.vox files only), if there is g
 
 **Pros**:
 1. Glass has correct behaviour
+
 **Cons**:
 1. Increased file size
 2. Slightly slower
@@ -124,7 +128,7 @@ By default:
 | ----------- | -------------------- |
 | 1           | 0                    |
 | 2           | 1                    |
-| x<4         | 2                    |
+| x<=4        | 2                    |
 | x<10        | 3                    |
 | x<100       | 4                    |
 | x<100'0     | 5                    |
@@ -136,6 +140,8 @@ By default:
 **Pros if it is on**: 
 1. Manually set digits numbers
 2. more control
+3. Potentially more high quality
+
 **Pro if it is off**: 
 1. You don't have to manually set digits numbers
 
@@ -173,6 +179,7 @@ On: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649
 
 **Pros**: 
 1. 2 meshes will have their positions relative one to the other when importing the mesh in other programs 
+
 **Cons**: 
 1. Consumes a really tiny amount of disk space (especially if there are many small models created all over the place in magicavoxel)
 
@@ -184,6 +191,7 @@ If you notice weird lightning on the mesh then activate this setting.
 
 **Pros**:
 1. The mesh is more accurate.
+
 **Cons**:
 1. Consumes more disk space (6 bytes per face + 60 bytes to be exact).
 
@@ -206,6 +214,7 @@ Reccomended: ON
 
 **Pros**: 
 1. Greatly reduces File Size
+
 **Cons**: 
 1. Slightly slower
 
@@ -221,6 +230,7 @@ As the name sugggests it puts all the models in one big .obj, optimizing the out
 
 **Pros:**
 1. Smaller overall size
+
 **Cons:**
 1. Increased RAM usage while optimizing
 2. Can't modify or use singular models because they are now all part of one

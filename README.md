@@ -16,7 +16,8 @@ Watch this video: https://www.youtube.com/watch?v=KspAgJy-C9A or follow this ins
 **download the latest release (release v2.0.0)** and **extract it** in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder). 
 
 To run the program **double click** onto the executable and two windows will open.
-You'll have something like this:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c930e08-efdb-42a0-88d3-89a8794076ba).
+You'll have something like this:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/851990a9-ab26-4c67-b456-c701035e5b01)
+
 
 If you are on version 2.0 you can **drag and drop** every project file (.vox) you want to convert or use .ply files exported from magicavoxel itself. If you plan on using .vox files then you can export an obj with different materials depending on your settings. 
 
@@ -86,9 +87,10 @@ Becomes this on the texture map (1x1 square):
 
 ### Pattern matching
 
-If it is on each texture will be flipped, rotated and then compared to each other if two are equal than both faces will share the same region on the texture map:
+If it is on each texture will be flipped, rotated (in every way possible) and then compared to each other if two are equal than both faces will share the same region on the texture map:
 
-![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/b179bbf3-3904-4052-808f-871a664f2994)
+![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/59005f60-1d81-4b44-8a69-6366196cb5ef)
+
 
 **Recommended:ON**
 
@@ -102,6 +104,9 @@ If it is on each texture will be flipped, rotated and then compared to each othe
 ### Let Glass be more accurate
 
 This setting only works when you have materials (.vox files only), if there is glass then it generates more faces:
+
+![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/f9f47b87-b92c-4c69-a379-b6b4e9c4b8e0)
+
 
 **Reccomended: OFF**
 
@@ -147,9 +152,7 @@ By default:
 
 ### Background Colour
 
-
 Defines the colour of the pixels not used but present in the texture map.
-
 
 How to use it: If you have a small palette it can save a really small amount of disk space if you use as a background the same colour as one present in the palette.
 
@@ -237,12 +240,13 @@ As the name sugggests it puts all the models in one big .obj, optimizing the out
 
 ### Transparency, Emission, Roughness, Metallic, IOR and Specular Maps
 
-If all of these are ON this is what the .mtl looks like: INSERT IMAGE
+If all of these are ON this is what the .mtl looks like (Given a .vox project called GlassTest): ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9654d308-169c-4ba2-ac4a-b17a07fcf23a)
 
-and this is what the file structure looks like: INSERT IMAGE
+and this is what the file structure looks like: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/efa02adc-644e-4ed6-9088-cc3a362e3f5b)
+
 
 **WARNING:**
-You might want to modify manually the emission map with another program (I'd suggest [Slate][https://github.com/mitchcurtis/slate/releases/tag/v0.9.0], just download, extract, load \_emit.png, click ctrl + A, go to **image>adjustments>Hue/Saturation**, modify, click ctrl + S) and the Alpha of the Albedo Map to make glass look more dense (You can do this as by changing The emission map but instead of hue/saturation you change opacity, click the two checkbox and increase the slider).
+You might want to modify manually the emission map with another program (I'd suggest [Slate](https://github.com/mitchcurtis/slate/releases/tag/v0.9.0), just download, extract, load \_emit.png, click ctrl + A, go to **image>adjustments>Hue/Saturation**, modify, click ctrl + S) and the Alpha of the Albedo Map to make glass look more dense (You can do this as by changing The emission map but instead of hue/saturation you change opacity, for slate click the two checkbox and increase the slider).
 
 **Reccomended: Depends on your needs, overall only Transparency and Emission is fine** 
 
@@ -250,20 +254,36 @@ You might want to modify manually the emission map with another program (I'd sug
 ## Convert
 
 After the settings you should choose a directory where the output will be written to and then click the convert button. Once you are finished you are free to close the program.
-The program should notify you when it finishes, if it doesn't move the mouse or if too much time has passed retry but using the command prompt version of the software, to do that just click on this bar of the file explorer: INSERT IMAGE
-
-Type cmd, and type voxeloptimizer.exe on the command prompt and if there is a panic message share the logs to me (davidevuffical@gmail.com).
+The program should notify you when it finishes, if it doesn't move the mouse or if too much time has passed retry but using the command prompt version of the software which you can find here: [itch.io](https://davidevofficial.itch.io/voxeloptimizer) and if there is a panic message share the logs to me (davidevuffical@gmail.com).
 
 
 ## Benchmarks
 
-To benchmark I'll use the .vox files that magicavoxel comes by default and I'll compare the .obj of magicavoxel with the .obj of my program 
-![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/af857bf0-165c-4f81-b837-2489624a2516)
+To benchmark I'll use the .vox files that magicavoxel comes by default and I'll compare the .obj of magicavoxel with the .obj of my program
+
+MV = magicavoxel, VO = voxeloptimizer
+
+| Model Name            | MV Export size | MV Export speed | VO Export Size  | VO Export speed |
+|------------------- ---|----------------|-----------------|-----------------|-----------------|
+|3x3x3                  |4.41kb          |N/A              |2.73kb           |73ms             |
+|Lightsabers            |14.8kb          |N/A              |7.4kb            |98ms             |
+|Castle+Chr_knight+Cars |276.2kb         |N/A              |126.5kb          |485ms            |
+|Doom                   |632.1kb         |N/A              |84.9kb           |473ms            |
+|Teapot                 |2.82mb          |About 3s         |1.27mb           |2.92s            |
+|Menger                 |19.5mb          |About 7s         |8.33mb           |22.93s           |
+
+VoxelOptimizer clearly beats Magicavoxel out of the water it is about two times as disk efficient (without accounting for the fact that they contain about 10x less faces) while unfortunately being slightly slower than Magicavoxel, VoxelOptimizer has also other advantages:
+|                                         |MV |VO |
+|-----------------------------------------|---|---|
+|Converting multiple files at once        |No |Yes|
+|Exporting to one file                    |No |Yes|
+|Exporting materials                      |No |Yes|
+|Various coordinate systems to choose from|No |Yes|
+|Normals                                  |Yes|Yes|
+|Optimized for gamedev                    |No |Ye!|
 
 
-Here are the results: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/399a6c50-14c5-401f-bc97-3b4995e0a816)
-
-As you can see the VoxelOptimizer output is half the magicavoxel's one, it took my program about 45 seconds which is a little more than magicavoxel. In the benchmark folder of this repository you can find all of the data (.vox files, .ply files, my output, magicavoxel output).
+In the benchmark folder of this repository you can find all of the data (.vox files, .ply files, my output, magicavoxel output).
 
 
 # License and contributions

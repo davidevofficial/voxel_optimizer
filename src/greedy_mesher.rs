@@ -1,4 +1,6 @@
 use std::path::PathBuf;
+use png::chunk::tRNS;
+
 use crate::vox_importer::*;
 use crate::vox_exporter::*;
 use crate::vox_exporter;
@@ -138,8 +140,7 @@ impl ColourMatrix{
                 match cube{
                     None => {return CanBeMerged::No;}
                     Some(w) => {if w{
-                                if !is_all_not_merged{is_slice_already_merged = true;
-                                }else{is_slice_already_merged=false}
+                                is_slice_already_merged = !is_all_not_merged;
                                 }else{is_all_not_merged=true;}}
                     }
                 } 
@@ -173,31 +174,35 @@ impl ColourMatrix{
         }
     }
     fn get_texturemap(&mut self, i: i32, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> vox_exporter::TextureMap{
-        let mut vector_of_colours: Vec<Option<vox_exporter::Rgb>> = Vec::new();
+        let mut vector_of_colours: Vec<Vec<Option<vox_exporter::Rgb>>> = Vec::new();
         let mut w = 1;
         let mut h = 1;
         //top
         if i == 0{
             w = x2-x1;
             h = y2-y1;
+            let mut i = 0;
             for y in (y1..y2).rev(){
                 for x in x1..x2{   
                         let rgb = self.get_cube_colour(x,y,z2-1);                
-                        if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
-                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
+                        if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
+                        vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
+                i+=1;
             }
         }
         //bottom//
         if i == 1{
             w = x2-x1;
             h = y2-y1;
+            let mut i = 0;
             for y in (y1..y2){
                 for x in (x1..x2){
                     //let rgb = self.get_cube_colour(x2-1-x,y2-1-y,z1);
                     let rgb = self.get_cube_colour(x,y,z1);
-                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
-                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
+                    if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
+                 
+                 i+=1;       vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
             }
         }
@@ -205,48 +210,56 @@ impl ColourMatrix{
         if i == 2{
             w = y2-y1;
             h = z2-z1;
+            let mut i = 0;
             for z in (z1..z2).rev(){
                 for y in (y1..y2).rev(){
                     let rgb = self.get_cube_colour(x1,y,z);
-                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
-                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
+                    if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
+                        vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
+                i+=1;
             }
         }
         //right
         if i == 3{
             w = y2-y1;
             h = z2-z1;
+            let mut i = 0;
             for z in (z1..z2).rev(){
                 for y in (y1..y2){
                     let rgb = self.get_cube_colour(x2-1,y,z);
-                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
-                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
+                    if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
+                        vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
+                i+=1;
             }
         }
         //front
         if i == 4{
             w = x2-x1;
             h = z2-z1;
+            let mut i = 0;
             for z in (z1..z2).rev(){
                 for x in x1..x2{
                     let rgb = self.get_cube_colour(x,y1,z);
-                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
-                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
+                    if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
+                        vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
+                i+=1;
             }
         }
         //back//
         if i == 5{
             w = x2-x1;
             h = z2-z1;
+            let mut i = 0;
             for z in (z1..z2).rev(){
                 for x in (x1..x2).rev(){
                     let rgb = self.get_cube_colour(x,y2-1,z);
-                    if rgb.is_none(){vector_of_colours.push(None);}else if let Some(c) = rgb{
-                        vector_of_colours.push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
+                    if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
+                        vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
+                i+=1;
             }
         }
         vox_exporter::TextureMap{w:w as usize,h:h as usize, colours:vector_of_colours}
@@ -386,7 +399,6 @@ pub struct CubeVt{
     u: f32,
     v: f32
 }
-//todo!()->improve from_vertices to support vectors if possible
 impl CubeF {
     ///Returns a Face of the cube from 4 vertex
     ///
@@ -567,7 +579,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
                         (highest_coordinates.1 - lowest_coordinates.1) as i32,
                         (highest_coordinates.2 - lowest_coordinates.2)as i32);
     for fa in &vector_of_f{
-        let index = ( fa.return_cube_index() );
+        let index = fa.return_cube_index();
          if index.0 <= colourmatrix.shape.0 + colourmatrix.lowest_coordinates.0
          && index.1 <= colourmatrix.shape.1 + colourmatrix.lowest_coordinates.1 
          && index.2 <= colourmatrix.shape.2 + colourmatrix.lowest_coordinates.2
@@ -628,9 +640,9 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
      (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
 
     println!("{:?} optimized cubes in total", optimized_cubes.len());
-    let mut obj = Obj::from_optimized_cubes(path.clone(), my_app, &optimized_cubes, false, None);
+    let mut obj = Obj::from_optimized_cubes(path.clone(), my_app, &optimized_cubes);
     let x = format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
-                ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.texture_map.w, obj.texture_map.h);
+                ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.texture_map.clone().unwrap().w, obj.texture_map.clone().unwrap().h);
         let _ = my_app.sx.send(x);
     obj.export_all(colourmatrix.shape, (lowest_coordinates.0 as i32, lowest_coordinates.1 as i32, lowest_coordinates.2 as i32));
     println!("{:?}", "Finished optimizing mesh");
@@ -670,14 +682,13 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
             println!("couldn't read!");
             let x = format!("Error while Reading!!! {}",error.to_string());
             let _ = my_app.sx.send(x);
-
             return;
         }
 
     };
     let t = std::time::Instant::now();
-    if let Ok(Vox) = &vox_result {
-        let x = format!("Optimizing model");
+    if let Ok(vox) = &vox_result {
+        let x = format!("Optimizing project with {} models ({} nodes)",vox.chunks.len(), vox.nodes.len());
         let _ = my_app.sx.send(x);
 
         //println!("{:?}", &ply);
@@ -686,8 +697,131 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
         let x = format!("Error while parsing!!! {}" ,e);
         let _ = my_app.sx.send(x);
         println!("{}", e);
+        return;
     }
     let mut vox = vox_result.unwrap();
+    //let mut vox = vox_result.unwrap();
+    //case where everything is one mesh
+    if my_app.all_in_one_mesh{
+        //create a really big MaterialMatrix, optimize it, export it
+        let mut lowest_coordinates = (99999,99999,99999);
+        let mut highest_coordinates = (-99999,-99999,-99999);
+        for m in vox.chunks.iter(){
+            if m.position.0 < lowest_coordinates.0{
+                lowest_coordinates.0 = m.position.0;
+            }
+            if m.position.1 < lowest_coordinates.1{
+                lowest_coordinates.1 = m.position.1;
+            }
+            if m.position.2 < lowest_coordinates.2{
+                lowest_coordinates.2 = m.position.2;
+            }
+            if m.position.0 + m.size.0 as i32 > highest_coordinates.0{
+                highest_coordinates.0 = m.position.0 + m.size.0 as i32;
+            }
+            if m.position.1 + m.size.1 as i32> highest_coordinates.1{
+                highest_coordinates.1 = m.position.1 + m.size.1 as i32;
+            }
+            if m.position.2 + m.size.2 as i32> highest_coordinates.2{
+                highest_coordinates.2 = m.position.2 + m.size.2 as i32;
+            }
+        }
+        let shape = (highest_coordinates.0-lowest_coordinates.0,
+                                    highest_coordinates.1-lowest_coordinates.1,
+                                    highest_coordinates.2-lowest_coordinates.2);
+        //WARNING for the user
+        if shape.0*shape.1*shape.2 > 512*512*512{
+            let x = format!("WARNING: ({}x{}x{}) could be too big of a size to optimize, it might slow down your computer and use lots of ram"
+                ,shape.0,shape.1,shape.2);
+            let _ = my_app.sx.send(x);
+            //std::thread::sleep(std::time::Duration::from_millis(6666));
+        }
+        let mut materialmatrix= MaterialMatrix::def(vox.materials.clone(),my_app.glass_creates_more_mesh);
+        materialmatrix.lowest_coordinates = lowest_coordinates;
+        materialmatrix.set_size(shape.0, shape.1, shape.2);
+
+        for m in vox.chunks.iter(){
+            for xyzi in &m.xyzi{
+                let indexx = xyzi.x as i32+m.position.0;
+                let indexy = xyzi.y as i32+m.position.1;
+                let indexz = xyzi.z as i32+m.position.2;
+                materialmatrix.set_cube_material((indexx,indexy,indexz), Some(xyzi.i), false);
+            }
+        }
+        let optimized_vox = convert_to_optimized_vox(&mut materialmatrix, lowest_coordinates,&my_app.cross);
+        println!("{:?} optimized cubes in total", optimized_vox.len());
+        let mut obj = Obj::from_optimized_vox(path.clone(), my_app, &optimized_vox, vox.materials.clone());
+        let x = format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
+                ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.material_map.clone().unwrap().w, obj.material_map.clone().unwrap().h);
+        let _ = my_app.sx.send(x);
+        obj.export_all(materialmatrix.shape, lowest_coordinates);
+        println!("{:?}", "Finished optimizing mesh");
+        let x = format!("{} {:?} in {:?}! ","Converted",path.to_string_lossy().to_string(),t.elapsed());
+        let _ = my_app.sx.send(x);
+
+    }else{
+        for m in vox.chunks.iter(){
+            let mut lowest_coordinates = (99999,99999,99999);
+            let mut highest_coordinates = (-99999,-99999,-99999);
+            if m.position.0 < lowest_coordinates.0{
+                lowest_coordinates.0 = m.position.0;
+            }
+            if m.position.1 < lowest_coordinates.1{
+                lowest_coordinates.1 = m.position.1;
+            }
+            if m.position.2 < lowest_coordinates.2{
+                lowest_coordinates.2 = m.position.2;
+            }
+            if m.position.0 + m.size.0 as i32 > highest_coordinates.0{
+                highest_coordinates.0 = m.position.0 + m.size.0 as i32;
+            }
+            if m.position.1 + m.size.1 as i32> highest_coordinates.1{
+                highest_coordinates.1 = m.position.1 + m.size.1 as i32;
+            }
+            if m.position.2 + m.size.2 as i32> highest_coordinates.2{
+                highest_coordinates.2 = m.position.2 + m.size.2 as i32;
+            }
+            let shape = 
+            (highest_coordinates.0-lowest_coordinates.0,
+             highest_coordinates.1-lowest_coordinates.1,
+             highest_coordinates.2-lowest_coordinates.2);
+            //Path
+            let mut p = path.clone();
+            p.set_extension("");
+            let path = PathBuf::from(format!("{}_{:?}.vox",p.to_string_lossy(), m.id));dbg!(&path);
+            //WARNING for the user
+            if shape.0*shape.1*shape.2 > 512*512*512{
+                let x = format!("WARNING: ({}x{}x{}) could be too big of a size to optimize, it might slow down your computer and use lots of ram"
+                    ,shape.0,shape.1,shape.2);
+                let _ = my_app.sx.send(x);
+                std::thread::sleep(std::time::Duration::from_millis(6666));
+            }
+            let mut materialmatrix= MaterialMatrix::def(vox.materials.clone(),my_app.glass_creates_more_mesh);
+            materialmatrix.lowest_coordinates = lowest_coordinates;
+            materialmatrix.set_size(shape.0, shape.1, shape.2);
+            for xyzi in &m.xyzi{
+                let indexx = xyzi.x as i32+m.position.0;
+                let indexy = xyzi.y as i32+m.position.1;
+                let indexz = xyzi.z as i32+m.position.2;
+                materialmatrix.set_cube_material((indexx,indexy,indexz), Some(xyzi.i), false);
+            
+            }
+            dbg!(&materialmatrix.is_glass, &materialmatrix.extra_mesh_glass);
+            let optimized_vox = convert_to_optimized_vox(&mut materialmatrix, lowest_coordinates,&my_app.cross);
+            
+            println!("{:?} optimized cubes in total", optimized_vox.len());
+            let mut obj = Obj::from_optimized_vox(path.clone(), my_app, &optimized_vox, vox.materials.clone());
+            let x = format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
+                    ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.material_map.clone().unwrap().w, obj.material_map.clone().unwrap().h);
+            let _ = my_app.sx.send(x);
+            obj.export_all(materialmatrix.shape, lowest_coordinates);
+            println!("{:?}", "Finished optimizing mesh");
+            let x = format!("{} {:?} in {:?}! ","Converted",path.to_string_lossy().to_string(),t.elapsed());
+            let _ = my_app.sx.send(x); 
+        }
+    
+    }
+    //create a material matrix, optimize it, export it for each model
 }
 
 #[derive(PartialEq)]
@@ -696,6 +830,236 @@ pub enum CanBeMerged{
     Yes,
     No,
     Cross,
+}
+///Materials is of lenght 256 and matrixm is of lenght [shape.0][shape.1][shape.2]
+///
+///If matrixm[x][y][z] is none then it doesn't exist, if it is Some(0) it exists but was merged
+pub struct MaterialMatrix{
+    shape: (i32, i32, i32),
+    lowest_coordinates: (i32,i32,i32),
+    matrixm: Vec<Vec<Vec<Option<u8>>>>,
+    is_merged: Vec<Vec<Vec<bool>>>,
+    materials: Vec<Matl>,
+    is_glass: bool,
+    extra_mesh_glass: bool,
+}
+impl MaterialMatrix{
+    fn def(materials: Vec<Matl>, extra_mesh_glass: bool)->MaterialMatrix{
+        let is_glass = if !extra_mesh_glass{
+            false
+        }else{
+            let mut b = false;
+            for m in 0..materials.len(){
+                if materials[m].transparent != 0.0{
+                    b = true;
+                }
+            }
+            b
+        };
+        MaterialMatrix{
+            matrixm: Vec::new(),
+            is_merged: Vec::new(),
+            materials,
+            shape:(0,0,0),
+            lowest_coordinates:(0,0,0),
+            is_glass,
+            extra_mesh_glass,
+        }
+    }
+    fn set_size(&mut self, shapex: i32, shapey: i32, shapez: i32){
+        self.shape = (shapex, shapey, shapez);
+        for z in 0..shapez{
+            self.matrixm.push(Vec::new());
+            self.is_merged.push(Vec::new());
+            for y in 0..shapey{
+                self.matrixm[z as usize].push(Vec::new());
+                self.is_merged[z as usize].push(Vec::new());
+                for _x in 0..shapex{
+                    self.matrixm[z as usize][y as usize].push(None);
+                    self.is_merged[z as usize][y as usize].push(false);
+                }
+            }
+        }
+    }
+    fn pos_to_index(&self, x:i32, y:i32, z:i32)->(usize,usize,usize){
+        
+        let xx = x-self.lowest_coordinates.0;
+        let yy = y-self.lowest_coordinates.1;
+        let zz = z-self.lowest_coordinates.2;
+        
+        (xx as usize,yy as usize,zz as usize) //return
+    }
+    fn get_cube_material(&mut self, x: i32, y:i32, z: i32)->Option<u8>{
+        let (xx,yy,zz) = self.pos_to_index(x, y, z);
+        if self.matrixm.get(zz).is_some() && self.matrixm[zz].get(yy).is_some() && self.matrixm[zz][yy].get(xx).is_some(){
+            if self.matrixm[zz][yy][xx].is_some(){
+                self.matrixm[zz][yy][xx]
+            }else{None}
+        }else{None} //return
+    }
+    fn get_cube_merged(&self, x:i32, y:i32, z:i32)->Option<bool>{
+        let (xx,yy,zz) = self.pos_to_index(x, y, z);
+        let id = if self.is_merged.get(zz).is_some() &&
+                        self.is_merged[zz].get(yy).is_some() &&
+                        self.is_merged[zz][yy].get(xx).is_some(){
+                            self.is_merged[zz][yy][xx]
+                        }else{return None};
+        Some(id) //return
+    }
+    fn set_cube_material(&mut self, i:(i32,i32,i32), id:Option<u8>, merge: bool){
+        let (xx,yy,zz) = self.pos_to_index(i.0, i.1, i.2);
+        self.matrixm[zz][yy][xx]=id;
+        self.is_merged[zz][yy][xx]=merge;
+    }
+    fn can_slice_be_merged(&mut self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32, transparent:f32) -> CanBeMerged {
+        let mut is_slice_already_merged: bool = false;
+        //let mut is_all_merged: bool=false;
+        let is_glass = self.is_glass;
+        let glass_creates_more_mesh = self.extra_mesh_glass;
+        let deoptimize_glass = is_glass && glass_creates_more_mesh;
+        let first_id = if self.get_cube_material(x1, y1, z1).is_none(){return CanBeMerged::No}else{
+            self.get_cube_material(x1, y1, z1).unwrap() as usize
+        };
+        for z in z1..=z2{
+            for y in y1..=y2{
+                for x in x1..=x2{
+                    let cube = self.get_cube_material(x, y, z);
+                    let merged = self.get_cube_merged(x, y, z);
+                    match cube{
+                        None => {return CanBeMerged::No;}
+                        Some(id) => {if self.materials[id as usize].transparent!=transparent && deoptimize_glass{return CanBeMerged::No;}
+                                           if merged.unwrap(){is_slice_already_merged = true;}
+                        }
+                    }    
+                }
+            }
+        }
+        if is_slice_already_merged{
+            return CanBeMerged::Cross;
+        }
+        CanBeMerged::Yes //return
+    }
+    fn is_slice_some(&mut self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> bool {
+        for z in z1..=z2{
+            for y in y1..=y2{
+                for x in x1..=x2{
+                    if self.get_cube_material(x,y,z).is_none() || Some(0) == self.get_cube_material(x,y,z){
+                        return false;
+                    }
+                } 
+            }
+        }
+        true //return
+    }
+    fn merge_slice(&mut self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32){
+        for z in z1..=z2{
+            for y in y1..=y2{
+                for x in x1..=x2{
+                    let id =self.get_cube_material(x,y,z);
+                    self.set_cube_material((x,y,z),id, true);
+                } 
+            }
+        }
+    }
+    fn get_materialmap(&mut self, i: i32, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> vox_exporter::MaterialMap{
+        let mut vector_of_materials: Vec<Vec<u8>> = Vec::new();
+        let mut w = 1;
+        let mut h = 1;
+        let materials = self.materials.clone();
+        //top//
+        if i == 0{
+            w = x2-x1;
+            h = y2-y1;
+            let mut i = 0;
+            for y in (y1..y2).rev(){
+                vector_of_materials.push(Vec::new());
+                for x in x1..x2{   
+                        let id = self.get_cube_material(x,y,z2-1);                
+                        if id.is_none(){vector_of_materials[i].push(0);}else if let Some(c) = id{
+                        vector_of_materials[i].push(c);}
+                }
+                i+=1;
+            }
+        }
+        //bottom//
+        if i == 1{
+            w = x2-x1;
+            h = y2-y1;
+            let mut i = 0;
+            for y in (y1..y2){
+                vector_of_materials.push(Vec::new());
+                for x in (x1..x2){
+                    //let rgb = self.get_cube_colour(x2-1-x,y2-1-y,z1);
+                    let id= self.get_cube_material(x,y,z1);
+                    if id.is_none(){vector_of_materials[i].push(0);}else if let Some(c) = id{
+                        vector_of_materials[i].push(c);}
+                }
+                i+=1;
+            }
+        }
+        //left//
+        if i == 2{
+            w = y2-y1;
+            h = z2-z1;
+            let mut i = 0;
+            for z in (z1..z2).rev(){
+                vector_of_materials.push(Vec::new());
+                for y in (y1..y2).rev(){
+                    let id = self.get_cube_material(x1,y,z);
+                    if id.is_none(){vector_of_materials[i].push(0);}else if let Some(c) = id{
+                        vector_of_materials[i].push(c);}
+                }
+                i+=1;
+            }
+        }
+        //right
+        if i == 3{
+            w = y2-y1;
+            h = z2-z1;
+            let mut i = 0;
+            for z in (z1..z2).rev(){
+                vector_of_materials.push(Vec::new());
+                for y in (y1..y2){
+                    let id = self.get_cube_material(x2-1,y,z);
+                    if id.is_none(){vector_of_materials[i].push(0);}else if let Some(c) = id{
+                        vector_of_materials[i].push(c);}
+                }
+                i+=1;
+            }
+        }
+        //front
+        if i == 4{
+            w = x2-x1;
+            h = z2-z1;
+            let mut i = 0;
+            for z in (z1..z2).rev(){
+                vector_of_materials.push(Vec::new());
+                for x in x1..x2{
+                    let id = self.get_cube_material(x,y1,z);
+                    if id.is_none(){vector_of_materials[i].push(0);}else if let Some(c) = id{
+                        vector_of_materials[i].push(c);}
+                }
+                i+=1;
+            }
+
+        }
+        //back//
+        if i == 5{
+            w = x2-x1;
+            h = z2-z1;
+            let mut i = 0;
+            for z in (z1..z2).rev(){
+                vector_of_materials.push(Vec::new());
+                for x in (x1..x2).rev(){
+                    let id = self.get_cube_material(x,y2-1,z);
+                    if id.is_none(){vector_of_materials[i].push(0);}else if let Some(c) = id{
+                        vector_of_materials[i].push(c);}
+                }
+                i+=1;
+            }
+        }
+        vox_exporter::MaterialMap{w:w as usize,h:h as usize, id: vector_of_materials, materials }
+    }
 }
 pub fn convert_to_optimized_cubes(cubes: &mut ColourMatrix, cross: bool, lowest_coordinates:(i32, i32, i32)) -> Vec<OptimizedCube>{
     let mut cs = Vec::new();
@@ -721,8 +1085,6 @@ pub fn convert_to_optimized_cubes(cubes: &mut ColourMatrix, cross: bool, lowest_
     }
     cs
 }
-
-
 fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cross_optimization: &bool) -> Option<OptimizedCube>{
 
     let mut shape = (1, 1, 1);
@@ -846,7 +1208,92 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
 
     })
 }
+pub struct OptimizedVox{
+    pub starting_position: (i32,i32,i32),
+    pub dimensions: (u16,u16,u16),
+    pub textures: Vec<MaterialMap>,
+}
+pub fn convert_to_optimized_vox(mymap: &mut MaterialMatrix, lowest_coordinates:(i32, i32, i32), cross_optimization: &bool) -> Vec<OptimizedVox>{
+    let mut cs = Vec::new();
+    for z in lowest_coordinates.2..mymap.shape.2+lowest_coordinates.2+1{
+        for y in lowest_coordinates.1..mymap.shape.1+lowest_coordinates.1+1{
+            for x in lowest_coordinates.0..mymap.shape.0+lowest_coordinates.0+1{
+                if let Some(opcube) = find_dimensions_vox(mymap, (x,y,z), cross_optimization) {
+                    cs.push(opcube);
+                }
+            }
+        }
+    }
+    cs
+}
+pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32,i32), cross_optimization: &bool)->Option<OptimizedVox>{
+    let mut shape = (1, 1, 1);
+    //is the first cube a some value?
+    if mymap.is_slice_some(index_we_are_at.0, index_we_are_at.0,
+                             index_we_are_at.1, index_we_are_at.1,
+                              index_we_are_at.2, index_we_are_at.2){
+        let matl_id = mymap.get_cube_material(index_we_are_at.0, index_we_are_at.1, index_we_are_at.2).unwrap() as usize;
+        let transparent = mymap.materials[matl_id].transparent;
+        //can it be merged?
+        match mymap.can_slice_be_merged(index_we_are_at.0, index_we_are_at.0,
+                             index_we_are_at.1, index_we_are_at.1,
+                              index_we_are_at.2, index_we_are_at.2, transparent){
+            CanBeMerged::No => {return None;}
+            CanBeMerged::Cross => {return None;}
+            CanBeMerged::Yes => { 
+            }
+        }
 
+    } else {return None;}
+
+    let i = index_we_are_at.0;
+    let j = index_we_are_at.1;
+    let k = index_we_are_at.2;
+    let matl_id = mymap.get_cube_material(index_we_are_at.0, index_we_are_at.1, index_we_are_at.2).unwrap() as usize;
+    let transparent = mymap.materials[matl_id].transparent;
+    //x
+    let mut v_cached = Vec::new();
+    while (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k, transparent) == CanBeMerged::Yes) ||
+            (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k, transparent) == CanBeMerged::Cross && *cross_optimization){
+                v_cached.push(mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k, transparent));
+                shape.0 += 1;
+            }
+
+    v_cached = cache_sanitization( v_cached, *cross_optimization);  
+    shape.0 = v_cached.len() as i32 + 1 ;
+
+    //y
+    v_cached = Vec::new();
+    while (mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent) == CanBeMerged::Yes) ||
+            ((mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent) == CanBeMerged::Cross) && *cross_optimization){
+                v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent));
+                shape.1 += 1;
+            }  
+    v_cached = cache_sanitization( v_cached, *cross_optimization);    
+    shape.1 = v_cached.len() as i32  + 1;
+
+    //z
+    v_cached = Vec::new();
+    while (mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent) == CanBeMerged::Yes) ||
+            ((mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent) == CanBeMerged::Cross) && *cross_optimization){
+                v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent));
+                shape.2 += 1;
+            }  
+    v_cached = cache_sanitization( v_cached, *cross_optimization);
+    shape.2 = v_cached.len() as i32  + 1;
+
+    let mut txt = Vec::new();
+    for x in 0..6{
+        txt.push(mymap.get_materialmap(x, i, i+shape.0, j, j+shape.1, k, k+shape.2));
+    }
+    mymap.merge_slice(i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1);
+    Some(OptimizedVox{
+        dimensions: (shape.0 as u16, shape.1 as u16, shape.2 as u16),
+        starting_position: (index_we_are_at.0, index_we_are_at.1, index_we_are_at.2),
+        textures: txt,
+
+    })
+}
 fn cache_sanitization(mut v_cached: Vec<CanBeMerged>, cross: bool) -> Vec<CanBeMerged>{
     if !v_cached.is_empty(){
     if cross {

@@ -15,7 +15,7 @@ pub struct Scalar{n:i32}
 impl Vector3{
     fn from_tuple(xyz: (i32,i32,i32))->Vector3{Vector3 { x: xyz.0, y: xyz.1, z: xyz.2 }}
     fn to(self)->(i32,i32,i32){(self.x,self.y,self.z)}
-    fn is_positive(xyz: &(i32,i32,i32))->(bool,bool,bool){(xyz.0>=0,xyz.1>=0,xyz.2>=0)}
+    fn is_positive(xyz: &(i32,i32,i32))->(bool,bool,bool){(xyz.0>0,xyz.1>0,xyz.2>0)}
 }
 impl Scalar{
     fn from_number(n: i32)->Scalar{Scalar {n}}
@@ -160,7 +160,8 @@ impl Vox{
                 let ry = Vector3::from_tuple(ch.rotation.1.to_vector());
                 let rz = Vector3::from_tuple(ch.rotation.2.to_vector());
                 let mut new_position = column_times_matrix(c, (rx,ry,rz));
-                    let sign = Vector3::is_positive(&new_position.to());
+                let unit_vector = column_times_matrix(Vector3::from_tuple((1,1,1)), (rx,ry,rz));
+                    let sign = Vector3::is_positive(&unit_vector.to());
                     if !sign.0{
                         new_position.x += ch.size.0 as i32;
                     }
@@ -183,15 +184,17 @@ impl Vox{
                     let ry = Vector3::from_tuple(ch.rotation.1.to_vector());
                     let rz = Vector3::from_tuple(ch.rotation.2.to_vector());
                     let mut new_position = column_times_matrix(c, (rx,ry,rz));
-                    let sign = Vector3::is_positive(&new_position.to());
+                    let unit_vector = column_times_matrix(Vector3::from_tuple((1,1,1)), (rx,ry,rz));
+                    let sign = Vector3::is_positive(&unit_vector.to());
+
                     if !sign.0{
-                        new_position.x += ch.size.0 as i32;
+                        new_position.x += ch.size.0 as i32 - 1;
                     }
                     if !sign.1{
-                        new_position.y += ch.size.1 as i32;
+                        new_position.y += ch.size.1 as i32 - 1;
                     }
                     if !sign.2{
-                        new_position.z += ch.size.2 as i32;
+                        new_position.z += ch.size.2 as i32 - 1;
                     }
                     ch.xyzi[v].x = new_position.x as u8;
                     ch.xyzi[v].y = new_position.y as u8;
@@ -851,7 +854,7 @@ pub struct VoxCubes{
 impl VoxCubes{
     pub fn from(x:u8,y:u8,z:u8,i:u8)->VoxCubes{return VoxCubes{x,y,z,i};}
 }
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Matl{
     pub id: u8,
     //albedo
@@ -1009,6 +1012,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
     }
     //                  0x14
     let mut size_index = 20;
+    let mut i = 0;
     while vox_bytes[size_index] == 0x53{
 
         let mut chunk = Chunks::default();
@@ -1018,7 +1022,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
         chunk.size.0 = vox_bytes[size_index+12];
         chunk.size.1 = vox_bytes[size_index+16];
         chunk.size.2 = vox_bytes[size_index+20];
-
+        chunk.id = i;
         let byte_size = (vox_bytes[size_index+31]as usize)*256*256*256+
                             (vox_bytes[size_index+30]as usize)*256*256+
                             (vox_bytes[size_index+29]as usize)*256+
@@ -1036,7 +1040,8 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
         }
         //size_index = size_index + 20 +3+ 4 + 12 + 4+4*(product as usize-1)+1;
         size_index += 36 + byte_size;
-        vox.chunks.push(chunk)
+        vox.chunks.push(chunk);
+        i+=1;
     }
     vox.number_of_models = vox.chunks.len();
     //println!("{:?}", vox.chunks);
@@ -1200,7 +1205,7 @@ fn split_into_words(input: &[u8]) -> Vec<&[u8]>{
 fn find_next_x(bytes: &[u8], x: &[u8]) -> Option<usize>{bytes.windows(x.len()).position(|window| window == x)}
 fn find_next_space_after_index(bytes: &[u8]) -> Option<usize> {bytes.iter().position(|&x| x==b' ')}
 fn find_next_newline_after_index(bytes: &[u8]) -> Option<usize> {bytes.iter().position(|&x| x==b'\n')}
-pub fn is_made_by_ephtracy(ply: ply) -> bool { if ply.exported_by == "comment : MagicaVoxel @ Ephtracy"{true} else {false}}
+pub fn is_made_by_ephtracy(ply: ply) -> bool { ply.exported_by == "comment : MagicaVoxel @ Ephtracy"}
 fn column_times_matrix(n: Vector3, m: (Vector3,Vector3,Vector3))->Vector3{
     let a = ((m.0.x*n.x)+(m.0.y*n.y)+(m.0.z*n.z));
     let b = ((m.1.x*n.x)+(m.1.y*n.y)+(m.1.z*n.z));

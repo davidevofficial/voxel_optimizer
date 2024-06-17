@@ -65,7 +65,7 @@ struct MyApp {
     pub requestrepaint: bool,
     //settings
     monochrome: bool,
-    pattern_matching: i32,
+    pattern_matching: bool,
     is_texturesize_powerof2: bool,
     texturemapping_invisiblefaces: bool,
     manual_vt: bool,
@@ -75,6 +75,7 @@ struct MyApp {
     cross: bool,
     cull_optimization: bool,
     y_is_up: bool,
+    right_handed: bool,
     center_model_in_mesh: bool,
     normals: bool,
     //vox settings
@@ -95,7 +96,8 @@ impl eframe::App for MyApp {
                 ui.label(RichText::new("@davidevofficial - 2023").font(FontId::proportional(9.0)));
                 ui.separator();
                 ui.label("First change the settings and Drag-and-drop files onto the window.Click the convert button to convert them into an optimized .obj file.
-                         For more help check the documentation here: https://github.com/davidevofficial/voxel_optimizer/ or send me an email at: davidevufficial@gmail.com");
+                         send me an email at: davidevufficial@gmail.com or For more help check the documentation here:");
+                ui.hyperlink_to("Github", "https://github.com/davidevofficial/voxel_optimizer/");
             });
         });
         egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui|{
@@ -189,9 +191,10 @@ impl eframe::App for MyApp {
                 columns[0].label("Algorithm Options");
                 columns[0].checkbox(&mut self.cross, "Enable cross-overlapping optimization");
                 columns[0].checkbox(&mut self.monochrome, "Enable solid color faces to be one pixel on the texture map");
-                columns[0].checkbox(&mut self.glass_creates_more_mesh, "Let Glass be more accurate (only for.vox)");;
-                columns[0].label("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry");
-                columns[0].add(egui::Slider::new(&mut self.pattern_matching, 0..=3));
+                columns[0].checkbox(&mut self.glass_creates_more_mesh, "Let Glass be more accurate (only for.vox)");
+                columns[0].checkbox(&mut self.pattern_matching, "Enable Pattern Matching");
+                //columns[0].label("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry");
+                //columns[0].add(egui::Slider::new(&mut self.pattern_matching, 0..=3));
                 columns[0].separator();
                 //Export
                 columns[0].label("Export Options");
@@ -205,7 +208,11 @@ impl eframe::App for MyApp {
                     ui.color_edit_button_rgb(&mut self.background_color);
                     ui.label("Select the background colour:");
                 });
-                columns[0].checkbox(&mut self.y_is_up, "Y vector is up");
+                columns[0].hyperlink_to("Coordinate system","https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c5fa9d9-6584-4475-af6d-90826c0d9a98");
+                columns[0].with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui|{
+                    ui.checkbox(&mut self.y_is_up, "Y-up");
+                    ui.checkbox(&mut self.right_handed, "Right-Handed");
+                });
                 columns[0].checkbox(&mut self.center_model_in_mesh, "Origin is center of the model");
                 columns[0].checkbox(&mut self.normals, "Enable normals on the final export");
                 columns[0].separator();
@@ -254,9 +261,9 @@ impl eframe::App for MyApp {
         //save
         let mut b: Option<String> = None;
         if self.vt_precisionnumber < 10{b = Some(String::from("0"))}
-        let c = format!("{},{},{},{}{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}"
+        let c = format!("{},{},{},{}{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}"
                         , (self.monochrome as i32)
-                        , self.pattern_matching
+                        , self.pattern_matching as i32
                         , (self.manual_vt as i32)
                         , if b.is_some(){b.unwrap()}else{String::new()}
                         , (self.vt_precisionnumber as i32)
@@ -275,6 +282,7 @@ impl eframe::App for MyApp {
                         , (self.specular as i32)
                         , (self.normals as i32)
                         , (self.glass_creates_more_mesh as i32)
+                        , (self.right_handed as i32)
                         );
         write("src/options.txt", c).unwrap();
         //thread::sleep(Duration::from_millis(10));
@@ -319,26 +327,27 @@ impl Default for MyApp{
     fn default() -> Self {
             let (sx, rx): (Sender<String>, Receiver<String>) = channel();
             let c = read("src/options.txt").unwrap();
-            let m = if c[0] == b'1' {true}else{false};
+            let m = c[0] == b'1';
             let fortyeight: u8 = 48; // '0' u8 representation in ascii
-            let p = (c[2] - &fortyeight) as i32;
-            let m_vt = if c[4] == b'1' {true}else{false};
-            let vt_n = if c[6] == b'1' {10 + c[7]-&fortyeight}else{c[7]-&fortyeight};
-            let tn_s = if c[9] == b'1' {true}else{false};
-            let tx_f = if c[11] == b'1' {true}else{false};
-            let cro = if c[13] == b'1' {true}else{false};
-            let cu_o = if c[15] == b'1' {true}else{false};
-            let y_up = if c[17] == b'1' {true}else{false};
-            let cmm= if c[19] == b'1' {true}else{false};
-            let all_in_one_mesh = if c[21] == b'1' {true}else{false}; 
-            let transparency = if c[23] == b'1' {true}else{false}; 
-            let emission = if c[25] == b'1' {true}else{false}; 
-            let roughness = if c[27] == b'1' {true}else{false}; 
-            let metal = if c[29] == b'1' {true}else{false}; 
-            let refraction = if c[31] == b'1' {true}else{false};
-            let specular = if c[33] == b'1' {true}else{false};  
-            let normals = if c[35] == b'1' {true}else{false};
-            let glass_creates_more_mesh = if c[37] == b'1' {true}else{false};
+            let p = c[2] == b'1';
+            let m_vt = c[4] == b'1';
+            let vt_n = if c[6] == b'1' {10 + c[7]-fortyeight}else{c[7]-fortyeight};
+            let tn_s = c[9] == b'1';
+            let tx_f = c[11] == b'1';
+            let cro = c[13] == b'1';
+            let cu_o = c[15] == b'1';
+            let y_up = c[17] == b'1';
+            let cmm= c[19] == b'1';
+            let all_in_one_mesh = c[21] == b'1'; 
+            let transparency = c[23] == b'1'; 
+            let emission = c[25] == b'1'; 
+            let roughness = c[27] == b'1'; 
+            let metal = c[29] == b'1'; 
+            let refraction = c[31] == b'1';
+            let specular = c[33] == b'1';  
+            let normals = c[35] == b'1';
+            let glass_creates_more_mesh = c[37] == b'1';
+            let right_handed = c[39] == b'1';
 
         Self{
             sx,
@@ -368,6 +377,7 @@ impl Default for MyApp{
             specular,
             normals,
             glass_creates_more_mesh,
+            right_handed,
         }
     }
 }

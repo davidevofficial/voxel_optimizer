@@ -1,5 +1,5 @@
 # VoxelOptimizer
-This program was made to optimize the meshes that are exported by **MagicaVoxel** (software made by Ephtracy), written in rust, it is the **fastest** and, thanks to some clever optimizations and tricks, it is also the **best** at compressing even if it is a **lossless compression**, which means that the quality of the mesh isn't traded with the speed of the execution of the program. If you tried to export a mesh using magicavoxel you would know that the internal mesh exporter is pretty inefficient and it is not ideal for gamedev. For this reason and because I was unable to find a program such as this with the characteristics I had in mind this project was born. It is pretty similiar to an addon made for blender (Vox Cleaner V2 by Farhan) but it differs for many reasons:
+This program was made to optimize the meshes that are exported by **MagicaVoxel** (software made by Ephtracy), written in rust, it is the **fastest** and, thanks to some clever optimizations and tricks, it is also the **best** at compressing even if it is a **lossless compression**, which means that the quality of the mesh isn't traded with the speed of the execution of the program. If you tried to export a mesh using magicavoxel you would know that its mesh exporter is pretty inefficient and it is not ideal for gamedev. For this reason and also because I was unable to find a program such as this with the characteristics I had in mind, Voxel Optimizer was born. It is pretty similiar to an addon made for blender (Vox Cleaner V2 by Farhan) but it differs for many reasons:
 1. Completely free
 2. You don't need blender
 3. Low ram usage
@@ -8,24 +8,29 @@ This program was made to optimize the meshes that are exported by **MagicaVoxel*
 6. multithreaded so that converting many models is blazingly fast
 
 # Compatibility
-Before explaining how it works I wanted to say that this program unfortunately only works for **windows**, if you know a little bit of rust you can contribute to other major platforms such as linux and mac. Also while this program doesn't use much cpu the better the cpu the faster will be the processes, the cpu also has to support multithreading to a certain capacity (Most of the cpu's will do the job). Last but not least to run this program you need a minimal amount of ram but it has to be at least as big as the models you are compressing (for example: you are converting 10 models 50mb each, 1 free gb of ram is reccomended).
+Before explaining how it works I wanted to say that this program unfortunately only works for **windows**, if you know a little bit of rust you can contribute to other major platforms such as linux and mac. Also while this program doesn't use much cpu the better the cpu the faster will be the processes, the cpu also has to support multithreading to a certain capacity (Most of the cpu's will do the job). Last but not least to run this program you need a minimal amount of ram but it has to be at least as big as the models you are compressing.
 
 # Usage and benchmarks
 Watch this video: https://www.youtube.com/watch?v=KspAgJy-C9A or follow this instructions to get started. 
 
-**download the latest release (release v1.0.1)** and **extract it** in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder). To run the program **double click** onto the executable and two windows will open, ignore the black one.
-You'll have something like this:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c930e08-efdb-42a0-88d3-89a8794076ba).
-As you can see on the top there are instructions to follow, however there are many options which I will explain later below with also a series of benchmarks (tests to check how quick and efficient are the various settings). 
+**download the latest release (release v2.0.0)** and **extract it** in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder). 
 
-To convert models to an optimized and superior form you first have to create the models in magicavoxel and export them using the second option (.ply) and then **drag and drop** every file you want to convert (you can and you should do more than one at the time, tip: Control + A selects all the files in a folder) like so:
+To run the program **double click** onto the executable and two windows will open.
+You'll have something like this:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c930e08-efdb-42a0-88d3-89a8794076ba).
+
+If you are on version 2.0 you can **drag and drop** every project file (.vox) you want to convert or use .ply files exported from magicavoxel itself. If you plan on using .vox files then you can export an obj with different materials depending on your settings. 
+
+If you are on version 1.0.1 to convert models to an optimized and superior form you first have to create the models in magicavoxel and export them using the second option (.ply) and then **drag and drop** every file you want to convert (you can and it's better if you do more than one at the time, tip: Control + A selects all the files in a folder) like so:
 
 https://github.com/davidevofficial/voxel_optimizer/assets/127616649/4568ff63-293d-4748-83a3-ced18711c548
 
-The default options are the best if you care about output file size, however depending on your needs you might need to change some, so here is every setting and its explanation pros and cons.
-##Coordinate system
-![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c5fa9d9-6584-4475-af6d-90826c0d9a98)
+The default options are the best if you care about output file size, however depending on your needs you might need to change some, so here is every setting and its explanation with pros and cons.
 
-## Cross-overlapping optimization
+## Algorithm Options
+
+This settings influence the algorithm used to optimize the models.
+
+### Cross-overlapping optimization
 
 This setting changes the way the algorithm works while reducing the amount of vertices, to explain how it works here are some examples:
 
@@ -37,27 +42,15 @@ Without the option it would be divided like so: ![image](https://github.com/davi
 
 With the option the green and blue part become united: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/1c030205-fb38-41de-a3a8-8a0dc7afcd33) (2 overlapping cubes).
 
-Reccomended: ON
+**Reccomended: ON**
 
-### Pros: 
-1. Greatly reduces File Size
-### Cons: 
+**Pros**: 
+1. Reduces File Size
+**Cons**: 
 1. Slightly slower
-2. The cubes overlap (in some software this results in bad behaviour)
+2. The cubes overlap generating too much overdraw (in some software this results in bad behaviour)
 
-
-## Enable de-cull optimization
-
-The ply magicavoxel optimizes meshes when exporting such that a cube full inside is actually a cube empty inside but since you can't see it it doesn't matter except that it does if you have to compress it with this program.
-
-Reccomended: ON
-
-### Pros: 
-1. Greatly reduces File Size
-### Cons: 
-1. Slightly slower
-
-## Enable solid colours to be one pixel on the texture map
+### Enable solid colours to be one pixel on the texture map
 
 Behaviour when off: 
 
@@ -80,62 +73,97 @@ Becomes this on the texture map (1x1 square):
 
 ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/85cc83ad-842a-497c-ac44-f1d2f1c4066a)
 
-Reccomended: ON
+**Reccomended: ON**
 
-### Pros: 
+**Pros**: 
 1. Greatly reduces File Size
 2. Can use the next setting (pattern matching) at its fullest
-### Cons: 
+**Cons**: 
 1. Slightly slower
 2. Cannot manually modify the texture of the face since if you modify a pixel you modify all the face
 
-## Pattern matching
+### Pattern matching
 
-Depending on the level of pattern matching each texture will be flipped, rotated and then compared to each other if two are equal than both faces will share the same region on the texture map:
+If it is on each texture will be flipped, rotated and then compared to each other if two are equal than both faces will share the same region on the texture map:
 
 ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/b179bbf3-3904-4052-808f-871a664f2994)
 
-This image shows all 4 levels of pattern matching
+**Recommended:ON**
 
-Reccomended: 3 if you don't have to manually edit textures.
-
-### Pros: 
+**Pros**: 
 1. Greatly reduces File Size
-### Cons: 
-1. Anything higher than 0 makes it O(n^2) slower where n is the number of textures, therefore it makes it greatly slower
+**Cons**: 
+1. Anything higher than 0 makes it way slower
 2. Cannot manually modify the texture of a face without modifying the texture of all the faces equal to that one.
 
-## Enable manual settings of the precision levels
+### Let Glass be more accurate
+
+This setting only works when you have materials (.vox files only), if there is glass then it generates more faces:
+
+**Reccomended: OFF**
+
+**Pros**:
+1. Glass has correct behaviour
+**Cons**:
+1. Increased file size
+2. Slightly slower
+
+## Export Options
+
+This settings influence the way the mesh is exported
+
+### Enable manual settings of the precision levels
 
 "precisions level" is the amount of digits after the dot in the output .obj file for each vt; in this image that number is 3: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/96b4f7d4-b264-480e-8f6a-3b5457c23ab6)
 
-If the setting is off the program automatically detects the amount of digits otherwise you can specify it yourself
+If the setting is off the program automatically detects the amount of digits otherwise you can specify it yourself.
 
-Reccomended: OFF
+By default:
 
-### Pros if it is on: 
+|Width/Height | Digits after the dot |
+| ----------- | -------------------- |
+| 1           | 0                    |
+| 2           | 1                    |
+| x<4         | 2                    |
+| x<10        | 3                    |
+| x<100       | 4                    |
+| x<100'0     | 5                    |
+| x<100'00    | 6                    |
+| x<100'000   | 7
+
+**Reccomended: OFF**
+
+**Pros if it is on**: 
 1. Manually set digits numbers
 2. more control
-### Pro if it is off: 
+**Pro if it is off**: 
 1. You don't have to manually set digits numbers
 
-## Background Colour
+### Background Colour
 
 
-select the colour of the pixels not used but present in the texture map.
+Defines the colour of the pixels not used but present in the texture map.
 
 
 How to use it: If you have a small palette it can save a really small amount of disk space if you use as a background the same colour as one present in the palette.
 
-Reccomended: The same as the most used colour in the model
+**Reccomended: OFF (doesn't really matter that much)/The same as the most used colour in the model**
 
-## Y vector is up
+### Coordinate system
 
-If you select it the programs that use the Y vector as the up vector will successfully open the model in the right orentation.
+Based on the software you need to export to you may need to change the coordinate system, follow the table below:
+![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c5fa9d9-6584-4475-af6d-90826c0d9a98)
 
-Reccomended: Highly dependent on the program you want to use the output in
+**Reccomended:**
 
-## Origin is the center of the model
+| Software        | Y-UP   | Right-handed |
+|-----------------|--------|--------------|
+| Blender         | False  | True         |
+| Unreal engine   | False  | False        |
+| Godot           | True   | True         |
+| Unity           | True   | False        |
+
+### Origin is the center of the model
 
 If you select it the model vertices will not have their position based on their magicavoxel position.
 
@@ -143,19 +171,79 @@ Off: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/12761664
 
 On: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/78acbc1f-142d-44a0-b99a-94137e6b1325)
 
-### Pros: 
-1. Saves a little bit amount of disk space (especially if there are many small models created all over the place in magicavoxel)
-### Cons: 
-1. 2 models will not have their positions relative one to the other when importing the model in other programs 
+**Pros**: 
+1. 2 meshes will have their positions relative one to the other when importing the mesh in other programs 
+**Cons**: 
+1. Consumes a really tiny amount of disk space (especially if there are many small models created all over the place in magicavoxel)
 
-## Enable UV debug mode
+### Enable Normals in the final export 
+
+If required by the software you need to export to then activate this setting. 
+
+If you notice weird lightning on the mesh then activate this setting.
+
+**Pros**:
+1. The mesh is more accurate.
+**Cons**:
+1. Consumes more disk space (6 bytes per face + 60 bytes to be exact).
+
+
+### Enable UV debug mode
 
 If you enable this all models will have this texture ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/08db6b00-7758-45e3-a3a6-7b16e51b10d5)
- correctly applied to each face:
+
+correctly applied to each face.
+
+## .PLY compatibility options
+
+If it is not ON you might encounter meshes that appear to be correct but are way too big then what they need to be
+
+### Enable de-cull optimization
+
+The ply magicavoxel optimizes meshes when exporting such that a cube full inside is actually a cube empty inside but since you can't see it it doesn't matter except that it does if you have to compress it with this program.
+
+Reccomended: ON
+
+**Pros**: 
+1. Greatly reduces File Size
+**Cons**: 
+1. Slightly slower
+
+## .VOX specific options
+
+These only matter when using .vox files
+
+### All the models in one file
+
+As the name sugggests it puts all the models in one big .obj, optimizing the output while doing so
+
+**Reccomended:ON**
+
+**Pros:**
+1. Smaller overall size
+**Cons:**
+1. Increased RAM usage while optimizing
+2. Can't modify or use singular models because they are now all part of one
+
+### Transparency, Emission, Roughness, Metallic, IOR and Specular Maps
+
+If all of these are ON this is what the .mtl looks like: INSERT IMAGE
+
+and this is what the file structure looks like: INSERT IMAGE
+
+**WARNING:**
+You might want to modify manually the emission map with another program (I'd suggest [Slate][https://github.com/mitchcurtis/slate/releases/tag/v0.9.0], just download, extract, load \_emit.png, click ctrl + A, go to **image>adjustments>Hue/Saturation**, modify, click ctrl + S) and the Alpha of the Albedo Map to make glass look more dense (You can do this as by changing The emission map but instead of hue/saturation you change opacity, click the two checkbox and increase the slider).
+
+**Reccomended: Depends on your needs, overall only Transparency and Emission is fine** 
+
 
 ## Convert
 
-After the settings you should choose a directory where the output will be written to and then click the convert button. Once you are finished (The program should have a message that notifies you of that, if it doesn't move the mouse) you can kill the program, just close the Black window (command prompt).
+After the settings you should choose a directory where the output will be written to and then click the convert button. Once you are finished you are free to close the program.
+The program should notify you when it finishes, if it doesn't move the mouse or if too much time has passed retry but using the command prompt version of the software, to do that just click on this bar of the file explorer: INSERT IMAGE
+
+Type cmd, and type voxeloptimizer.exe on the command prompt and if there is a panic message share the logs to me (davidevuffical@gmail.com).
+
 
 ## Benchmarks
 
@@ -169,7 +257,7 @@ As you can see the VoxelOptimizer output is half the magicavoxel's one, it took 
 
 
 # License and contributions
-I would be glad for any pull request, discussion, issues you have to make this program better and also a little help for porting this to mac and linux (or maybe a wasm version in the future). 
+I would be glad for any pull request, discussion, issues you have to make this program better.
 
 License: you may modify and copy for private use the software but you cannot redistribute or sell it.
 

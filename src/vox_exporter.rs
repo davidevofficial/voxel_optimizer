@@ -956,47 +956,53 @@ impl Obj{
                      opcubes[x].starting_position.2+opcubes[x].dimensions.2 as i32);
                 
                 //face 1 top
+                if opcubes[x].is_face_enabled[0]{
                 obj.faces.push(ObjF{
                     a:(*temp_v.get(&(e.x,e.y,e.z)).unwrap() as i32,0,1),
                     b:(*temp_v.get(&(f.x,f.y,f.z)).unwrap() as i32,0,1),
                     c:(*temp_v.get(&(g.x,g.y,g.z)).unwrap() as i32,0,1),
                     d:(*temp_v.get(&(h.x,h.y,h.z)).unwrap() as i32,0,1),
-                });
+                });}
                 //face 2 bottom
+                if opcubes[x].is_face_enabled[1]{
                 obj.faces.push(ObjF{
                     a:(*temp_v.get(&(d.x,d.y,d.z)).unwrap() as i32,0,2),
                     b:(*temp_v.get(&(c.x,c.y,c.z)).unwrap() as i32,0,2),
                     c:(*temp_v.get(&(b.x,b.y,b.z)).unwrap() as i32,0,2),
                     d:(*temp_v.get(&(a.x,a.y,a.z)).unwrap() as i32,0,2),
-                });
+                });}
                 //face 3 left
+                if opcubes[x].is_face_enabled[2]{
                 obj.faces.push(ObjF{
                     a:(*temp_v.get(&(d.x,d.y,d.z)).unwrap() as i32,0,6),
                     b:(*temp_v.get(&(a.x,a.y,a.z)).unwrap() as i32,0,6),
                     c:(*temp_v.get(&(e.x,e.y,e.z)).unwrap() as i32,0,6),
                     d:(*temp_v.get(&(h.x,h.y,h.z)).unwrap() as i32,0,6),
-                });
+                });}
                 //face 4 right
+                if opcubes[x].is_face_enabled[3]{
                 obj.faces.push(ObjF{
                     a:(*temp_v.get(&(b.x,b.y,b.z)).unwrap() as i32,0,5),
                     b:(*temp_v.get(&(c.x,c.y,c.z)).unwrap() as i32,0,5),
                     c:(*temp_v.get(&(g.x,g.y,g.z)).unwrap() as i32,0,5),
                     d:(*temp_v.get(&(f.x,f.y,f.z)).unwrap() as i32,0,5),
-                });
+                });}
                 //face 5 front
+                if opcubes[x].is_face_enabled[4]{
                 obj.faces.push(ObjF{
                     a:(*temp_v.get(&(a.x,a.y,a.z)).unwrap() as i32,0,3),
                     b:(*temp_v.get(&(b.x,b.y,b.z)).unwrap() as i32,0,3),
                     c:(*temp_v.get(&(f.x,f.y,f.z)).unwrap() as i32,0,3),
                     d:(*temp_v.get(&(e.x,e.y,e.z)).unwrap() as i32,0,3),
-                });
+                });}
                 //face 6 back
+                if opcubes[x].is_face_enabled[5]{
                 obj.faces.push(ObjF{
                     a:(*temp_v.get(&(c.x,c.y,c.z)).unwrap() as i32,0,4),
                     b:(*temp_v.get(&(d.x,d.y,d.z)).unwrap() as i32,0,4),
                     c:(*temp_v.get(&(h.x,h.y,h.z)).unwrap() as i32,0,4),
                     d:(*temp_v.get(&(g.x,g.y,g.z)).unwrap() as i32,0,4),
-                });
+                });}
         }
 
         obj.number_of_v_and_f.1 = obj.faces.len() as i32;
@@ -1028,85 +1034,89 @@ impl Obj{
         //set up textures
         for x in 0..opcubes.len(){
             for t in 0..6{
-                //println!("opcubes[{:?}].textures[{:?}] = {:?}", x,t,opcubes[x].textures[t]);
-                //what to do if texture is empty or all of the same colour?
-                let is_texture_some = true;//opcubes[x].textures[t].is_texture_some();
-                let mut the_colour = 0;
-                let mut is_all_same_colour = true;
-                if opcubes[x].textures[t].w == 1 && opcubes[x].textures[t].h==1{
-                    the_colour=opcubes[x].textures[t].id[0][0];
-                }
-                //let mut pixels = 
-                for y in 0..opcubes[x].textures[t].id.len(){
-                    for pixel in 0..opcubes[x].textures[t].id[y].len(){
-                        if my_app.monochrome && y+pixel!=0{
-                            let (yy,xx) = if pixel==0{(y-1,opcubes[x].textures[t].w-1)}else{(y,pixel-1)};
-                            let previousp = &opcubes[x].textures[t].id[yy][xx].clone();
-                            let currentp = &opcubes[x].textures[t].id[y][pixel].clone();
-                            the_colour = *currentp;
-                            if *previousp != 0 && 
-                                *currentp != 0 &&
-                                *previousp != *currentp {
-                                //texture isn't all of the same colour
-                                is_all_same_colour = false;
-
-                            }
-                        }
+                if !opcubes[x].is_face_enabled[t]{
+                    //skip
+                }else{  
+                    //println!("opcubes[{:?}].textures[{:?}] = {:?}", x,t,opcubes[x].textures[t]);
+                    //what to do if texture is empty or all of the same colour?
+                    let is_texture_some = true;//opcubes[x].textures[t].is_texture_some();
+                    let mut the_colour = 0;
+                    let mut is_all_same_colour = true;
+                    if opcubes[x].textures[t].w == 1 && opcubes[x].textures[t].h==1{
+                        the_colour=opcubes[x].textures[t].id[0][0];
                     }
-                }
-                //println!("is texture some = {:?}", is_texture_some);
-                //println!("is all same color = {:?}", is_all_same_colour);
-                if !is_texture_some{
-                    tid.push((None, Equality::No));
-                } else if is_texture_some{
-                    //the texture is going to depend on if it is a single colour or more
-                    let mut tex = opcubes[x].textures[t].clone();
-                    if is_all_same_colour{     
-                        tex = MaterialMap{w:1,h:1, id:[[the_colour].to_vec()].to_vec(), materials:materials.clone()}
-                    }
-                    //println!("{:?}", tex);
+                    //let mut pixels = 
+                    for y in 0..opcubes[x].textures[t].id.len(){
+                        for pixel in 0..opcubes[x].textures[t].id[y].len(){
+                            if my_app.monochrome && y+pixel!=0{
+                                let (yy,xx) = if pixel==0{(y-1,opcubes[x].textures[t].w-1)}else{(y,pixel-1)};
+                                let previousp = &opcubes[x].textures[t].id[yy][xx].clone();
+                                let currentp = &opcubes[x].textures[t].id[y][pixel].clone();
+                                the_colour = *currentp;
+                                if *previousp != 0 && 
+                                    *currentp != 0 &&
+                                    *previousp != *currentp {
+                                    //texture isn't all of the same colour
+                                    is_all_same_colour = false;
 
-                    if unique_tid.is_empty(){
-                        //if all the texture is of a colour just push that colour
-                        unique_tid.push(tex);
-                        tid.push((Some((unique_tid.len() - 1) as i32), Equality::No))
-                        
-                    //if there is a unique texture already
-                    }else {
-                        //if it is just one colour check if that colour exists already
-                        if !my_app.pattern_matching{
-                            unique_tid.push(tex.clone());
-                            tid.push((Some((unique_tid.len() - 1) as i32), Equality::No))
-                        }else{
-                            let mut equ = Equality::No;
-                            let mut ii = 0;
-                            for i in 0..unique_tid.len(){
-
-                                if equ == Equality::No{
-                                    match tex.is_equal(&unique_tid[i], my_app.pattern_matching){
-                                        Equality::No =>{},
-                                        Equality::Yes(x,y) =>{ii=i as i32;equ = Equality::Yes(x,y);}
-                                    }
                                 }
-                                //println!("opcubes[{:?}].textures[{:?}] equality::{:?} unique_tid[{:?}]",x,t,equ,i);
-                            }
-                            //println!("opcubes[{:?}].textures[{:?}] equality::{:?} with the rest of the textures",x,t,equ);
-                            if equ == Equality::No{
-                                unique_tid.push(tex.clone());
-                                tid.push((Some((unique_tid.len()-1) as i32), Equality::No));
-                            }
-                            if equ != Equality::No {
-                                //println!("pushing tid: {:?}", ii);
-                                //println!("lenght before: {:?}", tid.len());
-                                tid.push((Some(ii), equ));
-                                //println!("lenght after: {:?}", tid.len());
-
                             }
                         }
-                        
                     }
-                }
-            } 
+                    //println!("is texture some = {:?}", is_texture_some);
+                    //println!("is all same color = {:?}", is_all_same_colour);
+                    if !is_texture_some{
+                        tid.push((None, Equality::No));
+                    } else if is_texture_some{
+                        //the texture is going to depend on if it is a single colour or more
+                        let mut tex = opcubes[x].textures[t].clone();
+                        if is_all_same_colour{     
+                            tex = MaterialMap{w:1,h:1, id:[[the_colour].to_vec()].to_vec(), materials:materials.clone()}
+                        }
+                        //println!("{:?}", tex);
+
+                        if unique_tid.is_empty(){
+                            //if all the texture is of a colour just push that colour
+                            unique_tid.push(tex);
+                            tid.push((Some((unique_tid.len() - 1) as i32), Equality::No))
+                            
+                        //if there is a unique texture already
+                        }else {
+                            //if it is just one colour check if that colour exists already
+                            if !my_app.pattern_matching{
+                                unique_tid.push(tex.clone());
+                                tid.push((Some((unique_tid.len() - 1) as i32), Equality::No))
+                            }else{
+                                let mut equ = Equality::No;
+                                let mut ii = 0;
+                                for i in 0..unique_tid.len(){
+
+                                    if equ == Equality::No{
+                                        match tex.is_equal(&unique_tid[i], my_app.pattern_matching){
+                                            Equality::No =>{},
+                                            Equality::Yes(x,y) =>{ii=i as i32;equ = Equality::Yes(x,y);}
+                                        }
+                                    }
+                                    //println!("opcubes[{:?}].textures[{:?}] equality::{:?} unique_tid[{:?}]",x,t,equ,i);
+                                }
+                                //println!("opcubes[{:?}].textures[{:?}] equality::{:?} with the rest of the textures",x,t,equ);
+                                if equ == Equality::No{
+                                    unique_tid.push(tex.clone());
+                                    tid.push((Some((unique_tid.len()-1) as i32), Equality::No));
+                                }
+                                if equ != Equality::No {
+                                    //println!("pushing tid: {:?}", ii);
+                                    //println!("lenght before: {:?}", tid.len());
+                                    tid.push((Some(ii), equ));
+                                    //println!("lenght after: {:?}", tid.len());
+
+                                }
+                            }
+                            
+                        }
+                    }
+                } 
+            }
         }
         //println!("unique tid .len()={:?}", unique_tid.len());
         //println!("tid .len()={:?}", tid.len());
@@ -1247,37 +1257,6 @@ impl Obj{
                             },
                             _ => panic!("Invalid Equality::Yes()"),
                         }
-                        /*
-                        let bl = find_key_for_value(temp_vt.clone(), *d).unwrap();
-                        let tl = find_key_for_value(temp_vt.clone(), *a).unwrap();
-                        let tr = find_key_for_value(temp_vt.clone(), *b).unwrap();
-                        let br = find_key_for_value(temp_vt.clone(), *c).unwrap();
-                        let size_x = br.0-bl.0;
-                        let size_y = tl.1-bl.1;
-                        let t = (&bl.0,&bl.1);
-                        let size_vector = (size_x,size_y);
-                        let size_vector = bidimensional_column_x_matrix(size_vector, (x,y));
-                        let mut bottom_left = bidimensional_column_x_matrix((bl.0-t.0,bl.1-t.1), (x,y));
-                        let mut top_left = bidimensional_column_x_matrix((tl.0-t.0,tl.1-t.1), (x,y));
-                        let mut top_right = bidimensional_column_x_matrix((tr.0-t.0,tr.1-t.1), (x,y));
-                        let mut bottom_right = bidimensional_column_x_matrix((br.0-t.0,br.1-t.1), (x,y));
-                        if size_vector.0<0{
-                            bottom_left.0-=size_vector.0;
-                            top_left.0-=size_vector.0;
-                            top_right.0-=size_vector.0;
-                            bottom_right.0-=size_vector.0;
-                        }
-                        if size_vector.1<0{
-                            bottom_left.1-=size_vector.1;
-                            top_left.1-=size_vector.1;
-                            top_right.1-=size_vector.1;
-                            bottom_right.1-=size_vector.1;
-                        }
-                        dd = *temp_vt.get(&(bottom_left.0+t.0,bottom_left.1+t.1)).unwrap();
-                        aa = *temp_vt.get(&(top_left.0+t.0,top_left.1+t.1)).unwrap();
-                        bb = *temp_vt.get(&(top_right.0+t.0,top_right.1+t.1)).unwrap();
-                        cc = *temp_vt.get(&(bottom_right.0+t.0,bottom_right.1+t.1)).unwrap();
-                        */
                     }
                 }
             }

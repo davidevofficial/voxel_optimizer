@@ -1208,10 +1208,12 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
 
     })
 }
+///face 1 top, face 2 bottom, face 3 left, face 4 right, face 5 front, face 6 back
 pub struct OptimizedVox{
     pub starting_position: (i32,i32,i32),
     pub dimensions: (u16,u16,u16),
     pub textures: Vec<MaterialMap>,
+    pub is_face_enabled: [bool;6],
 }
 pub fn convert_to_optimized_vox(mymap: &mut MaterialMatrix, lowest_coordinates:(i32, i32, i32), cross_optimization: &bool) -> Vec<OptimizedVox>{
     let mut cs = Vec::new();
@@ -1286,11 +1288,39 @@ pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32
     for x in 0..6{
         txt.push(mymap.get_materialmap(x, i, i+shape.0, j, j+shape.1, k, k+shape.2));
     }
+    let (mut top, mut bottom, mut left, mut right, mut front, mut back) = (true,true,true,true,true,true);
+    //Top
+    if mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent) != CanBeMerged::No{
+        top = false;
+    }
+    //Bottom
+    if mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k-1, k-1, transparent) != CanBeMerged::No{
+        bottom = false;
+    }
+    //Left
+    if mymap.can_slice_be_merged(i-1, i-1, j, j+shape.1-1, k, k+shape.2-1, transparent) != CanBeMerged::No{
+        left = false;
+    }
+    //Right
+    if mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j+shape.1-1, k, k+shape.2-1, transparent) != CanBeMerged::No{
+        right = false;
+    }
+    //Front
+    if mymap.can_slice_be_merged(i, i+shape.0-1, j-1, j-1, k, k+shape.2-1, transparent) != CanBeMerged::No{
+        front = false;
+    }
+    //Back
+    if mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k+shape.2-1, transparent) != CanBeMerged::No{
+        back = false;
+    }
+
+
     mymap.merge_slice(i, i+shape.0-1, j, j+shape.1-1, k, k+shape.2-1);
     Some(OptimizedVox{
         dimensions: (shape.0 as u16, shape.1 as u16, shape.2 as u16),
         starting_position: (index_we_are_at.0, index_we_are_at.1, index_we_are_at.2),
         textures: txt,
+        is_face_enabled: [top,bottom,left,right,front,back],
 
     })
 }

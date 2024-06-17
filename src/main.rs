@@ -45,7 +45,7 @@ fn main() -> Result<(), eframe::Error> {
         ..Default::default()
     };
     eframe::run_native(
-        "Voxel optimizer",
+        "Voxel optimizer | Davidevofficial",
         options,
         Box::new(|_cc| Box::<MyApp>::default()),
     )

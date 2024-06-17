@@ -1,0 +1,4 @@
+#@DL2023 - w:8, h:8
+newmtl x
+map_Kd Lightsabers.png
+map_Ke Lightsabers_emit.png

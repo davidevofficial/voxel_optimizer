@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 //! [main.rs] is the frontend and manager of the persistance of data, built using egui, 
 //!it creates a native window to drop files and change settings to convert them using multithreading
 //!to speed uo the process
@@ -188,16 +189,14 @@ impl eframe::App for MyApp {
                 //First column
                 //Algorithm
                 columns[0].separator();
-                columns[0].label("Algorithm Options");
+                columns[0].hyperlink_to("Algorithm Options","https://github.com/davidevofficial/voxel_optimizer/#algorithm-options");
                 columns[0].checkbox(&mut self.cross, "Enable cross-overlapping optimization");
                 columns[0].checkbox(&mut self.monochrome, "Enable solid color faces to be one pixel on the texture map");
-                columns[0].checkbox(&mut self.glass_creates_more_mesh, "Let Glass be more accurate (only for.vox)");
                 columns[0].checkbox(&mut self.pattern_matching, "Enable Pattern Matching");
-                //columns[0].label("Pattern matching: 0=none 1=Equality 2=Rotation 3=Symmetry");
-                //columns[0].add(egui::Slider::new(&mut self.pattern_matching, 0..=3));
+                columns[0].checkbox(&mut self.glass_creates_more_mesh, "Let Glass be more accurate (only for.vox)");
                 columns[0].separator();
                 //Export
-                columns[0].label("Export Options");
+                columns[0].hyperlink_to("Export Options","https://github.com/davidevofficial/voxel_optimizer/#export-options");
                 columns[0].checkbox(&mut self.manual_vt, "Enable manual setting of the precision levels?");
                 if self.manual_vt {
                     columns[0].add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
@@ -220,17 +219,17 @@ impl eframe::App for MyApp {
                 //second column
                 //Debug Option
                 columns[1].separator();
-                columns[1].label("Debug Option");
+                columns[1].hyperlink_to("Debug Option","enable-uv-debug-mode");
                 columns[1].checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
                 //PLY
                 columns[1].separator();
-                columns[1].label(".ply compatibility Option ");
+                columns[1].hyperlink_to(".ply compatibility Option ","https://github.com/davidevofficial/voxel_optimizer/#ply-compatibility-options");
                 columns[1].checkbox(&mut self.cull_optimization, "Enable de-cull optimization");
                 columns[1].label("");
 
                 //VOX
                 columns[1].separator();
-                columns[1].label(".vox specific Options");
+                columns[1].hyperlink_to(".vox specific Options","https://github.com/davidevofficial/voxel_optimizer/#vox-specific-options");
                 columns[1].checkbox(&mut self.all_in_one_mesh, "Enable all the meshes to be in one file");
                 columns[1].checkbox(&mut self.transparency, "Enable transparency");
                 columns[1].checkbox(&mut self.emission, "Enable the creation of an emission map");

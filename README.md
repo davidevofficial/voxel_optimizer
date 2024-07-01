@@ -125,6 +125,16 @@ This settings influence the way the mesh is exported
 
 "precisions level" is the amount of digits after the dot in the output .obj file for each vt; in this image that number is 3: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/96b4f7d4-b264-480e-8f6a-3b5457c23ab6)
 
+This is what happens if the digits precision is incorrect:
+
+2 digits precision:
+![2digitsprecision](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/73853f03-5988-4b30-ab56-184d6df15099)
+
+3 digit precision:
+![3digitsprecision](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/6d5a41c3-7453-4e7a-b157-c09c6a3b921f)
+
+
+
 If the setting is off the program automatically detects the amount of digits otherwise you can specify it yourself.
 
 By default:

@@ -118,11 +118,15 @@ impl Vox{
         for nod in 0..self.nodes.len(){
             let x = self.nodes[nod].clone().find_children();
             let children_id = x.1.clone();
-
-            //println!("Rotation: {:?}, r.0.to_vector({:?}),r.1.to_vector({:?}),r.2.to_vector({:?}),",);
-            //if nSHP change the model (chunk) position and rotate all voxels inside
+            //if nSHP: do nothing
             if x.0{
-                let mut ch = self.chunks[children_id[0] as usize].clone();
+                continue;
+            }
+            //if child is nSHP: change the model (chunk) position and rotate all voxels inside and add this to a vector
+            else if self.nodes[children_id[0] as usize].type_of_node() == 2{
+                let n_shp = &self.nodes[children_id[0] as usize];
+                let model = &self.chunks[n_shp.find_children().1[0] as usize];
+                let mut ch = model.clone();
                 ch.rotation = self.nodes[nod].find_attributes().rotation;
                 let old_size = ch.size;
                 let c  = Vector3::from_tuple((ch.size.0 as i32,ch.size.1 as i32,ch.size.2 as i32));
@@ -203,7 +207,9 @@ impl Vox{
 
                 }
                 self.to_print.push(ch.clone());
-            }else{
+                continue;
+            //if child is nTRN  or nGRP pass nodeattributes down
+            }else if self.nodes[children_id[0] as usize].type_of_node() <= 1{
                 for y in 0..x.1.len(){
                     let attributes = self.nodes[nod].clone().find_attributes();
                     //makes a new node with the same rotation as before and 
@@ -212,7 +218,6 @@ impl Vox{
                     //Node::set_attributes(&mut self.nodes[x.1[y] as usize],attributes);
                 }
             }
-            
         }
     }
 }
@@ -614,43 +619,7 @@ impl Shp{
         i+=4;
 
         //Model id
-        let model_id = *(bytes[i])as u16+(256**(bytes[i+1])as u16)as u16;
-
-        //let mut modelsid = Vec::new();
-
-        /*
-        for n in 0..*n_of_models{
-
-        }
-        let bytesize = *(bytes[0])as u16+(256**(bytes[1])as u16)as u16;
-        let id = bytes[8];
-        let attributes_n = bytes[12];
-        let mut size_of_dict = 0;
-        let mut dict = Dict{n_of_key_values:*attributes_n, key_values:Vec::new()};
-        if attributes_n > &0{
-            for x in 0..*attributes_n{
-                let mut v_string1 = VoxString{buffer_size:0, content:Vec::new()};
-                let mut v_string2 = VoxString{buffer_size:0, content:Vec::new()};
-                v_string1.buffer_size = *bytes[16+size_of_dict];
-                size_of_dict += v_string1.buffer_size as usize;
-                for x in 20+size_of_dict..20+1+v_string1.buffer_size as usize{
-                    v_string1.content.push(*bytes[x]);
-                }
-                v_string2.buffer_size = *bytes[16+size_of_dict];
-                size_of_dict += v_string2.buffer_size as usize;
-                for x in 20+size_of_dict..20+1+v_string2.buffer_size as usize{
-                    v_string2.content.push(*bytes[x]);
-                }
-                dict.key_values.push((v_string1,v_string2))
-            }
-        }
-        let n_of_models = bytes[16+size_of_dict];
-        let mut modelsid = Vec::new();
-        for n in 0..*n_of_models{
-            modelsid.push(*bytes[16+size_of_dict+4+4*n as usize]);
-        }
-        */
-        //let childid = bytes[16+size_of_dict];
+        let model_id = *(bytes[i])as u16+(256**(bytes[i+1])as u16);
         
         Shp{
             size_in_bytes:bytesize,
@@ -694,7 +663,7 @@ impl Node{
     ///Finds all the children of the node
     //
     /// # Return
-    /// Returns a tuple of a bool (is nSHP?) and the children
+    /// Returns a tuple of a bool (is the children a nSHP?) and the children
     fn find_children(&self)->(bool,Vec<u16>){
         match &self {
             Node::TRN(trn) => (false,vec![trn.child_node_id]),
@@ -716,6 +685,14 @@ impl Node{
                                     Node::SHP(ret)},
         }
     }
+    ///Returns the type of the node as an u8 where 0 is trn, 1 is grp and 2 is shp
+    fn type_of_node(&self)->u8{
+        match &self{
+            Node::TRN(_) => 0,
+            Node::GRP(_) => 1,
+            Node::SHP(_) => 2,
+        }
+    }
 }
 #[derive(Debug, Default, Clone)]
 pub struct Chunks{
@@ -733,7 +710,7 @@ pub struct VoxCubes{
     pub i: u8,
 }
 impl VoxCubes{
-    pub fn from(x:u8,y:u8,z:u8,i:u8)->VoxCubes{return VoxCubes{x,y,z,i};}
+    pub fn from(x:u8,y:u8,z:u8,i:u8)->VoxCubes{VoxCubes{x,y,z,i}}
 }
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Matl{
@@ -1058,7 +1035,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
     }
     vox.update_nodes();
     for c in 0..vox.to_print.len(){
-    println!("Size: {:?}, Position{:?}, Rotation{:?}", vox.chunks[c].size, vox.chunks[c].position, vox.chunks[c].rotation);
+    println!("Size: {:?}, Position{:?}, Rotation{:?}", vox.to_print[c].size, vox.to_print[c].position, vox.to_print[c].rotation);
     }
     //dbg!(&vox);
     Ok(vox)

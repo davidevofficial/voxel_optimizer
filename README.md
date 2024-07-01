@@ -128,9 +128,11 @@ This settings influence the way the mesh is exported
 This is what happens if the digits precision is incorrect:
 
 2 digits precision:
+
 ![2digitsprecision](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/73853f03-5988-4b30-ab56-184d6df15099)
 
 3 digit precision:
+
 ![3digitsprecision](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/6d5a41c3-7453-4e7a-b157-c09c6a3b921f)
 
 

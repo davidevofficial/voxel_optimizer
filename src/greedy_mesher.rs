@@ -1,6 +1,4 @@
 use std::path::PathBuf;
-use png::chunk::tRNS;
-
 use crate::vox_importer::*;
 use crate::vox_exporter::*;
 use crate::vox_exporter;
@@ -688,7 +686,7 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
     };
     let t = std::time::Instant::now();
     if let Ok(vox) = &vox_result {
-        let x = format!("Optimizing project with {} models ({} nodes)",vox.chunks.len(), vox.nodes.len());
+        let x = format!("Optimizing project with {} nodes, {} unique models ({} models)",vox.nodes.len(),vox.chunks.len(), vox.to_print.len());
         let _ = my_app.sx.send(x);
 
         //println!("{:?}", &ply);
@@ -699,14 +697,14 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
         println!("{}", e);
         return;
     }
-    let mut vox = vox_result.unwrap();
+    let vox = vox_result.unwrap();
     //let mut vox = vox_result.unwrap();
     //case where everything is one mesh
     if my_app.all_in_one_mesh{
         //create a really big MaterialMatrix, optimize it, export it
         let mut lowest_coordinates = (99999,99999,99999);
         let mut highest_coordinates = (-99999,-99999,-99999);
-        for m in vox.chunks.iter(){
+        for m in vox.to_print.iter(){
             if m.position.0 < lowest_coordinates.0{
                 lowest_coordinates.0 = m.position.0;
             }
@@ -740,7 +738,7 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
         materialmatrix.lowest_coordinates = lowest_coordinates;
         materialmatrix.set_size(shape.0, shape.1, shape.2);
 
-        for m in vox.chunks.iter(){
+        for m in vox.to_print.iter(){
             for xyzi in &m.xyzi{
                 let indexx = xyzi.x as i32+m.position.0;
                 let indexy = xyzi.y as i32+m.position.1;

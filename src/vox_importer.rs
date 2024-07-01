@@ -122,13 +122,13 @@ impl Vox{
             //println!("Rotation: {:?}, r.0.to_vector({:?}),r.1.to_vector({:?}),r.2.to_vector({:?}),",);
             //if nSHP change the model (chunk) position and rotate all voxels inside
             if x.0{
-                let mut ch = &mut self.chunks[children_id[0] as usize];
+                let mut ch = self.chunks[children_id[0] as usize].clone();
                 ch.rotation = self.nodes[nod].find_attributes().rotation;
                 let old_size = ch.size;
                 let c  = Vector3::from_tuple((ch.size.0 as i32,ch.size.1 as i32,ch.size.2 as i32));
                 let rx = Vector3::from_tuple(ch.rotation.0.to_vector());
                 let ry = Vector3::from_tuple(ch.rotation.1.to_vector());
-                let rz = Vector3::from_tuple(ch.rotation.2.to_vector());;
+                let rz = Vector3::from_tuple(ch.rotation.2.to_vector());
                 let mut new_size = column_times_matrix(c,(rx,ry,rz));
                 if new_size.x<0{
                     new_size.x= -new_size.x;
@@ -202,7 +202,7 @@ impl Vox{
                     ch.xyzi[v].z = new_position.z as u8;
 
                 }
-                //self.to_print.push(ch.clone());
+                self.to_print.push(ch.clone());
             }else{
                 for y in 0..x.1.len(){
                     let attributes = self.nodes[nod].clone().find_attributes();
@@ -216,37 +216,7 @@ impl Vox{
         }
     }
 }
-/*
-#[derive(Debug, Default)]
-pub struct VoxTree{
-    //vector of nodes ordered by their ID like node[0] is the node with id 0, node[5] is the node with id 5
-    parent: Option<u16>,
-    node: (Node, NodeAttributes),
-    child: Vec<u16>,
-}
 
-impl VoxTree{
-    fn new(nodes: Vec<&Node>, parent:Option<u16>,node:Node, children: Vec<u16>)->Self{
-        let node_attributes = if parent.is_some(){
-            parent.unwrap().node.1
-        }else{
-            NodeAttributes::new()
-        };
-        VoxTree{
-            parent,
-            node: (node,node.find_attributes() + node_attributes),
-            child: children,
-        }
-
-    }
-    fn add_child(&mut self, nodeid:u16){self.child.append(nodeid);}
-    /*
-    fn check_translation_and_rotation(&mut self)->Option<NodeAttributes>{
-
-    }
-    */
-}
-*/
 #[derive(Debug,Default,PartialEq, Eq, Clone,Copy)]
 pub enum Versor{
     #[default] PosX,
@@ -495,28 +465,11 @@ impl Trn{
                     }else{
                     int32x3[c].push(*b[x]);
                     }
-                    /*
-                    if *b[x] == b' '{
-                        let n = spaces_indices.len();
-                        spaces_indices.push(x);
-                        int32x3.push(b[spaces_indices[n-1]..spaces_indices[n]].to_vec());
-                    }
-                    */
+
                 }
                 for x in 0..3{
                     i32x3[x] = bytes_to_numeric(int32x3[x].as_slice()).unwrap();
-                    /*
-                    let negative = if *int32x3[x][0] == b'-'{true}else{false};
-                    for y in 0..int32x3[x].len(){
-                        if negative{
-                            if y!=0{
-                            i32x3[x] -= (int32x3[x][y]-48) as i32*10_i32.pow((int32x3.len()-1-y) as u32);
-                            }
-                        }else{
-                        i32x3[x] += (int32x3[x][y]-48) as i32*10_i32.pow((int32x3.len()-1-y) as u32);
-                        }
-                    }
-                    */
+
                 }
                 translation = (i32x3[0], i32x3[1], i32x3[2]);
             }else if a[1] == &b'r'{
@@ -530,54 +483,6 @@ impl Trn{
             attributes_n -= 1;
         }
 
-        /*
-        let mut size_of_dict = 0;
-        let mut dict = Dict{n_of_key_values:*attributes_n, key_values:Vec::new()};
-        if attributes_n > &0{
-            for x in 0..*attributes_n{
-                let mut v_string1 = VoxString{buffer_size:0, content:Vec::new()};
-                let mut v_string2 = VoxString{buffer_size:0, content:Vec::new()};
-                v_string1.buffer_size = *bytes[16+size_of_dict];
-                size_of_dict += v_string1.buffer_size as usize;
-                for x in 20+size_of_dict..20+1+v_string1.buffer_size as usize{
-                    v_string1.content.push(*bytes[x]);
-                }
-                v_string2.buffer_size = *bytes[16+size_of_dict];
-                size_of_dict += v_string2.buffer_size as usize;
-                for x in 20+size_of_dict..20+1+v_string2.buffer_size as usize{
-                    v_string2.content.push(*bytes[x]);
-                }
-                dict.key_values.push((v_string1,v_string2))
-            }
-        }
-        //println!("{:?}", dict);
-        let childid = bytes[16+size_of_dict];
-        let layer = bytes[24+size_of_dict];
-        let n_of_frames = bytes[28 + size_of_dict];
-        if n_of_frames != &1{
-            panic!("More than one frame! No animations allowed");
-        }
-        let attributes_n = bytes[28 + size_of_dict];
-        let mut size_of_dict2 = 0;
-        let mut dict2 = Dict{n_of_key_values:*attributes_n, key_values:Vec::new()};
-        if attributes_n > &0{
-            for _x in 0..*attributes_n{
-                let mut v_string1 = VoxString{buffer_size:0, content:Vec::new()};
-                let mut v_string2 = VoxString{buffer_size:0, content:Vec::new()};
-                v_string1.buffer_size = *bytes[28+size_of_dict+size_of_dict2];
-                size_of_dict2 += v_string1.buffer_size as usize;
-                for x in 32+size_of_dict+size_of_dict2..32+size_of_dict+1+v_string1.buffer_size as usize{
-                    v_string1.content.push(*bytes[x]);
-                }
-                v_string2.buffer_size = *bytes[28+size_of_dict];
-                size_of_dict2 += v_string2.buffer_size as usize;
-                for x in 32+size_of_dict+size_of_dict2..32+size_of_dict+1+v_string2.buffer_size as usize{
-                    v_string2.content.push(*bytes[x]);
-                }
-                dict2.key_values.push((v_string1,v_string2))
-            }
-        }
-        */
         Trn{
             size_in_bytes:bytesize,
             node_id: id,
@@ -652,33 +557,7 @@ impl Grp{
             i+=4;
         }
 
-        /*
-        let mut size_of_dict = 0;
-        let mut dict = Dict{n_of_key_values:*attributes_n, key_values:Vec::new()};
-        if attributes_n > &0{
-            for x in 0..*attributes_n{
-                let mut v_string1 = VoxString{buffer_size:0, content:Vec::new()};
-                let mut v_string2 = VoxString{buffer_size:0, content:Vec::new()};
-                v_string1.buffer_size = *bytes[16+size_of_dict];
-                size_of_dict += v_string1.buffer_size as usize;
-                for x in 20+size_of_dict..20+1+v_string1.buffer_size as usize{
-                    v_string1.content.push(*bytes[x]);
-                }
-                v_string2.buffer_size = *bytes[16+size_of_dict];
-                size_of_dict += v_string2.buffer_size as usize;
-                for x in 20+size_of_dict..20+1+v_string2.buffer_size as usize{
-                    v_string2.content.push(*bytes[x]);
-                }
-                dict.key_values.push((v_string1,v_string2))
-            }
-        }
-        let n_of_children = bytes[16+size_of_dict];
-        let mut childid = Vec::new();
-        for n in 0..*n_of_children{
-            childid.push(*bytes[16+size_of_dict+4+4*n as usize]);
-        }
-        */
-        //let childid = bytes[16+size_of_dict];
+        
         
         Grp{
             size_in_bytes:bytesize,
@@ -838,7 +717,7 @@ impl Node{
         }
     }
 }
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Chunks{
     pub id: u16,
     pub position: (i32,i32,i32),
@@ -846,7 +725,7 @@ pub struct Chunks{
     pub size: (u8, u8, u8),
     pub xyzi: Vec<VoxCubes>,
 }
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct VoxCubes{
     pub x: u8,
     pub y: u8,
@@ -870,7 +749,7 @@ pub struct Matl{
     //metallic map (g and b channel)
     pub specular: f32, //_sp 0<=x<=1
     pub metallic: f32, //_metal 0<=x<=1
-    //emission map (optional)
+    //emission map (onal)
     pub rgb_e: Option<Rgb>,
 }
 //Reads the ply files and returns the content as a string
@@ -1178,7 +1057,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
     println!("Size: {:?}, Position{:?}, Rotation{:?}", vox.chunks[c].size, vox.chunks[c].position, vox.chunks[c].rotation);
     }
     vox.update_nodes();
-    for c in 0..vox.chunks.len(){
+    for c in 0..vox.to_print.len(){
     println!("Size: {:?}, Position{:?}, Rotation{:?}", vox.chunks[c].size, vox.chunks[c].position, vox.chunks[c].rotation);
     }
     //dbg!(&vox);

@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 //! [main.rs] is the frontend and manager of the persistance of data, built using egui, 
 //!it creates a native window to drop files and change settings to convert them using multithreading
 //!to speed uo the process

@@ -106,6 +106,7 @@ pub struct Vox{
     vox_version: usize,
     //cubes
     pub chunks:Vec<Chunks>,
+    pub to_print: Vec<Chunks>,
     pub colours: Vec<Rgb>,
     pub materials: Vec<Matl>,
     pub nodes: Vec<Node>,
@@ -201,6 +202,7 @@ impl Vox{
                     ch.xyzi[v].z = new_position.z as u8;
 
                 }
+                //self.to_print.push(ch.clone());
             }else{
                 for y in 0..x.1.len(){
                     let attributes = self.nodes[nod].clone().find_attributes();

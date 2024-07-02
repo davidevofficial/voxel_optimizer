@@ -99,7 +99,7 @@ pub struct ply{
     pub faces: Vec<f>
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Vox{
     //metadata
     number_of_models: usize,

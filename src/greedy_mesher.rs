@@ -758,64 +758,77 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
         let _ = my_app.sx.send(x);
 
     }else{
+        //MULTITHREADED
+        let mut handles = Vec::new();
+
         for m in vox.chunks.iter(){
-            let mut lowest_coordinates = (99999,99999,99999);
-            let mut highest_coordinates = (-99999,-99999,-99999);
-            if m.position.0 < lowest_coordinates.0{
-                lowest_coordinates.0 = m.position.0;
-            }
-            if m.position.1 < lowest_coordinates.1{
-                lowest_coordinates.1 = m.position.1;
-            }
-            if m.position.2 < lowest_coordinates.2{
-                lowest_coordinates.2 = m.position.2;
-            }
-            if m.position.0 + m.size.0 as i32 > highest_coordinates.0{
-                highest_coordinates.0 = m.position.0 + m.size.0 as i32;
-            }
-            if m.position.1 + m.size.1 as i32> highest_coordinates.1{
-                highest_coordinates.1 = m.position.1 + m.size.1 as i32;
-            }
-            if m.position.2 + m.size.2 as i32> highest_coordinates.2{
-                highest_coordinates.2 = m.position.2 + m.size.2 as i32;
-            }
-            let shape = 
-            (highest_coordinates.0-lowest_coordinates.0,
-             highest_coordinates.1-lowest_coordinates.1,
-             highest_coordinates.2-lowest_coordinates.2);
-            //Path
-            let mut p = path.clone();
-            p.set_extension("");
-            let path = PathBuf::from(format!("{}_{:?}.vox",p.to_string_lossy(), m.id));dbg!(&path);
-            //WARNING for the user
-            if shape.0*shape.1*shape.2 > 512*512*512{
-                let x = format!("WARNING: ({}x{}x{}) could be too big of a size to optimize, it might slow down your computer and use lots of ram"
-                    ,shape.0,shape.1,shape.2);
+            let vox = vox.clone();
+            let path = path.clone();
+            let my_app = my_app.clone();
+            let m = m.clone();
+            let handle = std::thread::spawn(move || {
+                let mut lowest_coordinates = (99999,99999,99999);
+                let mut highest_coordinates = (-99999,-99999,-99999);
+                if m.position.0 < lowest_coordinates.0{
+                    lowest_coordinates.0 = m.position.0;
+                }
+                if m.position.1 < lowest_coordinates.1{
+                    lowest_coordinates.1 = m.position.1;
+                }
+                if m.position.2 < lowest_coordinates.2{
+                    lowest_coordinates.2 = m.position.2;
+                }
+                if m.position.0 + m.size.0 as i32 > highest_coordinates.0{
+                    highest_coordinates.0 = m.position.0 + m.size.0 as i32;
+                }
+                if m.position.1 + m.size.1 as i32> highest_coordinates.1{
+                    highest_coordinates.1 = m.position.1 + m.size.1 as i32;
+                }
+                if m.position.2 + m.size.2 as i32> highest_coordinates.2{
+                    highest_coordinates.2 = m.position.2 + m.size.2 as i32;
+                }
+                let shape = 
+                (highest_coordinates.0-lowest_coordinates.0,
+                 highest_coordinates.1-lowest_coordinates.1,
+                 highest_coordinates.2-lowest_coordinates.2);
+                //Path
+                let mut p = path.clone();
+                p.set_extension("");
+                let path = PathBuf::from(format!("{}_{:?}.vox",p.to_string_lossy(), m.id));dbg!(&path);
+                //WARNING for the user
+                if shape.0*shape.1*shape.2 > 512*512*512{
+                    let x = format!("WARNING: ({}x{}x{}) could be too big of a size to optimize, it might slow down your computer and use lots of ram"
+                        ,shape.0,shape.1,shape.2);
+                    let _ = my_app.sx.send(x);
+                    std::thread::sleep(std::time::Duration::from_millis(6666));
+                }
+                let mut materialmatrix= MaterialMatrix::def(vox.materials.clone(),my_app.glass_creates_more_mesh);
+                materialmatrix.lowest_coordinates = lowest_coordinates;
+                materialmatrix.set_size(shape.0, shape.1, shape.2);
+                for xyzi in &m.xyzi{
+                    let indexx = xyzi.x as i32+m.position.0;
+                    let indexy = xyzi.y as i32+m.position.1;
+                    let indexz = xyzi.z as i32+m.position.2;
+                    materialmatrix.set_cube_material((indexx,indexy,indexz), Some(xyzi.i), false);
+                
+                }
+                dbg!(&materialmatrix.is_glass, &materialmatrix.extra_mesh_glass);
+                let optimized_vox = convert_to_optimized_vox(&mut materialmatrix, lowest_coordinates,&my_app.cross);
+                
+                println!("{:?} optimized cubes in total", optimized_vox.len());
+                let mut obj = Obj::from_optimized_vox(path.clone(), &my_app, &optimized_vox, vox.materials.clone());
+                let x = format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
+                        ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.material_map.clone().unwrap().w, obj.material_map.clone().unwrap().h);
                 let _ = my_app.sx.send(x);
-                std::thread::sleep(std::time::Duration::from_millis(6666));
-            }
-            let mut materialmatrix= MaterialMatrix::def(vox.materials.clone(),my_app.glass_creates_more_mesh);
-            materialmatrix.lowest_coordinates = lowest_coordinates;
-            materialmatrix.set_size(shape.0, shape.1, shape.2);
-            for xyzi in &m.xyzi{
-                let indexx = xyzi.x as i32+m.position.0;
-                let indexy = xyzi.y as i32+m.position.1;
-                let indexz = xyzi.z as i32+m.position.2;
-                materialmatrix.set_cube_material((indexx,indexy,indexz), Some(xyzi.i), false);
-            
-            }
-            dbg!(&materialmatrix.is_glass, &materialmatrix.extra_mesh_glass);
-            let optimized_vox = convert_to_optimized_vox(&mut materialmatrix, lowest_coordinates,&my_app.cross);
-            
-            println!("{:?} optimized cubes in total", optimized_vox.len());
-            let mut obj = Obj::from_optimized_vox(path.clone(), my_app, &optimized_vox, vox.materials.clone());
-            let x = format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
-                    ,obj.number_of_v_and_f.0, obj.number_of_v_and_f.1, obj.material_map.clone().unwrap().w, obj.material_map.clone().unwrap().h);
-            let _ = my_app.sx.send(x);
-            obj.export_all(materialmatrix.shape, lowest_coordinates);
-            println!("{:?}", "Finished optimizing mesh");
-            let x = format!("{} {:?} in {:?}! ","Converted",path.to_string_lossy().to_string(),t.elapsed());
-            let _ = my_app.sx.send(x); 
+                obj.export_all(materialmatrix.shape, lowest_coordinates);
+                println!("{:?}", "Finished optimizing mesh");
+                let x = format!("{} {:?} in {:?}! ","Converted",path.to_string_lossy().to_string(),t.elapsed());
+                let _ = my_app.sx.send(x); 
+            });
+            handles.push(handle);
+        }
+        for handle in handles{
+            handle.join().unwrap();
         }
     
     }

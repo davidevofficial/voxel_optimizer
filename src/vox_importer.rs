@@ -877,9 +877,18 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
         chunk.rotation.0 = Versor::PosX;
         chunk.rotation.1 = Versor::PosY;
         chunk.rotation.2 = Versor::PosZ;
-        chunk.size.0 = vox_bytes[size_index + 11] as u16 * 256 + vox_bytes[size_index+12] as u16;
-        chunk.size.1 = vox_bytes[size_index + 15] as u16 * 256 + vox_bytes[size_index+16] as u16;
-        chunk.size.2 = vox_bytes[size_index + 19] as u16 * 256 + vox_bytes[size_index+20] as u16;
+        /*        for x in 0..34{
+            dbg!(&vox_bytes[size_index+x], &x);
+        }
+        */
+        chunk.size.0 = vox_bytes[size_index+12] as u16;
+        chunk.size.1 = vox_bytes[size_index+16] as u16;
+        chunk.size.2 = vox_bytes[size_index+20] as u16;
+        if chunk.size.0 == 0{chunk.size.0=256};
+        if chunk.size.1 == 0{chunk.size.1=256};
+        if chunk.size.2 == 0{chunk.size.2=256};
+
+        println!("{:?}", chunk.size);
         chunk.id = i;
         let byte_size = (vox_bytes[size_index+31]as usize)*256*256*256+
                             (vox_bytes[size_index+30]as usize)*256*256+

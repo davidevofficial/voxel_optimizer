@@ -143,7 +143,7 @@ impl Vox{
                 if new_size.z<0{
                     new_size.z= -new_size.z;
                 }
-                ch.size = (new_size.x as u8,new_size.y as u8, new_size.z as u8);
+                ch.size = (new_size.x as u16,new_size.y as u16, new_size.z as u16);
                 //dbg!(ch);
                 let cx = if old_size.0 % 2 == 0{
                     (old_size.0/2) as i32
@@ -699,7 +699,7 @@ pub struct Chunks{
     pub id: u16,
     pub position: (i32,i32,i32),
     pub rotation: (Versor, Versor, Versor),
-    pub size: (u8, u8, u8),
+    pub size: (u16, u16, u16),
     pub xyzi: Vec<VoxCubes>,
 }
 #[derive(Debug, Default, Copy, Clone)]
@@ -877,9 +877,9 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
         chunk.rotation.0 = Versor::PosX;
         chunk.rotation.1 = Versor::PosY;
         chunk.rotation.2 = Versor::PosZ;
-        chunk.size.0 = vox_bytes[size_index+12];
-        chunk.size.1 = vox_bytes[size_index+16];
-        chunk.size.2 = vox_bytes[size_index+20];
+        chunk.size.0 = vox_bytes[size_index + 11] as u16 * 256 + vox_bytes[size_index+12] as u16;
+        chunk.size.1 = vox_bytes[size_index + 15] as u16 * 256 + vox_bytes[size_index+16] as u16;
+        chunk.size.2 = vox_bytes[size_index + 19] as u16 * 256 + vox_bytes[size_index+20] as u16;
         chunk.id = i;
         let byte_size = (vox_bytes[size_index+31]as usize)*256*256*256+
                             (vox_bytes[size_index+30]as usize)*256*256+

@@ -951,10 +951,16 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
         let b = vox_bytes[rgba_index.unwrap()+4+8+4*x as usize+2];
         palette.push(Rgb{r,g,b});
     }
+    //IMAP
+    let imap_size = 268;
+    let mut is_imap_present = 0;
+    if vox_bytes[rgba_index.unwrap()+1036] == b'I' && vox_bytes[rgba_index.unwrap()+1037] == b'M'{
+        is_imap_present = 1;
+    }
     //MATL
     let mut matl = Vec::new();
     matl.push(Matl::default()); //index 0 is empty
-    let matl_index = rgba_index.unwrap() + 1036;
+    let matl_index = rgba_index.unwrap() + 1036 + (imap_size * is_imap_present);
     let mut i = matl_index;
     for x in 1..256{
         let mut m = Matl::default();

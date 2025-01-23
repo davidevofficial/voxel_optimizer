@@ -181,6 +181,7 @@ impl ColourMatrix{
             h = y2-y1;
             let mut i = 0;
             for y in (y1..y2).rev(){
+                vector_of_colours.push(Vec::new());
                 for x in x1..x2{   
                         let rgb = self.get_cube_colour(x,y,z2-1);                
                         if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
@@ -196,12 +197,13 @@ impl ColourMatrix{
             let mut i = 0;
             for y in (y1..y2){
                 for x in (x1..x2){
+                    vector_of_colours.push(Vec::new());
                     //let rgb = self.get_cube_colour(x2-1-x,y2-1-y,z1);
                     let rgb = self.get_cube_colour(x,y,z1);
                     if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
-                 
-                 i+=1;       vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
+                    vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
+                i+=1;       
             }
         }
         //left//
@@ -210,6 +212,7 @@ impl ColourMatrix{
             h = z2-z1;
             let mut i = 0;
             for z in (z1..z2).rev(){
+                vector_of_colours.push(Vec::new());
                 for y in (y1..y2).rev(){
                     let rgb = self.get_cube_colour(x1,y,z);
                     if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
@@ -224,6 +227,7 @@ impl ColourMatrix{
             h = z2-z1;
             let mut i = 0;
             for z in (z1..z2).rev(){
+                vector_of_colours.push(Vec::new());
                 for y in (y1..y2){
                     let rgb = self.get_cube_colour(x2-1,y,z);
                     if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
@@ -238,6 +242,7 @@ impl ColourMatrix{
             h = z2-z1;
             let mut i = 0;
             for z in (z1..z2).rev(){
+                vector_of_colours.push(Vec::new());
                 for x in x1..x2{
                     let rgb = self.get_cube_colour(x,y1,z);
                     if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
@@ -252,6 +257,7 @@ impl ColourMatrix{
             h = z2-z1;
             let mut i = 0;
             for z in (z1..z2).rev(){
+                vector_of_colours.push(Vec::new());
                 for x in (x1..x2).rev(){
                     let rgb = self.get_cube_colour(x,y2-1,z);
                     if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{

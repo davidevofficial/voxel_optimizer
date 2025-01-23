@@ -202,8 +202,8 @@ impl ColourMatrix{
                     let rgb = self.get_cube_colour(x,y,z1);
                     if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
                     vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
-                 i+=1;       
                 }
+                i+=1;       
             }
         }
         //left//

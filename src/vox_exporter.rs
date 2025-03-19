@@ -25,7 +25,7 @@ pub struct Obj{
     pub texture_map: Option<TextureMap>,
     pub material_map: Option<MaterialMap>,
     pub materials: Option<Vec<vox_importer::Matl>>,
-    ///allowed materials in order are 0: Albedo, 1: Alpha, 2: Rgb_e, 3: Roughness, 4: Metal, 5:Spec, 6: Ior (total len = 7) 
+    ///allowed materials in order are 0: Albedo, 1: Alpha, 2: Rgb_e, 3: Roughness, 4: Metal, 5:Spec, 6: Ior (total len = 7)
     pub allowed_materials: (bool, bool, bool, bool, bool, bool, bool),
     pub vt_precisionnumber: u8,
     pub y_is_up: bool,
@@ -33,6 +33,7 @@ pub struct Obj{
     pub center_model: bool,
     pub background_color: Rgb,
 }
+
 #[derive(Copy, Debug, PartialEq)]
 #[derive(Clone)]
 #[derive(Default)]
@@ -72,7 +73,7 @@ impl MaterialMap{
 
         if !pattern_matching || self.w*self.h != t2.w*t2.h{
             return Equality::No;
-        } 
+        }
         let matrices = [
         ((1,0),(0,1)),
         ((-1,0),(0,1)),
@@ -88,7 +89,7 @@ impl MaterialMap{
             }
         }
         Equality::No //return
-        
+
     }
     fn apply_rotation_matrix(&self, r:((i32,i32),(i32,i32)))->MaterialMap{
         let mut buffer = Vec::new();
@@ -132,7 +133,7 @@ impl TextureMap{
 
         if !pattern_matching || self.w*self.h != t2.w*t2.h{
             return Equality::No;
-        } 
+        }
         let matrices = [
         ((1,0),(0,1)),
         ((-1,0),(0,1)),
@@ -148,7 +149,7 @@ impl TextureMap{
             }
         }
         Equality::No //return
-        
+
     }
     fn apply_rotation_matrix(&self, r:((i32,i32),(i32,i32)))->TextureMap{
         let mut buffer = Vec::new();
@@ -345,7 +346,7 @@ impl Obj{
                 },
                 //Magicavoxel,Blender
                 (false, true) => {
-                    
+
 
                 },
                 //Unreal engine
@@ -375,8 +376,8 @@ impl Obj{
                 n += 1;
             }else {
                 temp_v.insert(opcubes[i].starting_position, i*8+1-n);
-            } 
-            
+            }
+
             // 1x 0y 0z
             let pos = add_two_tuples(opcubes[i].starting_position,(opcubes[i].dimensions.0 as i32,0,0));
             if let Some(_pat) = temp_v.get(&pos) {
@@ -391,7 +392,7 @@ impl Obj{
                 n += 1;
             }else {
                 temp_v.insert(pos, i*8+3-n);
-            }       
+            }
             // 0x 1y 0z
             let pos = add_two_tuples(opcubes[i].starting_position
                 ,(0,opcubes[i].dimensions.1 as i32,0));
@@ -431,7 +432,7 @@ impl Obj{
                 n += 1;
             }else {
                 temp_v.insert(pos, i*8+8-n);
-            }  
+            }
 
 
         }
@@ -439,13 +440,13 @@ impl Obj{
         for _x in 0..obj.number_of_v_and_f.0{
             obj.vertices.push(ObjV::default());
         }
-        for (k,v) in &temp_v{           
+        for (k,v) in &temp_v{
             obj.vertices[*v-1] = ObjV::from_xyz(k.0, k.1, k.2);
         }
         //push the vertices into the list (there is nothing more we can do)
         //println!("{:?}", temp_v.len());
-        //println!("{:?}", temp_v); 
-        
+        //println!("{:?}", temp_v);
+
 
         for x in 0..opcubes.len(){
                 let a = ObjV::from_xyz(
@@ -532,7 +533,7 @@ impl Obj{
         //println!("{:?}",obj);
 
         if my_app.debug_uv_mode{
-            
+
             obj.vertices_uvs.push(ObjVt{u:0, v:0});
             obj.vertices_uvs.push(ObjVt{u:0, v:2});
             obj.vertices_uvs.push(ObjVt{u:2, v:2});
@@ -546,7 +547,7 @@ impl Obj{
             }
             //mtl will be the same but png is going to be a 2x2 of pink and black and there are going to be 4 vt's in the whole obj
             return obj;
-        } 
+        }
         //set up textures
         for x in 0..opcubes.len(){
             for t in 0..6{
@@ -556,7 +557,7 @@ impl Obj{
                 if opcubes[x].textures[t].w == 1 && opcubes[x].textures[t].h==1{
                     the_colour=opcubes[x].textures[t].colours[0][0];
                 }
-                //let mut pixels = 
+                //let mut pixels =
                 for y in 0..opcubes[x].textures[t].colours.len(){
                     for pixel in 0..opcubes[x].textures[t].colours[y].len(){
                         if my_app.monochrome && y+pixel!=0{
@@ -564,7 +565,7 @@ impl Obj{
                             let previousp = &opcubes[x].textures[t].colours[yy][xx].clone();
                             let currentp = &opcubes[x].textures[t].colours[y][pixel].clone();
                             the_colour = *currentp;
-                            if previousp.is_some() && 
+                            if previousp.is_some() &&
                                 currentp.is_some() &&
                                 *previousp != *currentp {
                                 //texture isn't all of the same colour
@@ -581,7 +582,7 @@ impl Obj{
                 } else if is_texture_some{
                     //the texture is going to depend on if it is a single colour or more
                     let mut tex = opcubes[x].textures[t].clone();
-                    if is_all_same_colour{     
+                    if is_all_same_colour{
                         tex = TextureMap{w:1,h:1, colours:[[the_colour].to_vec()].to_vec()}
                     }
                     //println!("{:?}", tex);
@@ -590,7 +591,7 @@ impl Obj{
                         //if all the texture is of a colour just push that colour
                         unique_tid.push(tex);
                         tid.push((Some((unique_tid.len() - 1) as i32), Equality::No))
-                        
+
                     //if there is a unique texture already
                     }else {
                         //if it is just one colour check if that colour exists already
@@ -623,10 +624,10 @@ impl Obj{
 
                             }
                         }
-                        
+
                     }
                 }
-            } 
+            }
         }
         //println!("unique tid .len()={:?}", unique_tid.len());
         //println!("tid .len()={:?}", tid.len());
@@ -634,7 +635,7 @@ impl Obj{
         for x in 0..unique_tid.len(){
             items.push(crunch::Item::new(x, unique_tid[x].w, unique_tid[x].h, crunch::Rotation::None));
             positions.push((0,0));
-            
+
             //println!("tid[{:?}] = {:?}",x, tid[x]);
             //println!("{:?}", unique_tid[x].colours);
             //println!("{:?}x{:?}", unique_tid[x].w, unique_tid[x].h);
@@ -677,22 +678,22 @@ impl Obj{
             }else {
                 let l = temp_vt.len() as i32;
                 temp_vt.insert(a, l+1);
-            } 
+            }
             if let Some(_pat) = temp_vt.get(&b) {
             }else {
                 let l = temp_vt.len() as i32;
                 temp_vt.insert(b, l+1);
-            } 
+            }
             if let Some(_pat) = temp_vt.get(&c) {
             }else {
                 let l = temp_vt.len() as i32;
                 temp_vt.insert(c, l+1);
-            } 
+            }
             if let Some(_pat) = temp_vt.get(&d) {
             }else {
                 let l = temp_vt.len() as i32;
                 temp_vt.insert(d, l+1);
-            } 
+            }
             //println!("data: {:?}, x: {:?}, y: {:?}", item.data, item.rect.x, item.rect.y);
         }
         for x in 0..obj.faces.len(){
@@ -759,7 +760,7 @@ impl Obj{
         for _x in 0..temp_vt.len(){
             obj.vertices_uvs.push(ObjVt::default());
         }
-        for (k,v) in &temp_vt{           
+        for (k,v) in &temp_vt{
             obj.vertices_uvs[(*v as usize)-1] = ObjVt{u: k.0, v: k.1};
         }
         obj.texture_map = Some(finaltexture);
@@ -841,8 +842,8 @@ impl Obj{
                 n += 1;
             }else {
                 temp_v.insert(opcubes[i].starting_position, i*8+1-n);
-            } 
-            
+            }
+
             // 1x 0y 0z
             let pos = add_two_tuples(opcubes[i].starting_position,(opcubes[i].dimensions.0 as i32,0,0));
             if let Some(_pat) = temp_v.get(&pos) {
@@ -857,7 +858,7 @@ impl Obj{
                 n += 1;
             }else {
                 temp_v.insert(pos, i*8+3-n);
-            }       
+            }
             // 0x 1y 0z
             let pos = add_two_tuples(opcubes[i].starting_position
                 ,(0,opcubes[i].dimensions.1 as i32,0));
@@ -897,7 +898,7 @@ impl Obj{
                 n += 1;
             }else {
                 temp_v.insert(pos, i*8+8-n);
-            }  
+            }
 
 
         }
@@ -906,11 +907,11 @@ impl Obj{
         for _x in 0..obj.number_of_v_and_f.0{
             obj.vertices.push(ObjV::default());
         }
-        for (k,v) in &temp_v{           
+        for (k,v) in &temp_v{
             obj.vertices[*v-1] = ObjV::from_xyz(k.0, k.1, k.2);
         }
-        //push the vertices into the list (there is nothing more we can do) 
-        
+        //push the vertices into the list (there is nothing more we can do)
+
 
         //faces
         for x in 0..opcubes.len(){
@@ -954,7 +955,7 @@ impl Obj{
                      opcubes[x].starting_position.0,
                      opcubes[x].starting_position.1+opcubes[x].dimensions.1 as i32,
                      opcubes[x].starting_position.2+opcubes[x].dimensions.2 as i32);
-                
+
                 //face 1 top
                 if opcubes[x].is_face_enabled[0]{
                 obj.faces.push(ObjF{
@@ -1013,7 +1014,7 @@ impl Obj{
         //println!("{:?}",obj);
 
         if my_app.debug_uv_mode{
-            
+
             obj.vertices_uvs.push(ObjVt{u:0, v:0});
             obj.vertices_uvs.push(ObjVt{u:0, v:2});
             obj.vertices_uvs.push(ObjVt{u:2, v:2});
@@ -1030,13 +1031,13 @@ impl Obj{
             }
             //mtl will be the same but png is going to be a 2x2 of pink and black and there are going to be 4 vt's in the whole obj
             return obj;
-        } 
+        }
         //set up textures
         for x in 0..opcubes.len(){
             for t in 0..6{
                 if !opcubes[x].is_face_enabled[t]{
                     //skip
-                }else{  
+                }else{
                     //println!("opcubes[{:?}].textures[{:?}] = {:?}", x,t,opcubes[x].textures[t]);
                     //what to do if texture is empty or all of the same colour?
                     let is_texture_some = true;//opcubes[x].textures[t].is_texture_some();
@@ -1045,7 +1046,7 @@ impl Obj{
                     if opcubes[x].textures[t].w == 1 && opcubes[x].textures[t].h==1{
                         the_colour=opcubes[x].textures[t].id[0][0];
                     }
-                    //let mut pixels = 
+                    //let mut pixels =
                     for y in 0..opcubes[x].textures[t].id.len(){
                         for pixel in 0..opcubes[x].textures[t].id[y].len(){
                             if my_app.monochrome && y+pixel!=0{
@@ -1053,7 +1054,7 @@ impl Obj{
                                 let previousp = &opcubes[x].textures[t].id[yy][xx].clone();
                                 let currentp = &opcubes[x].textures[t].id[y][pixel].clone();
                                 the_colour = *currentp;
-                                if *previousp != 0 && 
+                                if *previousp != 0 &&
                                     *currentp != 0 &&
                                     *previousp != *currentp {
                                     //texture isn't all of the same colour
@@ -1070,7 +1071,7 @@ impl Obj{
                     } else if is_texture_some{
                         //the texture is going to depend on if it is a single colour or more
                         let mut tex = opcubes[x].textures[t].clone();
-                        if is_all_same_colour{     
+                        if is_all_same_colour{
                             tex = MaterialMap{w:1,h:1, id:[[the_colour].to_vec()].to_vec(), materials:materials.clone()}
                         }
                         //println!("{:?}", tex);
@@ -1079,7 +1080,7 @@ impl Obj{
                             //if all the texture is of a colour just push that colour
                             unique_tid.push(tex);
                             tid.push((Some((unique_tid.len() - 1) as i32), Equality::No))
-                            
+
                         //if there is a unique texture already
                         }else {
                             //if it is just one colour check if that colour exists already
@@ -1112,10 +1113,10 @@ impl Obj{
 
                                 }
                             }
-                            
+
                         }
                     }
-                } 
+                }
             }
         }
         //println!("unique tid .len()={:?}", unique_tid.len());
@@ -1124,7 +1125,7 @@ impl Obj{
         for x in 0..unique_tid.len(){
             items.push(crunch::Item::new(x, unique_tid[x].w, unique_tid[x].h, crunch::Rotation::None));
             positions.push((0,0));
-            
+
             //println!("tid[{:?}] = {:?}",x, tid[x]);
             //println!("{:?}", unique_tid[x].colours);
             //println!("{:?}x{:?}", unique_tid[x].w, unique_tid[x].h);
@@ -1166,22 +1167,22 @@ impl Obj{
             }else {
                 let l = temp_vt.len() as i32;
                 temp_vt.insert(a, l+1);
-            } 
+            }
             if let Some(_pat) = temp_vt.get(&b) {
             }else {
                 let l = temp_vt.len() as i32;
                 temp_vt.insert(b, l+1);
-            } 
+            }
             if let Some(_pat) = temp_vt.get(&c) {
             }else {
                 let l = temp_vt.len() as i32;
                 temp_vt.insert(c, l+1);
-            } 
+            }
             if let Some(_pat) = temp_vt.get(&d) {
             }else {
                 let l = temp_vt.len() as i32;
                 temp_vt.insert(d, l+1);
-            } 
+            }
             //println!("data: {:?}, x: {:?}, y: {:?}", item.data, item.rect.x, item.rect.y);
         }
         for x in 0..obj.faces.len(){
@@ -1269,7 +1270,7 @@ impl Obj{
         for _x in 0..temp_vt.len(){
             obj.vertices_uvs.push(ObjVt::default());
         }
-        for (k,v) in &temp_vt{           
+        for (k,v) in &temp_vt{
             obj.vertices_uvs[(*v as usize)-1] = ObjVt{u: k.0, v: k.1};
         }
         obj.material_map = Some(finaltexture);
@@ -1428,7 +1429,7 @@ impl Obj{
                     }
                 },
             }
-            
+
         }
 
         //obj_file.write(list_of_v.as_bytes()).expect("write failed");
@@ -1477,9 +1478,9 @@ impl Obj{
                 ,face.d.0,face.d.1,face.d.2);
                 if result.is_err(){
                 panic!("Error while writing faces: Error code 504");
-                }   
+                }
             }
-            
+
         }else{
             for f in 0..self.number_of_v_and_f.1{
             let result = writeln!(&mut obj_file, "f {}/{} {}/{} {}/{} {}/{}"
@@ -1498,7 +1499,7 @@ impl Obj{
         if self.material_map.is_some(){
         let map = self.material_map.clone().unwrap();
         let file = File::create(format!("{}/{}.png",self.export_folder,self.name)).unwrap();
-        
+
         let file_e = if self.allowed_materials.2{Some(File::create(
             format!("{}/{}_emit.png",self.export_folder,self.name)).unwrap())
         }else{None};
@@ -1506,7 +1507,7 @@ impl Obj{
         let ref mut w = BufWriter::new(file);
         let mut encoder = png::Encoder::new(w,map.w as u32, map.h as u32);
         encoder.set_depth(png::BitDepth::Eight);
-        encoder.set_compression(png::Compression::Best); 
+        encoder.set_compression(png::Compression::Best);
         encoder.set_color(png::ColorType::Rgb);
 
         //Emission png
@@ -1514,7 +1515,7 @@ impl Obj{
         if self.allowed_materials.2{
             let mut encoder_e = png::Encoder::new(BufWriter::new(file_e.unwrap()),map.w as u32, map.h as u32);
             encoder_e.set_depth(png::BitDepth::Eight);
-            encoder_e.set_compression(png::Compression::Best); 
+            encoder_e.set_compression(png::Compression::Best);
             encoder_e.set_color(png::ColorType::Rgb);
             writer_e = Some(encoder_e.write_header().unwrap());
         }
@@ -1523,7 +1524,7 @@ impl Obj{
         if self.allowed_materials.3||self.allowed_materials.4||self.allowed_materials.5||self.allowed_materials.6{
             let mut encoder_o = png::Encoder::new(BufWriter::new(file_o),map.w as u32, map.h as u32);
             encoder_o.set_depth(png::BitDepth::Eight);
-            encoder_o.set_compression(png::Compression::Best); 
+            encoder_o.set_compression(png::Compression::Best);
             encoder_o.set_color(png::ColorType::Rgba);
             writer_o = Some(encoder_o.write_header().unwrap());
         }
@@ -1621,7 +1622,7 @@ impl Obj{
         }else{
             let file = File::create(format!("{}/{}.png",self.export_folder,self.name)).unwrap();
             let ref mut w = BufWriter::new(file);
-            let mut encoder = png::Encoder::new(w, self.texture_map.clone().unwrap().w as u32, self.texture_map.clone().unwrap().h as u32); 
+            let mut encoder = png::Encoder::new(w, self.texture_map.clone().unwrap().w as u32, self.texture_map.clone().unwrap().h as u32);
             encoder.set_color(png::ColorType::Rgb);
             encoder.set_depth(png::BitDepth::Eight);
             encoder.set_compression(png::Compression::Best);

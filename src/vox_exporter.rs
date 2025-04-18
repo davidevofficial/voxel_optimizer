@@ -269,7 +269,7 @@ impl Obj{
             my_app.transparency,
             my_app.emission,
             my_app.roughness,
-            my_app.metal,
+            my_app.metallic,
             my_app.refraction,
             my_app.specular)
         };
@@ -777,7 +777,7 @@ impl Obj{
             my_app.transparency,
             my_app.emission,
             my_app.roughness,
-            my_app.metal,
+            my_app.metallic,
             my_app.refraction,
             my_app.specular)
         };

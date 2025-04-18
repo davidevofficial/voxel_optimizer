@@ -32,6 +32,8 @@ pub struct Obj{
     pub right_handed: bool,
     pub center_model: bool,
     pub background_color: Rgb,
+    pub uv_extra_precision: bool,
+    pub export_size: (f32, f32, f32)
 }
 
 #[derive(Copy, Debug, PartialEq)]
@@ -260,6 +262,14 @@ pub struct ObjVn{
 fn add_two_tuples(a: (i32, i32, i32), b:(i32,i32,i32))->(i32,i32,i32){return (a.0+b.0, a.1+b.1, a.2+b.2)}
 impl Obj{
     pub fn from_optimized_cubes(path: PathBuf,my_app: &MyApp, opcubes: &Vec<OptimizedCube>) -> Obj{
+        let mut sizex = 1.0;
+        let mut sizey = 1.0;
+        let mut sizez = 1.0;
+        if my_app.custom_export_size{
+            sizex = my_app.sizex;
+            sizey = my_app.sizey;
+            sizez = my_app.sizez;
+        }
         let x = path.file_name().unwrap().to_str().unwrap().to_string().trim_end_matches(".ply").to_string();
         let y = x.replace(' ', "");
         let xx = my_app.picked_path.clone().unwrap().to_string();
@@ -292,6 +302,8 @@ impl Obj{
             materials: None,
             allowed_materials,
             vertices_normals: Vec::new(),
+            uv_extra_precision: my_app.uv_extra_precision,
+            export_size: (sizex, sizey, sizez)
 
         };
         //If normals then write normals
@@ -768,6 +780,14 @@ impl Obj{
         obj //return
     }
     pub fn from_optimized_vox(path: PathBuf,my_app: &MyApp, opcubes: &Vec<OptimizedVox>, materials: Vec<vox_importer::Matl>) -> Obj{
+        let mut sizex = 1.0;
+        let mut sizey = 1.0;
+        let mut sizez = 1.0;
+        if my_app.custom_export_size{
+            sizex = my_app.sizex;
+            sizey = my_app.sizey;
+            sizez = my_app.sizez;
+        }
         let x = path.file_name().unwrap().to_str().unwrap().to_string().trim_end_matches(".vox").to_string();
         let y = x.replace(' ', "");
         let xx = my_app.picked_path.clone().unwrap().to_string();
@@ -814,6 +834,8 @@ impl Obj{
             materials: Some(materials.clone()),
             allowed_materials,
             vertices_normals: Vec::new(),
+            uv_extra_precision: my_app.uv_extra_precision,
+            export_size: (sizex, sizey, sizez)
 
         };
         //If normals then write normals
@@ -1392,6 +1414,10 @@ impl Obj{
                 y = self.vertices[v as usize].y as f32;
                 z = self.vertices[v as usize].z as f32;
             }
+            x = x * self.export_size.0;
+            y = y * self.export_size.1;
+            z = z * self.export_size.2;
+
             let mut xs = String::new();
             let mut ys = String::new();
             let mut zs = String::new();

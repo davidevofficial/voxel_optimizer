@@ -82,6 +82,11 @@ struct MyApp {
     right_handed: bool,
     center_model_in_mesh: bool,
     normals: bool,
+    custom_export_size: bool,
+    sizex: f32,
+    sizey: f32,
+    sizez: f32,
+    uv_extra_precision: bool,
     //vox settings
     all_in_one_mesh: bool,
     transparency: bool,
@@ -252,6 +257,28 @@ impl eframe::App for MyApp {
                 if r.changed() {
                     change_options("normals", &self.normals.to_string());
                 }
+                let r = columns[0].checkbox(&mut self.custom_export_size, "Enable custom export scale for the model");
+                if r.changed() {
+                    change_options("custom_export_size", &self.custom_export_size.to_string());
+                }
+
+                if self.custom_export_size{
+                    columns[0].with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui|{
+                        let r = ui.add(egui::Slider::new(&mut self.sizex, 0.001..=100.0));
+                        if r.changed() {
+                            change_options("sizex", &self.sizex.to_string());
+                        }
+                        let r = ui.add(egui::Slider::new(&mut self.sizey, 0.001..=100.0));
+                        if r.changed() {
+                            change_options("sizey", &self.sizey.to_string());
+                        }
+                        let r = ui.add(egui::Slider::new(&mut self.sizez, 0.001..=100.0));
+                        if r.changed() {
+                            change_options("sizez", &self.sizez.to_string());
+                        }
+                    });
+                }
+
                 columns[0].separator();
 
                 //second column
@@ -264,12 +291,16 @@ impl eframe::App for MyApp {
                 }
                 //PLY
                 columns[1].separator();
-                columns[1].hyperlink_to(".ply compatibility Option ","https://github.com/davidevofficial/voxel_optimizer/#ply-compatibility-options");
+                columns[1].hyperlink_to("Compatibility Options ","https://github.com/davidevofficial/voxel_optimizer/#compatibility-options");
                 let r = columns[1].checkbox(&mut self.cull_optimization, "Enable de-cull optimization");
                 if r.changed() {
                     change_options("cull_optimization", &self.cull_optimization.to_string());
                 }
-                columns[1].label("");
+                let r = columns[1].checkbox(&mut self.uv_extra_precision, "Enable UV extra precision");
+                if r.changed() {
+                    change_options("uv_extra_precision", &self.uv_extra_precision.to_string());
+                }
+
 
                 //VOX
                 columns[1].separator();
@@ -304,12 +335,6 @@ impl eframe::App for MyApp {
                 }
                 columns[1].separator();
             });
-                //first column
-                // Show dropped files (if any):
-                //second column
-                //ui.checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
-
-
 
         });
         preview_files_being_dropped(ctx);
@@ -360,7 +385,12 @@ impl Default for MyApp{
             //let background_color = [0.0f32, 0.0, 0.0];
             let mut debug_uv_mode = false;
             let mut cross = true;
-            // Compaitbility
+
+            let mut custom_export_size = false;
+            let mut sizex: f32 = 1.0;
+            let mut sizey: f32 = 1.0;
+            let mut sizez: f32 = 1.0;
+            let mut uv_extra_precision = false;
             // Extra precision for UV's
             let mut cull_optimization = true;
             let mut y_is_up = true;
@@ -376,10 +406,7 @@ impl Default for MyApp{
             let mut refraction = true;
             let mut specular = true;
             let mut glass_creates_more_mesh = true;
-            // let mut custom_export_size
-            // let mut size_x: f32 = 1;
-            // let mut size_y: f32 = 1;
-            // let mut size_z: f32 = 1;
+
 
 
 
@@ -415,6 +442,11 @@ impl Default for MyApp{
                         "normals" => {normals = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
                         "glass_creates_more_mesh" => {glass_creates_more_mesh = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
                         "right_handed" => {right_handed = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "custom_export_size" => {custom_export_size = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "sizex" => {sizex = parts.1[1..].parse::<f32>().expect("Type is not correct: {}");}
+                        "sizey" => {sizey = parts.1[1..].parse::<f32>().expect("Type is not correct: {}");}
+                        "sizez" => {sizez = parts.1[1..].parse::<f32>().expect("Type is not correct: {}");}
+                        "uv_extra_precision" => {uv_extra_precision = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
 
                         _ => {
                             println!("Line has an unrecognized type \n line:{}",line);
@@ -456,6 +488,11 @@ impl Default for MyApp{
             normals,
             glass_creates_more_mesh,
             right_handed,
+            custom_export_size,
+            sizex,
+            sizey,
+            sizez,
+            uv_extra_precision
         }
     }
 }

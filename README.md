@@ -141,16 +141,25 @@ If the setting is off the program automatically detects the amount of digits oth
 
 By default:
 
-|Width/Height | Digits after the dot |
-| ----------- | -------------------- |
-| 1           | 0                    |
-| 2           | 1                    |
-| x<=4        | 2                    |
-| x<10        | 3                    |
-| x<100       | 4                    |
-| x<100'0     | 5                    |
-| x<100'00    | 6                    |
-| x<100'000   | 7
+|Width/Height       | Digits after the dot | y*      |
+| ----------------- | -------------------- | ------- |
+| 1                 | 0                    | 0       |
+| 2                 | 1                    | 1       |
+| 4                 | 2                    | 2       |
+| 8                 | 3                    | 3       |
+| 16                | 4                    | 4       |
+| 32                | 4                    | 5       |
+| 64                | 4                    | 6       |
+| 128               | 5                    | 7       |
+| 256               | 5                    | 8       |
+| 512               | 5                    | 9       |
+| 1024              | 6                    | 10      |
+| 2048              | 6                    | 11      |
+| 4096 <=x <=8192   | 6                    | log₂(x) |
+| 16384 <=x <=65536 | 7                    | log₂(x) |
+
+y*: Digits needed to write the full number without approximations (useful if you want the max precision without adding useless digits)
+**: The program works only with powers of 2 for textures
 
 **Reccomended: OFF**
 
@@ -221,14 +230,19 @@ correctly applied to each face.
 
 If you enable this option three sliders will appear, the first represent a dilation of the final mesh on the X axis while the second one on the Y axis and the third one on the Z axis.
 
+When writing to file vertices follow this format: "v X Y Z" when the size of the model is even (x: 2n, n∈ℝ), if it is odd (x: 2n+1, n∈ℝ) it follows this format: "v X.5 Y.5 Z.5" however when a custom scale is selected (for instance 0.1X, 0.1Y, 0.1Z) it becomes v X.x Y.y Z.z (increasing size on disk),
+however if and only if an odd integer number is selected then it always becomes  "v X Y Z" thus decreasing size on disk
+
 *Pros*:
 
 1. You can modify the Scale of the object before importing inside of other programs.
 2. You don't have to modify the scale for each mesh on an external program
+3. Might decrease Disk size
 
 *Cons*:
 
-1. Increases Disk size (instead of writing coordinates as X Y Z it writes them as X.X Y.Y Z.Z adding at least 6 bytes per vertex)
+1. Might Increase Disk size
+
 
 ## Compatibility options
 
@@ -238,11 +252,21 @@ If it is not ON you might encounter meshes that appear to be correct but are way
 
 The ply magicavoxel optimizes meshes when exporting such that a cube full inside is actually a cube empty inside but since you can't see it it doesn't matter except that it does if you have to compress it with this program.
 
+**Pros**:
+1. Greatly reduces File Size
+
+**Cons**:
+1. Slightly slower
+
 Reccomended: ON
+
 
 ### Exable UV extra precision
 
 Some programs requires this setting to be on for the model to be displayed correctly because they need very precise UVs
+
+[//](https://comment "todo!( add examples of before and after UV extra precision and the particular case of Godot, how to fix it in the engine)")
+
 
 *Pros*:
 
@@ -253,12 +277,6 @@ Some programs requires this setting to be on for the model to be displayed corre
 1. Increases disk size because each Vt (see .obj documentation) holds 1 texture instead of being shared by 4 textures, increasing Vt count by at most a factor of 4
 
 Reccomended: OFF (unless there are artifacts in your mesh)
-
-**Pros**:
-1. Greatly reduces File Size
-
-**Cons**:
-1. Slightly slower
 
 ## .VOX specific options
 

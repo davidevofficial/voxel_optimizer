@@ -29,8 +29,19 @@ fn main() -> Result<(), eframe::Error> {
     println!("Hello, world!");
 
     //icon
-    println!("WARNING: If it crashes right now it means that the src folder could not be found,
-        make sure VoxelOptimizer.exe is in the same folder as the src folder");
+    println!("WARNING: If it crashes without displaying a window it means that the src folder or the contents inside could not be found, make sure VoxelOptimizer.exe is in the same folder as the src folder and unzipped.
+
+    For example:
+
+    VoxelOptimizer/
+    ├── voxeloptimizer.exe
+    ├── voxeloptimizer_console_version.exe (Run this for debug... you are running it already)
+    ├── voxeloptimizer.zip (Optional)
+    └── src/
+        ├── Icon.png
+        └── options.txt
+
+    ------------------------------------------------------------------------------------------------------------------    ");
     let bytes_png = read("src/icon.png").unwrap();
     let icon: eframe::IconData = eframe::IconData::try_from_png_bytes(&bytes_png).unwrap();
     /*let icon: eframe::IconData = eframe::IconData::from(IconData {

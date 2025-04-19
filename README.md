@@ -37,11 +37,12 @@ This setting changes the way the algorithm works while reducing the amount of ve
 
 Let's say you have a cross:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/6ce2e925-1da8-4e6e-8920-63c1ae0c1d8a)
 
+| Off | On |
+| ---- | ---|
+|Without the option it would be divided like so: | With the option the green and blue part become united: |
+|![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/1b3778b5-1a3c-4683-b68a-49827089e208) | ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/1c030205-fb38-41de-a3a8-8a0dc7afcd33) |
+| (3 cubes) | (2 overlapping cubes)
 
-Without the option it would be divided like so: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/1b3778b5-1a3c-4683-b68a-49827089e208) (3 cubes)
-
-
-With the option the green and blue part become united: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/1c030205-fb38-41de-a3a8-8a0dc7afcd33) (2 overlapping cubes).
 
 **Reccomended: ON**
 
@@ -127,15 +128,9 @@ This settings influence the way the mesh is exported
 
 This is what happens if the digits precision is incorrect:
 
-2 digits precision:
-
-![2digitsprecision](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/73853f03-5988-4b30-ab56-184d6df15099)
-
-3 digit precision:
-
-![3digitsprecision](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/6d5a41c3-7453-4e7a-b157-c09c6a3b921f)
-
-
+| 2 Digits precision | 3 Digits precision |
+| ---- | ---|
+| ![2digitsprecision](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/73853f03-5988-4b30-ab56-184d6df15099) | ![3digitsprecision](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/6d5a41c3-7453-4e7a-b157-c09c6a3b921f) |
 
 If the setting is off the program automatically detects the amount of digits otherwise you can specify it yourself.
 
@@ -197,9 +192,10 @@ Based on the software you need to export to you may need to change the coordinat
 
 If you select it the model vertices will not have their position based on their magicavoxel position.
 
-Off: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/cfd05e92-1fe6-4a07-9ed0-90f1440caaee)
+| off | on |
+| ---- | ---|
+|![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/cfd05e92-1fe6-4a07-9ed0-90f1440caaee) | ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/78acbc1f-142d-44a0-b99a-94137e6b1325)
 
-On: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/78acbc1f-142d-44a0-b99a-94137e6b1325)
 
 **Pros**:
 1. 2 meshes will have their positions relative one to the other when importing the mesh in other programs
@@ -265,7 +261,10 @@ Reccomended: ON
 
 Some programs requires this setting to be on for the model to be displayed correctly because they need very precise UVs
 
-[//](https://comment "todo!( add examples of before and after UV extra precision and the particular case of Godot, how to fix it in the engine)")
+| Off | On | Godot Setting |
+| ---- | ---| -------------|
+| ![before](https://github.com/user-attachments/assets/7ee1519b-5a6a-4baa-adc1-83768a2f3fd0) | ![after](https://github.com/user-attachments/assets/cb087f76-5b3c-4720-8f16-3157440d3e6b) | ![fix](https://github.com/user-attachments/assets/3af8d510-4cde-4e36-a499-a25b7ed892d7) |
+
 
 
 *Pros*:

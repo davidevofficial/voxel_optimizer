@@ -7,7 +7,41 @@ use std::io::BufWriter;
 use std::path::Path;
 use crate::greedy_mesher::{OptimizedCube, OptimizedVox};
 use crate::{vox_importer, MyApp};
+
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+#[derive(Default, Clone, Copy)]
+struct F2{x:f32,y:f32}
+
+// Implement From<(f32, f32)> for F2
+impl From<(f32, f32)> for F2 {
+    fn from(tuple: (f32, f32)) -> Self {
+        F2 { x: tuple.0, y: tuple.1 }
+    }
+}
+
+// Implement From<F2> for (f32, f32)
+impl From<F2> for (f32, f32) {
+    fn from(f2: F2) -> Self {
+        (f2.x, f2.y)
+    }
+}
+// Implement Hash using bitwise representation
+impl Hash for F2 {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.x.to_bits().hash(state);
+        self.y.to_bits().hash(state);
+    }
+}
+impl Eq for F2{}
+impl PartialEq for F2{
+    fn eq(&self, other: &Self) -> bool {
+        return (self.x == other.x && self.y == other.y)
+    }
+    fn ne(&self, other: &Self) -> bool {
+        return !(self==other)
+    }
+}
 
 use crunch::*;
 #[derive(Debug)]
@@ -32,6 +66,8 @@ pub struct Obj{
     pub right_handed: bool,
     pub center_model: bool,
     pub background_color: Rgb,
+    pub uv_extra_precision: bool,
+    pub export_size: (f32, f32, f32)
 }
 
 #[derive(Copy, Debug, PartialEq)]
@@ -194,11 +230,10 @@ impl Rgb{
         Rgb{r:ba.0, g:ba.1, b:ba.2}
     }
 }
-fn bidimensional_column_x_matrix(n: (i32,i32),m:((i32,i32),(i32,i32)))->(i32,i32){
+fn bidimensional_column_x_matrix<T: std::ops::Add<Output = T> + std::ops::Mul<Output = T> + Copy>(n: (T,T),m:((T,T),(T,T)))->(T,T){
     let x = m.0.0*n.0+m.0.1*n.1;
     let y = m.1.0*n.0+m.1.1*n.1;
     (x,y) //return
-
 }
 //todo()! -> implement an HashMap (obj_v, index_v) and an HashMap (obj_vt, index_vt)
 #[derive(Debug)]
@@ -230,8 +265,8 @@ impl ObjV{
 
 #[derive(Default,Debug,Clone,Copy)]
 pub struct ObjVt{
-    u: i32,
-    v: i32
+    u: f32,
+    v: f32
 }
 #[derive(Debug,Default,Clone,Copy)]
 pub struct ObjVn{
@@ -260,6 +295,14 @@ pub struct ObjVn{
 fn add_two_tuples(a: (i32, i32, i32), b:(i32,i32,i32))->(i32,i32,i32){return (a.0+b.0, a.1+b.1, a.2+b.2)}
 impl Obj{
     pub fn from_optimized_cubes(path: PathBuf,my_app: &MyApp, opcubes: &Vec<OptimizedCube>) -> Obj{
+        let mut sizex = 1.0;
+        let mut sizey = 1.0;
+        let mut sizez = 1.0;
+        if my_app.custom_export_size{
+            sizex = my_app.sizex;
+            sizey = my_app.sizey;
+            sizez = my_app.sizez;
+        }
         let x = path.file_name().unwrap().to_str().unwrap().to_string().trim_end_matches(".ply").to_string();
         let y = x.replace(' ', "");
         let xx = my_app.picked_path.clone().unwrap().to_string();
@@ -269,7 +312,7 @@ impl Obj{
             my_app.transparency,
             my_app.emission,
             my_app.roughness,
-            my_app.metal,
+            my_app.metallic,
             my_app.refraction,
             my_app.specular)
         };
@@ -292,6 +335,8 @@ impl Obj{
             materials: None,
             allowed_materials,
             vertices_normals: Vec::new(),
+            uv_extra_precision: my_app.uv_extra_precision,
+            export_size: (sizex, sizey, sizez)
 
         };
         //If normals then write normals
@@ -528,16 +573,16 @@ impl Obj{
         obj.number_of_v_and_f.1 = obj.faces.len() as i32;
         let mut tid: Vec<(Option<i32>, Equality)> = Vec::new();
         let mut unique_tid: Vec<TextureMap> = Vec::new();
-        let mut temp_vt: HashMap<(i32,i32),i32> = HashMap::new();
+        let mut temp_vt: HashMap<F2,i32> = HashMap::new();
         let mut positions = Vec::new();
         //println!("{:?}",obj);
 
         if my_app.debug_uv_mode{
 
-            obj.vertices_uvs.push(ObjVt{u:0, v:0});
-            obj.vertices_uvs.push(ObjVt{u:0, v:2});
-            obj.vertices_uvs.push(ObjVt{u:2, v:2});
-            obj.vertices_uvs.push(ObjVt{u:2, v:0});
+            obj.vertices_uvs.push(ObjVt{u:0.0, v:0.0});
+            obj.vertices_uvs.push(ObjVt{u:0.0, v:2.0});
+            obj.vertices_uvs.push(ObjVt{u:2.0, v:2.0});
+            obj.vertices_uvs.push(ObjVt{u:2.0, v:0.0});
             obj.texture_map = Some(TextureMap{w:2, h:2,colours:[[Some(Rgb{r:255,g:0,b:255}),Some(Rgb{r:0,g:0,b:0})].to_vec(),[Some(Rgb{r:0,g:0,b:0}),Some(Rgb{r:255,g:0,b:255})].to_vec()].to_vec()});
             for x in 0..obj.faces.len(){
                 obj.faces[x].a.1=1;
@@ -647,6 +692,7 @@ impl Obj{
             container.w *= 2;
             container.h *= 2;
             if container.w > 100000{
+                println!("Texture Atlas it Too Big!!! Error Code: 503");
                 panic!();
             }
         }
@@ -662,6 +708,13 @@ impl Obj{
             }
 
         }
+
+
+        let mut factor = 0.0f32;
+        if my_app.uv_extra_precision{
+            factor = 0.0625;
+        }
+
         for item in &packed {
             positions[item.data] = (item.rect.x, item.rect.y);
             for y in 0..unique_tid[item.data].colours.len(){
@@ -670,10 +723,18 @@ impl Obj{
                     finaltexture.colours[ppp.1 as usize][ppp.0 as usize] = unique_tid[item.data].colours[y][x];
                 }
             }
-            let a = (item.rect.x as i32, item.rect.y as i32);
-            let b = (item.rect.x as i32, (item.rect.y+item.rect.h) as i32);
-            let c = ((item.rect.x+item.rect.w) as i32, (item.rect.y+item.rect.h) as i32);
-            let d = ((item.rect.x+item.rect.w) as i32, item.rect.y as i32);
+            // a is top left:     x0 y0
+            // b is bottom left:  x0 y1
+            // c is bottom right: x1 y1
+            // d is top right:    x1 y0
+            let a = (item.rect.x as f32 + factor, item.rect.y as f32 + factor);
+            let b = (item.rect.x as f32 + factor, (item.rect.y+item.rect.h) as f32 - factor);
+            let c = ((item.rect.x+item.rect.w) as f32 - factor, (item.rect.y+item.rect.h) as f32 - factor);
+            let d = ((item.rect.x+item.rect.w) as f32 - factor, item.rect.y as f32 + factor);
+            let a = F2::from(a);
+            let b = F2::from(b);
+            let c = F2::from(c);
+            let d = F2::from(d);
             if let Some(_pat) = temp_vt.get(&a) {
             }else {
                 let l = temp_vt.len() as i32;
@@ -702,14 +763,16 @@ impl Obj{
             let mut cc = 1;
             let mut dd = 1;
             if tid[x].0.is_some(){
-                let a = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32,
-                (unique_tid[tid[x].0.unwrap() as usize].h)as i32 + positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
-                let b = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32 + (unique_tid[tid[x].0.unwrap() as usize].w)as i32,
-                (unique_tid[tid[x].0.unwrap() as usize].h)as i32 + positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
-                let c = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32 + (unique_tid[tid[x].0.unwrap() as usize].w)as i32,
-                                     positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
-                let d = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32,
-                                     positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
+                let tl = &(positions[tid[x].0.unwrap() as usize]);
+                let tl = (tl.0 as f32 + factor, tl.1 as f32 + factor);
+                let w = unique_tid[tid[x].0.unwrap() as usize].w as f32 - 2.0*factor;
+                let h = unique_tid[tid[x].0.unwrap() as usize].h as f32 - 2.0*factor;
+
+                let a = temp_vt.get(&F2::from((tl.0      , tl.1  + h ))).unwrap();
+                let b = temp_vt.get(&F2::from((tl.0  + w , tl.1  + h ))).unwrap();
+                let c = temp_vt.get(&F2::from((tl.0  + w , tl.1      ))).unwrap();
+                let d = temp_vt.get(&F2::from((tl.0      , tl.1      ))).unwrap();
+
 
                 match tid[x].1 {
                     Equality::No => {
@@ -722,32 +785,35 @@ impl Obj{
                         let tl = find_key_for_value(temp_vt.clone(), *a).unwrap();
                         let tr = find_key_for_value(temp_vt.clone(), *b).unwrap();
                         let br = find_key_for_value(temp_vt.clone(), *c).unwrap();
-                        let size_x = br.0-bl.0;
-                        let size_y = tl.1-bl.1;
-                        let t = (&bl.0,&bl.1);
+                        let size_x = br.x-bl.x;
+                        let size_y = tl.y-bl.y;
+                        let t = (&bl.x,&bl.y);
                         let size_vector = (size_x,size_y);
-                        let size_vector = bidimensional_column_x_matrix(size_vector, (x,y));
-                        let mut bottom_left = bidimensional_column_x_matrix((bl.0-t.0,bl.1-t.1), (x,y));
-                        let mut top_left = bidimensional_column_x_matrix((tl.0-t.0,tl.1-t.1), (x,y));
-                        let mut top_right = bidimensional_column_x_matrix((tr.0-t.0,tr.1-t.1), (x,y));
-                        let mut bottom_right = bidimensional_column_x_matrix((br.0-t.0,br.1-t.1), (x,y));
-                        if size_vector.0<0{
+                        let x_f32 = (x.0 as f32, x.1 as f32);
+                        let y_f32 = (y.0 as f32, y.1 as f32);
+
+                        let size_vector = bidimensional_column_x_matrix(size_vector, (x_f32,y_f32));
+                        let mut bottom_left = bidimensional_column_x_matrix((bl.x-t.0,bl.y-t.1), (x_f32,y_f32));
+                        let mut top_left = bidimensional_column_x_matrix((tl.x-t.0,tl.y-t.1), (x_f32,y_f32));
+                        let mut top_right = bidimensional_column_x_matrix((tr.x-t.0,tr.y-t.1), (x_f32,y_f32));
+                        let mut bottom_right = bidimensional_column_x_matrix((br.x-t.0,br.y-t.1), (x_f32,y_f32));
+                        if size_vector.0<0.0{
                             bottom_left.0-=size_vector.0;
                             top_left.0-=size_vector.0;
                             top_right.0-=size_vector.0;
                             bottom_right.0-=size_vector.0;
                         }
-                        if size_vector.1<0{
+                        if size_vector.1<0.0{
                             bottom_left.1-=size_vector.1;
                             top_left.1-=size_vector.1;
                             top_right.1-=size_vector.1;
                             bottom_right.1-=size_vector.1;
                         }
                         //dbg!((bl,&bottom_left),(tl,&top_left),(tr,&top_right),(br,&bottom_right), size_x, size_y, size_vector);
-                        dd = *temp_vt.get(&(bottom_left.0+t.0,bottom_left.1+t.1)).unwrap();
-                        aa = *temp_vt.get(&(top_left.0+t.0,top_left.1+t.1)).unwrap();
-                        bb = *temp_vt.get(&(top_right.0+t.0,top_right.1+t.1)).unwrap();
-                        cc = *temp_vt.get(&(bottom_right.0+t.0,bottom_right.1+t.1)).unwrap();
+                        dd = *temp_vt.get(&F2::from((bottom_left.0+t.0,bottom_left.1+t.1))).unwrap();
+                        aa = *temp_vt.get(&F2::from((top_left.0+t.0,top_left.1+t.1))).unwrap();
+                        bb = *temp_vt.get(&F2::from((top_right.0+t.0,top_right.1+t.1))).unwrap();
+                        cc = *temp_vt.get(&F2::from((bottom_right.0+t.0,bottom_right.1+t.1))).unwrap();
                     }
                 }
             }
@@ -761,13 +827,21 @@ impl Obj{
             obj.vertices_uvs.push(ObjVt::default());
         }
         for (k,v) in &temp_vt{
-            obj.vertices_uvs[(*v as usize)-1] = ObjVt{u: k.0, v: k.1};
+            obj.vertices_uvs[(*v as usize)-1] = ObjVt{u: k.x, v: k.y};
         }
         obj.texture_map = Some(finaltexture);
         //dbg!(&my_app.normals, &obj.vertices_normals);
         obj //return
     }
     pub fn from_optimized_vox(path: PathBuf,my_app: &MyApp, opcubes: &Vec<OptimizedVox>, materials: Vec<vox_importer::Matl>) -> Obj{
+        let mut sizex = 1.0;
+        let mut sizey = 1.0;
+        let mut sizez = 1.0;
+        if my_app.custom_export_size{
+            sizex = my_app.sizex;
+            sizey = my_app.sizey;
+            sizez = my_app.sizez;
+        }
         let x = path.file_name().unwrap().to_str().unwrap().to_string().trim_end_matches(".vox").to_string();
         let y = x.replace(' ', "");
         let xx = my_app.picked_path.clone().unwrap().to_string();
@@ -777,7 +851,7 @@ impl Obj{
             my_app.transparency,
             my_app.emission,
             my_app.roughness,
-            my_app.metal,
+            my_app.metallic,
             my_app.refraction,
             my_app.specular)
         };
@@ -814,6 +888,8 @@ impl Obj{
             materials: Some(materials.clone()),
             allowed_materials,
             vertices_normals: Vec::new(),
+            uv_extra_precision: my_app.uv_extra_precision,
+            export_size: (sizex, sizey, sizez)
 
         };
         //If normals then write normals
@@ -1009,16 +1085,16 @@ impl Obj{
         obj.number_of_v_and_f.1 = obj.faces.len() as i32;
         let mut tid: Vec<(Option<i32>, Equality)> = Vec::new();
         let mut unique_tid: Vec<MaterialMap> = Vec::new();
-        let mut temp_vt: HashMap<(i32,i32),i32> = HashMap::new();
+        let mut temp_vt: HashMap<F2,i32> = HashMap::new();
         let mut positions = Vec::new();
         //println!("{:?}",obj);
 
         if my_app.debug_uv_mode{
 
-            obj.vertices_uvs.push(ObjVt{u:0, v:0});
-            obj.vertices_uvs.push(ObjVt{u:0, v:2});
-            obj.vertices_uvs.push(ObjVt{u:2, v:2});
-            obj.vertices_uvs.push(ObjVt{u:2, v:0});
+            obj.vertices_uvs.push(ObjVt{u:0.0, v:0.0});
+            obj.vertices_uvs.push(ObjVt{u:0.0, v:2.0});
+            obj.vertices_uvs.push(ObjVt{u:2.0, v:2.0});
+            obj.vertices_uvs.push(ObjVt{u:2.0, v:0.0});
             let matl_pink = vox_importer::Matl{id: 0, rgb:Rgb{r:255,g:0,b:255},..Default::default()};
             let matl_black = vox_importer::Matl{id: 1, rgb:Rgb{r:0,g:0,b:0},..Default::default()};
             let materials2 = [matl_pink,matl_black].to_vec();
@@ -1151,6 +1227,12 @@ impl Obj{
                 finaltexture.id[y].push(0);
             }
         }
+
+        let mut factor = 0.0f32;
+        if my_app.uv_extra_precision{
+            factor = 0.0625;
+        }
+
         for item in &packed {
             positions[item.data] = (item.rect.x, item.rect.y);
             for y in 0..unique_tid[item.data].id.len(){
@@ -1159,10 +1241,14 @@ impl Obj{
                     finaltexture.id[ppp.1 as usize][ppp.0 as usize] = unique_tid[item.data].id[y][x];
                 }
             }
-            let a = (item.rect.x as i32, item.rect.y as i32);
-            let b = (item.rect.x as i32, (item.rect.y+item.rect.h) as i32);
-            let c = ((item.rect.x+item.rect.w) as i32, (item.rect.y+item.rect.h) as i32);
-            let d = ((item.rect.x+item.rect.w) as i32, item.rect.y as i32);
+            let a = (item.rect.x as f32 + factor, item.rect.y as f32 + factor);
+            let b = (item.rect.x as f32 + factor, (item.rect.y+item.rect.h) as f32 - factor);
+            let c = ((item.rect.x+item.rect.w) as f32 - factor, (item.rect.y+item.rect.h) as f32 - factor);
+            let d = ((item.rect.x+item.rect.w) as f32 - factor, item.rect.y as f32 + factor);
+            let a = F2::from(a);
+            let b = F2::from(b);
+            let c = F2::from(c);
+            let d = F2::from(d);
             if let Some(_pat) = temp_vt.get(&a) {
             }else {
                 let l = temp_vt.len() as i32;
@@ -1191,14 +1277,19 @@ impl Obj{
             let mut cc = 1;
             let mut dd = 1;
             if tid[x].0.is_some(){
+                let tl = &(positions[tid[x].0.unwrap() as usize]);
+                let tl = (tl.0 as f32 + factor, tl.1 as f32 + factor);
+                let w = unique_tid[tid[x].0.unwrap() as usize].w as f32 - 2.0*factor;
+                let h = unique_tid[tid[x].0.unwrap() as usize].h as f32 - 2.0*factor;
+
                 //Top left
-                let a = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32,(unique_tid[tid[x].0.unwrap() as usize].h)as i32 + positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
+                let a = temp_vt.get(&F2::from((tl.0      , tl.1  + h ))).unwrap();
                 //Top right
-                let b = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32 + (unique_tid[tid[x].0.unwrap() as usize].w)as i32,(unique_tid[tid[x].0.unwrap() as usize].h)as i32 + positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
+                let b = temp_vt.get(&F2::from((tl.0  + w , tl.1  + h ))).unwrap();
                 //Bottom Right
-                let c = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32 + (unique_tid[tid[x].0.unwrap() as usize].w)as i32,positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
+                let c = temp_vt.get(&F2::from((tl.0  + w , tl.1      ))).unwrap();
                 //Bottom Left
-                let d = temp_vt.get(&(positions[tid[x].0.unwrap() as usize].0 as i32,positions[tid[x].0.unwrap() as usize].1 as i32)).unwrap();
+                let d = temp_vt.get(&F2::from((tl.0      , tl.1      ))).unwrap();
 
                 match tid[x].1 {
                     Equality::No => {
@@ -1271,7 +1362,7 @@ impl Obj{
             obj.vertices_uvs.push(ObjVt::default());
         }
         for (k,v) in &temp_vt{
-            obj.vertices_uvs[(*v as usize)-1] = ObjVt{u: k.0, v: k.1};
+            obj.vertices_uvs[(*v as usize)-1] = ObjVt{u: k.x, v: k.y};
         }
         obj.material_map = Some(finaltexture);
         //dbg!(&my_app.normals, &obj.vertices_normals);
@@ -1392,6 +1483,10 @@ impl Obj{
                 y = self.vertices[v as usize].y as f32;
                 z = self.vertices[v as usize].z as f32;
             }
+            x = x * self.export_size.0;
+            y = y * self.export_size.1;
+            z = z * self.export_size.2;
+
             let mut xs = String::new();
             let mut ys = String::new();
             let mut zs = String::new();

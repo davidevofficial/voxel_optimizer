@@ -11,15 +11,15 @@ This program was made to optimize the meshes that are exported by **MagicaVoxel*
 Before explaining how it works I wanted to say that this program unfortunately only works for **windows**, if you know a little bit of rust you can contribute to other major platforms such as linux and mac. Also while this program doesn't use much cpu the better the cpu the faster will be the processes, the cpu also has to support multithreading to a certain capacity (Most of the cpu's will do the job). Last but not least to run this program you need a minimal amount of ram but it has to be at least as big as the models you are compressing.
 
 # Usage and benchmarks
-Watch this video: [Optimize magicavoxel models with voxel optimizer](https://www.youtube.com/watch?v=KspAgJy-C9A) for version 1.0 and this one: [A new version of VoxelOptimizer is out!!!](https://www.youtube.com/watch?v=8qdgk7juKSw) for version 2.0 or follow this instructions to get started. 
+Watch this video: [Optimize magicavoxel models with voxel optimizer](https://www.youtube.com/watch?v=KspAgJy-C9A) for version 1.0 and this one: [A new version of VoxelOptimizer is out!!!](https://www.youtube.com/watch?v=8qdgk7juKSw) for version 2.0 or follow this instructions to get started.
 
-**download the latest release (release v2.0.0)** and **extract it** in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder). 
+**download the latest release (release v2.0.0)** and **extract it** in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder).
 
 To run the program **double click** onto the executable and two windows will open.
 You'll have something like this:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/851990a9-ab26-4c67-b456-c701035e5b01)
 
 
-If you are on version 2.0 you can **drag and drop** every project file (.vox) you want to convert or use .ply files exported from magicavoxel itself. If you plan on using .vox files then you can export an obj with different materials depending on your settings. 
+If you are on version 2.0 you can **drag and drop** every project file (.vox) you want to convert or use .ply files exported from magicavoxel itself. If you plan on using .vox files then you can export an obj with different materials depending on your settings.
 
 If you are on version 1.0.1 to convert models to an optimized and superior form you first have to create the models in magicavoxel and export them using the second option (.ply) and then **drag and drop** every file you want to convert (you can and it's better if you do more than one at the time, tip: Control + A selects all the files in a folder) like so:
 
@@ -35,7 +35,7 @@ This settings influence the algorithm used to optimize the models.
 
 This setting changes the way the algorithm works while reducing the amount of vertices, to explain how it works here are some examples:
 
-Let's say you have a cross:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/6ce2e925-1da8-4e6e-8920-63c1ae0c1d8a) 
+Let's say you have a cross:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/6ce2e925-1da8-4e6e-8920-63c1ae0c1d8a)
 
 
 Without the option it would be divided like so: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/1b3778b5-1a3c-4683-b68a-49827089e208) (3 cubes)
@@ -45,31 +45,31 @@ With the option the green and blue part become united: ![image](https://github.c
 
 **Reccomended: ON**
 
-**Pros**: 
+**Pros**:
 1. Reduces File Size
 
-**Cons**: 
+**Cons**:
 1. Slightly slower
 2. The cubes overlap generating too much overdraw (in some software this results in bad behaviour)
 
 ### Enable solid colours to be one pixel on the texture map
 
-Behaviour when off: 
+Behaviour when off:
 
 This (8x8 square):
 
-![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/47b9fa5e-6b8a-468d-a90d-1c267eb24506) 
+![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/47b9fa5e-6b8a-468d-a90d-1c267eb24506)
 
-Becomes this on the texture map (8x8 square): 
+Becomes this on the texture map (8x8 square):
 
 ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/0dd6b5e0-2af5-4b50-8846-3f13c814ee21)
 
 
-Behaviour when on: 
+Behaviour when on:
 
 This (8x8 square):
 
-![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/47b9fa5e-6b8a-468d-a90d-1c267eb24506) 
+![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/47b9fa5e-6b8a-468d-a90d-1c267eb24506)
 
 Becomes this on the texture map (1x1 square):
 
@@ -77,11 +77,11 @@ Becomes this on the texture map (1x1 square):
 
 **Reccomended: ON**
 
-**Pros**: 
+**Pros**:
 1. Greatly reduces File Size
 2. Can use the next setting (pattern matching) at its fullest
 
-**Cons**: 
+**Cons**:
 1. Slightly slower
 2. Cannot manually modify the texture of the face since if you modify a pixel you modify all the face
 
@@ -94,10 +94,10 @@ If it is on each texture will be flipped, rotated (in every way possible) and th
 
 **Recommended:ON**
 
-**Pros**: 
+**Pros**:
 1. Greatly reduces File Size
 
-**Cons**: 
+**Cons**:
 1. Anything higher than 0 makes it way slower
 2. Cannot manually modify the texture of a face without modifying the texture of all the faces equal to that one.
 
@@ -141,25 +141,34 @@ If the setting is off the program automatically detects the amount of digits oth
 
 By default:
 
-|Width/Height | Digits after the dot |
-| ----------- | -------------------- |
-| 1           | 0                    |
-| 2           | 1                    |
-| x<=4        | 2                    |
-| x<10        | 3                    |
-| x<100       | 4                    |
-| x<100'0     | 5                    |
-| x<100'00    | 6                    |
-| x<100'000   | 7
+|Width/Height       | Digits after the dot | y*      |
+| ----------------- | -------------------- | ------- |
+| 1                 | 0                    | 0       |
+| 2                 | 1                    | 1       |
+| 4                 | 2                    | 2       |
+| 8                 | 3                    | 3       |
+| 16                | 4                    | 4       |
+| 32                | 4                    | 5       |
+| 64                | 4                    | 6       |
+| 128               | 5                    | 7       |
+| 256               | 5                    | 8       |
+| 512               | 5                    | 9       |
+| 1024              | 6                    | 10      |
+| 2048              | 6                    | 11      |
+| 4096 <=x <=8192   | 6                    | log₂(x) |
+| 16384 <=x <=65536 | 7                    | log₂(x) |
+
+y*: Digits needed to write the full number without approximations (useful if you want the max precision without adding useless digits)
+**: The program works only with powers of 2 for textures
 
 **Reccomended: OFF**
 
-**Pros if it is on**: 
+**Pros if it is on**:
 1. Manually set digits numbers
 2. more control
 3. Potentially more high quality
 
-**Pro if it is off**: 
+**Pro if it is off**:
 1. You don't have to manually set digits numbers
 
 ### Background Colour
@@ -192,15 +201,15 @@ Off: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/12761664
 
 On: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/78acbc1f-142d-44a0-b99a-94137e6b1325)
 
-**Pros**: 
-1. 2 meshes will have their positions relative one to the other when importing the mesh in other programs 
+**Pros**:
+1. 2 meshes will have their positions relative one to the other when importing the mesh in other programs
 
-**Cons**: 
+**Cons**:
 1. Consumes a really tiny amount of disk space (especially if there are many small models created all over the place in magicavoxel)
 
-### Enable Normals in the final export 
+### Enable Normals in the final export
 
-If required by the software you need to export to then activate this setting. 
+If required by the software you need to export to then activate this setting.
 
 If you notice weird lightning on the mesh then activate this setting.
 
@@ -217,7 +226,25 @@ If you enable this all models will have this texture ![image](https://github.com
 
 correctly applied to each face.
 
-## .PLY compatibility options
+### Enable Custom export scale for the Model
+
+If you enable this option three sliders will appear, the first represent a dilation of the final mesh on the X axis while the second one on the Y axis and the third one on the Z axis.
+
+When writing to file vertices follow this format: "v X Y Z" when the size of the model is even (x: 2n, n∈ℝ), if it is odd (x: 2n+1, n∈ℝ) it follows this format: "v X.5 Y.5 Z.5" however when a custom scale is selected (for instance 0.1X, 0.1Y, 0.1Z) it becomes v X.x Y.y Z.z (increasing size on disk),
+however if and only if an odd integer number is selected then it always becomes  "v X Y Z" thus decreasing size on disk
+
+*Pros*:
+
+1. You can modify the Scale of the object before importing inside of other programs.
+2. You don't have to modify the scale for each mesh on an external program
+3. Might decrease Disk size
+
+*Cons*:
+
+1. Might Increase Disk size
+
+
+## Compatibility options
 
 If it is not ON you might encounter meshes that appear to be correct but are way too big then what they need to be
 
@@ -225,13 +252,31 @@ If it is not ON you might encounter meshes that appear to be correct but are way
 
 The ply magicavoxel optimizes meshes when exporting such that a cube full inside is actually a cube empty inside but since you can't see it it doesn't matter except that it does if you have to compress it with this program.
 
-Reccomended: ON
-
-**Pros**: 
+**Pros**:
 1. Greatly reduces File Size
 
-**Cons**: 
+**Cons**:
 1. Slightly slower
+
+Reccomended: ON
+
+
+### Exable UV extra precision
+
+Some programs requires this setting to be on for the model to be displayed correctly because they need very precise UVs
+
+[//](https://comment "todo!( add examples of before and after UV extra precision and the particular case of Godot, how to fix it in the engine)")
+
+
+*Pros*:
+
+1. More Compatible or "Correct" meshes
+
+*Cons*:
+
+1. Increases disk size because each Vt (see .obj documentation) holds 1 texture instead of being shared by 4 textures, increasing Vt count by at most a factor of 4
+
+Reccomended: OFF (unless there are artifacts in your mesh)
 
 ## .VOX specific options
 
@@ -260,7 +305,7 @@ and this is what the file structure looks like: ![image](https://github.com/davi
 **WARNING:**
 You might want to modify manually the emission map with another program (I'd suggest [Slate](https://github.com/mitchcurtis/slate/releases/tag/v0.9.0), just download, extract, load \_emit.png, click ctrl + A, go to **image>adjustments>Hue/Saturation**, modify, click ctrl + S) and the Alpha of the Albedo Map to make glass look more dense (You can do this as by changing The emission map but instead of hue/saturation you change opacity, for slate click the two checkbox and increase the slider).
 
-**Reccomended: Depends on your needs, overall only Transparency and Emission is fine** 
+**Reccomended: Depends on your needs, overall only Transparency and Emission is fine**
 
 
 ## Convert

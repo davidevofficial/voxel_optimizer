@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-//! [main.rs] is the frontend and manager of the persistance of data, built using egui, 
+//! [main.rs] is the frontend and manager of the persistance of data, built using egui,
 //!it creates a native window to drop files and change settings to convert them using multithreading
 //!to speed uo the process
 mod vox_importer;
@@ -8,10 +8,11 @@ mod vox_exporter;
 
 //use rfd::FileDialog;
 //use eframe;
-use eframe::{egui};
+use eframe::egui;
 
 use std::fs::read;
 use std::fs::write;
+use std::io::BufRead;
 use std::sync::{Arc, Mutex};
 use std::thread;
 //use std::time::Duration;
@@ -22,14 +23,25 @@ use eframe::egui::RichText;
 use crate::vox_importer::{is_valid_ply,is_vox};
 
 
-/// Initiates the native window and calls the [`update`] method every frame. 
+/// Initiates the native window and calls the [`update`] method every frame.
 fn main() -> Result<(), eframe::Error> {
 
     println!("Hello, world!");
-    
+
     //icon
-    println!("WARNING: If it crashes right now it means that the src folder could not be found,
-        make sure VoxelOptimizer.exe is in the same folder as the src folder");
+    println!("WARNING: If it crashes without displaying a window it means that the src folder or the contents inside could not be found, make sure VoxelOptimizer.exe is in the same folder as the src folder and unzipped.
+
+    For example:
+
+    VoxelOptimizer/
+    ├── voxeloptimizer.exe
+    ├── voxeloptimizer_console_version.exe (Run this for debug... you are running it already)
+    ├── voxeloptimizer.zip (Optional)
+    └── src/
+        ├── Icon.png
+        └── options.txt
+
+    ------------------------------------------------------------------------------------------------------------------    ");
     let bytes_png = read("src/icon.png").unwrap();
     let icon: eframe::IconData = eframe::IconData::try_from_png_bytes(&bytes_png).unwrap();
     /*let icon: eframe::IconData = eframe::IconData::from(IconData {
@@ -81,12 +93,17 @@ struct MyApp {
     right_handed: bool,
     center_model_in_mesh: bool,
     normals: bool,
+    custom_export_size: bool,
+    sizex: f32,
+    sizey: f32,
+    sizez: f32,
+    uv_extra_precision: bool,
     //vox settings
     all_in_one_mesh: bool,
     transparency: bool,
     emission: bool,
     roughness: bool,
-    metal: bool,
+    metallic: bool,
     refraction: bool,
     specular: bool,
     glass_creates_more_mesh:bool,
@@ -197,16 +214,34 @@ impl eframe::App for MyApp {
                 //Algorithm
                 columns[0].separator();
                 columns[0].hyperlink_to("Algorithm Options","https://github.com/davidevofficial/voxel_optimizer/#algorithm-options");
-                columns[0].checkbox(&mut self.cross, "Enable cross-overlapping optimization");
-                columns[0].checkbox(&mut self.monochrome, "Enable solid color faces to be one pixel on the texture map");
-                columns[0].checkbox(&mut self.pattern_matching, "Enable Pattern Matching");
-                columns[0].checkbox(&mut self.glass_creates_more_mesh, "Let Glass be more accurate (only for.vox)");
+                let r = columns[0].checkbox(&mut self.cross, "Enable cross-overlapping optimization");
+                if r.changed() {
+                    change_options("cross", &self.cross.to_string());
+                }
+                let r = columns[0].checkbox(&mut self.monochrome, "Enable solid color faces to be one pixel on the texture map");
+                if r.changed() {
+                    change_options("monochrome", &self.monochrome.to_string());
+                }
+                let r = columns[0].checkbox(&mut self.pattern_matching, "Enable Pattern Matching");
+                if r.changed() {
+                    change_options("pattern_matching", &self.pattern_matching.to_string());
+                }
+                let r = columns[0].checkbox(&mut self.glass_creates_more_mesh, "Let Glass be more accurate (only for.vox)");
+                if r.changed() {
+                    change_options("glass_creates_more_mesh", &self.glass_creates_more_mesh.to_string());
+                }
                 columns[0].separator();
                 //Export
                 columns[0].hyperlink_to("Export Options","https://github.com/davidevofficial/voxel_optimizer/#export-options");
-                columns[0].checkbox(&mut self.manual_vt, "Enable manual setting of the precision levels?");
+                let r = columns[0].checkbox(&mut self.manual_vt, "Enable manual setting of the precision levels?");
+                if r.changed() {
+                    change_options("manual_vt", &self.manual_vt.to_string());
+                }
                 if self.manual_vt {
-                    columns[0].add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
+                    let r = columns[0].add(egui::Slider::new(&mut self.vt_precisionnumber, 0..=15).text("Precision digits"));
+                    if r.changed() {
+                        change_options("vt_precisionnumber", &self.vt_precisionnumber.to_string());
+                    }
                 }else{
                     columns[0].label("");
                 }
@@ -216,43 +251,101 @@ impl eframe::App for MyApp {
                 });
                 columns[0].hyperlink_to("Coordinate system","https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9c5fa9d9-6584-4475-af6d-90826c0d9a98");
                 columns[0].with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui|{
-                    ui.checkbox(&mut self.y_is_up, "Y-up");
-                    ui.checkbox(&mut self.right_handed, "Right-Handed");
+                    let r = ui.checkbox(&mut self.y_is_up, "Y-up");
+                    if r.changed() {
+                        change_options("y_is_up", &self.y_is_up.to_string());
+                    }
+                    let r = ui.checkbox(&mut self.right_handed, "Right-Handed");
+                    if r.changed() {
+                        change_options("right_handed", &self.right_handed.to_string());
+                    }
                 });
-                columns[0].checkbox(&mut self.center_model_in_mesh, "Origin is center of the model");
-                columns[0].checkbox(&mut self.normals, "Enable normals on the final export");
+                let r = columns[0].checkbox(&mut self.center_model_in_mesh, "Origin is center of the model");
+                if r.changed() {
+                    change_options("center_model_in_mesh", &self.center_model_in_mesh.to_string());
+                }
+                let r = columns[0].checkbox(&mut self.normals, "Enable normals on the final export");
+                if r.changed() {
+                    change_options("normals", &self.normals.to_string());
+                }
+                let r = columns[0].checkbox(&mut self.custom_export_size, "Enable custom export scale for the model");
+                if r.changed() {
+                    change_options("custom_export_size", &self.custom_export_size.to_string());
+                }
+
+                if self.custom_export_size{
+                    columns[0].with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui|{
+                        let r = ui.add(egui::Slider::new(&mut self.sizex, 0.001..=100.0));
+                        if r.changed() {
+                            change_options("sizex", &self.sizex.to_string());
+                        }
+                        let r = ui.add(egui::Slider::new(&mut self.sizey, 0.001..=100.0));
+                        if r.changed() {
+                            change_options("sizey", &self.sizey.to_string());
+                        }
+                        let r = ui.add(egui::Slider::new(&mut self.sizez, 0.001..=100.0));
+                        if r.changed() {
+                            change_options("sizez", &self.sizez.to_string());
+                        }
+                    });
+                }
+
                 columns[0].separator();
 
                 //second column
                 //Debug Option
                 columns[1].separator();
                 columns[1].hyperlink_to("Debug Option","https://github.com/davidevofficial/voxel_optimizer/#enable-uv-debug-mode");
-                columns[1].checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
+                let r = columns[1].checkbox(&mut self.debug_uv_mode, "Enable uv debug mode");
+                if r.changed() {
+                    change_options("debug_uv_mode", &self.debug_uv_mode.to_string());
+                }
                 //PLY
                 columns[1].separator();
-                columns[1].hyperlink_to(".ply compatibility Option ","https://github.com/davidevofficial/voxel_optimizer/#ply-compatibility-options");
-                columns[1].checkbox(&mut self.cull_optimization, "Enable de-cull optimization");
-                columns[1].label("");
+                columns[1].hyperlink_to("Compatibility Options ","https://github.com/davidevofficial/voxel_optimizer/#compatibility-options");
+                let r = columns[1].checkbox(&mut self.cull_optimization, "Enable de-cull optimization");
+                if r.changed() {
+                    change_options("cull_optimization", &self.cull_optimization.to_string());
+                }
+                let r = columns[1].checkbox(&mut self.uv_extra_precision, "Enable UV extra precision");
+                if r.changed() {
+                    change_options("uv_extra_precision", &self.uv_extra_precision.to_string());
+                }
+
 
                 //VOX
                 columns[1].separator();
                 columns[1].hyperlink_to(".vox specific Options","https://github.com/davidevofficial/voxel_optimizer/#vox-specific-options");
-                columns[1].checkbox(&mut self.all_in_one_mesh, "Enable all the meshes to be in one file");
-                columns[1].checkbox(&mut self.transparency, "Enable transparency");
-                columns[1].checkbox(&mut self.emission, "Enable the creation of an emission map");
-                columns[1].checkbox(&mut self.roughness, "Enable roughness to be in red channel of extra texture map");
-                columns[1].checkbox(&mut self.metal, "Enable metal to be in green channel of extra texture map");
-                columns[1].checkbox(&mut self.refraction, "Enable index of refraction to be in blue channel of extra texture map");
-                columns[1].checkbox(&mut self.specular, "Enable specular to be in alpha channel of extra texture map");
+                let r = columns[1].checkbox(&mut self.all_in_one_mesh, "Enable all the meshes to be in one file");
+                if r.changed() {
+                    change_options("all_in_one_mesh", &self.all_in_one_mesh.to_string());
+                }
+                let r = columns[1].checkbox(&mut self.transparency, "Enable transparency");
+                if r.changed() {
+                    change_options("transparency", &self.transparency.to_string());
+                }
+                let r = columns[1].checkbox(&mut self.emission, "Enable the creation of an emission map");
+                if r.changed() {
+                    change_options("emission", &self.emission.to_string());
+                }
+                let r = columns[1].checkbox(&mut self.roughness, "Enable roughness to be in red channel of extra texture map");
+                if r.changed() {
+                    change_options("roughness", &self.roughness.to_string());
+                }
+                let r = columns[1].checkbox(&mut self.metallic, "Enable metal to be in green channel of extra texture map");
+                if r.changed() {
+                    change_options("metallic", &self.metallic.to_string());
+                }
+                let r = columns[1].checkbox(&mut self.refraction, "Enable index of refraction to be in blue channel of extra texture map");
+                if r.changed() {
+                    change_options("refraction", &self.refraction.to_string());
+                }
+                let r = columns[1].checkbox(&mut self.specular, "Enable specular to be in alpha channel of extra texture map");
+                if r.changed() {
+                    change_options("specular", &self.specular.to_string());
+                }
                 columns[1].separator();
             });
-                //first column
-                // Show dropped files (if any):
-                //second column
-                //ui.checkbox(&mut self.is_texturesize_powerof2, "Should the texture width and height both be a power of 2?");
-                //ui.checkbox(&mut self.texturemapping_invisiblefaces, "Should invisible faces be on the texture map?");
-                
-
 
         });
         preview_files_being_dropped(ctx);
@@ -264,34 +357,7 @@ impl eframe::App for MyApp {
         ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() { self.dropped_files = i.raw.dropped_files.clone(); }
         });
-        //save
-        let mut b: Option<String> = None;
-        if self.vt_precisionnumber < 10{b = Some(String::from("0"))}
-        let c = format!("{},{},{},{}{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}"
-                        , (self.monochrome as i32)
-                        , self.pattern_matching as i32
-                        , (self.manual_vt as i32)
-                        , if b.is_some(){b.unwrap()}else{String::new()}
-                        , (self.vt_precisionnumber as i32)
-                        , (self.is_texturesize_powerof2 as i32)
-                        , (self.texturemapping_invisiblefaces as i32)
-                        , (self.cross as i32)
-                        , (self.cull_optimization as i32)
-                        , (self.y_is_up as i32)
-                        , (self.center_model_in_mesh as i32)
-                        , (self.all_in_one_mesh as i32)
-                        , (self.transparency as i32)
-                        , (self.emission as i32)
-                        , (self.roughness as i32)
-                        , (self.metal as i32)
-                        , (self.refraction as i32)
-                        , (self.specular as i32)
-                        , (self.normals as i32)
-                        , (self.glass_creates_more_mesh as i32)
-                        , (self.right_handed as i32)
-                        );
-        write("src/options.txt", c).unwrap();
-        //thread::sleep(Duration::from_millis(10));
+
         if self.requestrepaint{
             ctx.request_repaint();
             self.requestrepaint = false;
@@ -314,46 +380,95 @@ impl MyApp {
             Err(_) => (),
         }
     }
-    /*
-    fn sav(&self){
-        let c = format!("{},{},{},{},{},{},{}"
-                        , (self.monochrome as i32).to_string()
-                        , self.pattern_matching.to_string()
-                        , (self.manual_vt as i32).to_string()
-                        , (self.vt_precisionnumber as i32).to_string()
-                        , (self.is_texturesize_powerof2 as i32).to_string()
-                        , (self.texturemapping_invisiblefaces as i32).to_string()
-                        , (self.cross as i32).to_string());
-        write("src/options.txt", c).unwrap();
-    }
-    */
 
 }
 impl Default for MyApp{
     fn default() -> Self {
             let (sx, rx): (Sender<String>, Receiver<String>) = channel();
             let c = read("src/options.txt").unwrap();
-            let m = c[0] == b'1';
-            let fortyeight: u8 = 48; // '0' u8 representation in ascii
-            let p = c[2] == b'1';
-            let m_vt = c[4] == b'1';
-            let vt_n = if c[6] == b'1' {10 + c[7]-fortyeight}else{c[7]-fortyeight};
-            let tn_s = c[9] == b'1';
-            let tx_f = c[11] == b'1';
-            let cro = c[13] == b'1';
-            let cu_o = c[15] == b'1';
-            let y_up = c[17] == b'1';
-            let cmm= c[19] == b'1';
-            let all_in_one_mesh = c[21] == b'1'; 
-            let transparency = c[23] == b'1'; 
-            let emission = c[25] == b'1'; 
-            let roughness = c[27] == b'1'; 
-            let metal = c[29] == b'1'; 
-            let refraction = c[31] == b'1';
-            let specular = c[33] == b'1';  
-            let normals = c[35] == b'1';
-            let glass_creates_more_mesh = c[37] == b'1';
-            let right_handed = c[39] == b'1';
+            //Initialize default vars
+            let mut monochrome = true;
+            let mut pattern_matching = true;
+            let mut is_texturesize_powerof2 = true;
+            let mut texturemapping_invisiblefaces = true;
+            let mut manual_vt = false;
+            let mut vt_precisionnumber = 0;
+            //let background_color = [0.0f32, 0.0, 0.0];
+            let mut debug_uv_mode = false;
+            let mut cross = true;
+
+            let mut custom_export_size = false;
+            let mut sizex: f32 = 1.0;
+            let mut sizey: f32 = 1.0;
+            let mut sizez: f32 = 1.0;
+            let mut uv_extra_precision = false;
+            // Extra precision for UV's
+            let mut cull_optimization = true;
+            let mut y_is_up = true;
+            let mut right_handed = true;
+            let mut center_model_in_mesh = true;
+            let mut normals = true;
+            // .vox settings
+            let mut all_in_one_mesh = true;
+            let mut transparency = true;
+            let mut roughness = true;
+            let mut emission = true;
+            let mut metallic = true;
+            let mut refraction = true;
+            let mut specular = true;
+            let mut glass_creates_more_mesh = true;
+
+
+
+
+            let mut i = 0;
+            for line_result in c.lines(){
+                i += 1;
+                let line = line_result.expect("Failed Reading the file src/options.txt");
+                if line.trim().is_empty(){
+                    continue;
+                }
+                let colon_index = line.find(':');
+                if colon_index.is_some(){
+                    let parts = line.split_at(colon_index.unwrap());
+                    match parts.0 {
+                        "monochrome" => {monochrome = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "pattern_matching" => {pattern_matching = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "is_texturesize_powerof2" => {is_texturesize_powerof2 = parts.1[1..].parse::<bool>().expect("Type is not correct");}
+                        "texturemapping_invisiblefaces" => {texturemapping_invisiblefaces = parts.1[1..].parse::<bool>().expect("Type is not correct");}
+                        "manual_vt" => {manual_vt = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "vt_precisionnumber" => {vt_precisionnumber = parts.1[1..].parse::<u8>().expect("Type is not correct: {}");}
+                        "debug_uv_mode" => {debug_uv_mode = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "cross" => {cross = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "cull_optimization" => {cull_optimization = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "y_is_up" => {y_is_up = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "all_in_one_mesh" => {all_in_one_mesh = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "center_model_in_mesh" => {center_model_in_mesh = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "transparency" => {transparency = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "emission" => {emission = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "metallic" => {metallic = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "roughness" => {roughness = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "refraction" => {refraction = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "specular" => {specular = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "normals" => {normals = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "glass_creates_more_mesh" => {glass_creates_more_mesh = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "right_handed" => {right_handed = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "custom_export_size" => {custom_export_size = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "sizex" => {sizex = parts.1[1..].parse::<f32>().expect("Type is not correct: {}");}
+                        "sizey" => {sizey = parts.1[1..].parse::<f32>().expect("Type is not correct: {}");}
+                        "sizez" => {sizez = parts.1[1..].parse::<f32>().expect("Type is not correct: {}");}
+                        "uv_extra_precision" => {uv_extra_precision = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+
+                        _ => {
+                            println!("Line has an unrecognized type \n line:{}",line);
+                        }
+                    }
+                }else{
+                    println!("Line {} is not of type XXX:Value \n line: {}", i, line);
+                }
+
+            }
+
 
         Self{
             sx,
@@ -362,43 +477,65 @@ impl Default for MyApp{
             picked_path: None,
             status: "".to_string(),
             requestrepaint: false,
-            monochrome: m,
-            pattern_matching: p,
-            is_texturesize_powerof2: tn_s,
-            texturemapping_invisiblefaces: tx_f,
-            manual_vt: m_vt,
-            vt_precisionnumber: vt_n,
+            monochrome,
+            pattern_matching,
+            is_texturesize_powerof2,
+            texturemapping_invisiblefaces,
+            manual_vt,
+            vt_precisionnumber,
             background_color: [0.0,0.0,0.0],
-            debug_uv_mode: false,
-            cross: cro,
-            cull_optimization: cu_o,
-            y_is_up:y_up,
-            center_model_in_mesh: cmm,
+            debug_uv_mode,
+            cross,
+            cull_optimization,
+            y_is_up,
+            center_model_in_mesh,
             all_in_one_mesh,
             transparency,
             emission,
             roughness,
-            metal,
+            metallic,
             refraction,
             specular,
             normals,
             glass_creates_more_mesh,
             right_handed,
+            custom_export_size,
+            sizex,
+            sizey,
+            sizez,
+            uv_extra_precision
         }
     }
 }
-/*
 
+use std::io::Write;
 
-    fn load(){
-        let c = read("src/options.txt").unwrap();
-        self.monochrome = if c[0] == b'1' {true}else{false};
-        let forty-eight: u8 = 48; // '0' u8 representation in ascii
-        self.pattern_matching = (c[2] - &forty-eight) as i32;
-        self.manual_vt = if c[4] == b'1' {true}else{false};
-        self.vt_precisionnumber = if c[6] == b'1' {10 + c[7]-&fourtyeight}else{c[7]-&fourtyeight};
+fn change_options(option: &str, value: &str){
+    let filename = "src/options.txt";
+    let c = read(filename).unwrap();
+    let mut file = std::fs::File::create(format!("src/options.txt")).unwrap();
+    let mut found = false;
+    for line_result in c.lines(){
+        let mut line = line_result.expect("Failed Reading the file src/options.txt");
+        if line.trim().is_empty(){
+            continue;}
+        let colon_index = line.find(':');
+        if colon_index.is_some(){
+            let parts = line.split_at(colon_index.unwrap());
+            if parts.0 == option {
+                line = format!("{}:{}", option, value);
+                found = true;
+            }
+        }
+        let result = writeln!(&mut file,"{}",line);
+        if result.is_err(){panic!("Failed to write to save file")}
     }
-*/
+    if found == false{
+        let result = writeln!(&mut file, "{}:{}", option, value);
+        if result.is_err(){panic!("Failed to write to save file")}
+
+    }
+}
 ///Creates the semi-transparent black window for visualizing what you are dropping into the application
 fn preview_files_being_dropped(ctx: &egui::Context) {
     use egui::*;
@@ -439,14 +576,3 @@ fn from_files_to_paths(droppedfiles: Vec<egui::DroppedFile>) -> Vec<std::path::P
     }};
     v
 }
-///Same as [`from_files_to_paths`] but accepts only a string as an argument
-fn from_string_to_path(pickedpath: String) -> Vec<std::path::PathBuf>{
-    let v = vec![std::path::PathBuf::from(pickedpath)];
-    v
-    /*
-    let mut v = vec![];
-    v.push(std::path::PathBuf::from(pickedpath));
-    v
-    */
-}
-

@@ -1,1 +1,5 @@
 1,1,0,00,1,0,1,1,1,1,1,1,1,0,0,0,0,1,0,1
+manual_vt:true
+vt_precisionnumber:0
+y_is_up:true
+right_handed:true

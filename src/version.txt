@@ -1,2 +1,2 @@
 version.txt
-Current Version is 2.0.6
+Current Version is 2.0.8

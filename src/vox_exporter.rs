@@ -1122,6 +1122,13 @@ impl Obj{
                     if opcubes[x].textures[t].w == 1 && opcubes[x].textures[t].h==1{
                         the_colour=opcubes[x].textures[t].id[0][0];
                     }
+                    // By default we assume textures are of the same colour and prove otherwise if monochrome is true
+                    // However what happens if monochrome is false (aka a texture cannot be of a single pixel)?
+                    // The texture would be marked as "is all same colour" when it should always not be that
+                    // With this fix if the app has the option OFF (There is no reason to do that) it now has expected behaviour
+                    if !my_app.monochrome{
+                        is_all_same_colour = false;
+                    }
                     //let mut pixels =
                     for y in 0..opcubes[x].textures[t].id.len(){
                         for pixel in 0..opcubes[x].textures[t].id[y].len(){

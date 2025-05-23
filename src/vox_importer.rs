@@ -78,7 +78,7 @@ impl ply{
             self.vertices[va].y = (self.vertices[va].y*10.0).round();
             self.vertices[va].z = (self.vertices[va].z*10.0).round();
         }
-            
+
     self
     }
 }
@@ -118,7 +118,7 @@ impl Vox{
         for nod in 0..self.nodes.len(){
             let x = self.nodes[nod].clone().find_children();
             let children_id = x.1.clone();
-            //if nSHP: do nothing
+            //if nSHP: do nothing else updated the children's parent name
             if x.0{
                 continue;
             }
@@ -127,6 +127,8 @@ impl Vox{
                 let n_shp = &self.nodes[children_id[0] as usize];
                 let model = &self.chunks[n_shp.find_children().1[0] as usize];
                 let mut ch = model.clone();
+                ch.parents_name = self.nodes[nod].get_name();
+                ch.grandparents_name = self.nodes[nod].get_parents_name();
                 ch.rotation = self.nodes[nod].find_attributes().rotation;
                 let old_size = ch.size;
                 let c  = Vector3::from_tuple((ch.size.0 as i32,ch.size.1 as i32,ch.size.2 as i32));
@@ -212,10 +214,23 @@ impl Vox{
             }else if self.nodes[children_id[0] as usize].type_of_node() <= 1{
                 for y in 0..x.1.len(){
                     let attributes = self.nodes[nod].clone().find_attributes();
-                    //makes a new node with the same rotation as before and 
+                    //makes a new node with the same rotation as before and
                     //translation of this node + the node we be modifying
-                    self.nodes[x.1[y] as usize] = Node::add_attributes(&mut self.nodes[x.1[y] as usize].clone(), attributes); 
+                    self.nodes[x.1[y] as usize] = Node::add_attributes(&mut self.nodes[x.1[y] as usize].clone(), attributes);
                     //Node::set_attributes(&mut self.nodes[x.1[y] as usize],attributes);
+                }
+            }
+            if self.nodes[children_id[0] as usize].type_of_node() == 1{
+                // I (nod) am the parent of node[children_id] which is a nGRP
+                // All the children of node[children_id] must have my surname
+                // my name (name of the nTRN)
+                let my_name = self.nodes[nod].get_name();
+                let children_id = self.nodes[children_id[0] as usize].clone().find_children();
+                for child_id in 0..children_id.1.len(){
+                    let id = children_id.1[child_id].clone() as usize;
+                    if let Some(child) = self.nodes.get_mut(id) {
+                        child.change_parents_name(my_name.clone());
+                    }
                 }
             }
         }
@@ -302,7 +317,7 @@ impl Add for NodeAttributes{
         NodeAttributes { rotation: (p,q,r),
                          translation:  (self.translation.0+rhs.translation.0,
                                         self.translation.1+rhs.translation.1,
-                                        self.translation.2+rhs.translation.2) 
+                                        self.translation.2+rhs.translation.2)
         }
     }
 }
@@ -316,7 +331,7 @@ impl NodeAttributes{
             return NodeAttributes{rotation: (Versor::PosX, Versor::PosY, Versor::PosZ), translation: t};
         }
         let versors = [(1,0,0),(0,1,0),(0,0,1)];
-        let axisx = (r>>0)&3; // axisx can be 0,1,2 
+        let axisx = (r>>0)&3; // axisx can be 0,1,2
         let axisy = (r>>2)&3; // axisy can be 0,1,2
         // based on axis x and axis y axis z will be whatever axis x and y are not
         let mut axisz = 2;
@@ -349,9 +364,10 @@ impl NodeAttributes{
 pub struct Trn{
     size_in_bytes: u16,
     node_id: u16,
-    //_name, _hidden 
+    //_name, _hidden
     //attributes: Dict,
     name: Vec<u8>,
+    parents_name: Vec<u8>,
     hidden: u8,
     child_node_id: u16,
     layer: u8,
@@ -418,7 +434,7 @@ impl Trn{
         /*
         if nf > 0{
             panic!("More than one frame! No animations allowed, error code: 166")
-        } 
+        }
         */
         i+=4;
         //println!("Childid:{:?}, Number of frames:{:?}", child_id, nf);
@@ -426,7 +442,7 @@ impl Trn{
         //layer_id
         let layer_id = bytes[i];
         i+=4;
-        
+
         //Attributes Number
         let mut attributes_n = *bytes[i];
         i += 4;
@@ -481,7 +497,7 @@ impl Trn{
                 let mut int8 = 0;
                 for x in 0..b.len(){
                     //println!("{:?} at {:?}",b,i);
-                       int8 += ((b[b.len()-1-x]-48) as i32*(10_i32.pow(x as u32))) as u8; 
+                       int8 += ((b[b.len()-1-x]-48) as i32*(10_i32.pow(x as u32))) as u8;
                 }
                 rotation = int8;
             }
@@ -497,6 +513,7 @@ impl Trn{
             //n_of_frames:*n_of_frames,
             //properties: dict2,
             name: name,
+            parents_name: Vec::new(),
             hidden,
             node_attributes: NodeAttributes::from(rotation, translation),
         }
@@ -506,7 +523,7 @@ impl Trn{
 pub struct Grp{
     size_in_bytes: u16,
     node_id: u16,
-    //_name, _hidden 
+    //_name, _hidden
     node_attributes: NodeAttributes,
     n_of_children: u8,
     children_node_id: Vec<u16>,
@@ -562,8 +579,8 @@ impl Grp{
             i+=4;
         }
 
-        
-        
+
+
         Grp{
             size_in_bytes:bytesize,
             node_id:id,
@@ -620,7 +637,7 @@ impl Shp{
 
         //Model id
         let model_id = *(bytes[i])as u16+(256**(bytes[i+1])as u16);
-        
+
         Shp{
             size_in_bytes:bytesize,
             node_id:id,
@@ -685,6 +702,23 @@ impl Node{
                                     Node::SHP(ret)},
         }
     }
+    fn change_parents_name(&mut self, new_name: Vec<u8>){
+        if let Node::TRN(ref mut trn) = self {
+            trn.parents_name = new_name;
+        }
+    }
+    fn get_name(&self)->Vec<u8>{
+        match &self {
+            Node::TRN(trn) => {return trn.name.clone()}
+            _ => {Vec::new()}
+        }
+    }
+    fn get_parents_name(&self)->Vec<u8>{
+        match &self {
+            Node::TRN(trn) => {return trn.parents_name.clone()}
+            _ => {Vec::new()}
+        }
+    }
     ///Returns the type of the node as an u8 where 0 is trn, 1 is grp and 2 is shp
     fn type_of_node(&self)->u8{
         match &self{
@@ -701,6 +735,8 @@ pub struct Chunks{
     pub rotation: (Versor, Versor, Versor),
     pub size: (u16, u16, u16),
     pub xyzi: Vec<VoxCubes>,
+    pub parents_name: Vec<u8>,
+    pub grandparents_name: Vec<u8>,
 }
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VoxCubes{
@@ -722,7 +758,7 @@ pub struct Matl{
     pub roughness: f32, //_rough 0<=x<=1
     //refraction map (a channel)
     ///_ior = _ri - 1.0, 0<=_ior<=2
-    pub ior: f32, 
+    pub ior: f32,
     //metallic map (g and b channel)
     pub specular: f32, //_sp 0<=x<=1
     pub metallic: f32, //_metal 0<=x<=1
@@ -934,7 +970,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
         //println!("{:?}", size_index);
         //println!("{:?}", vox_bytes[size_index]);
         //for x in 1..10{println!("{:?}", vox_bytes[size_index+x]);}
-        
+
     }
     println!("{:?}", nodes);
     if nodes.is_empty(){
@@ -991,7 +1027,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
             let value = &vox_bytes[i..i+t as usize];
             i+=t as usize;
 
-            
+
             match key{
                 //ignore type
                 b"_type" => m.id += 0,
@@ -1014,7 +1050,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
                 b"_sp" => m.specular += bytes_to_numeric::<f32>(value).unwrap(),
                 _ => m.id+=0,
             }
-            n_of_attributes -= 1; 
+            n_of_attributes -= 1;
         }
         let initial_luminance = 0.3*(m.rgb.r as f32) + 0.59*(m.rgb.r as f32) +0.11*(m.rgb.b as f32);
         term = -0.5*((x as f32-127.5).abs())+63.75;
@@ -1034,8 +1070,8 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
         };
         let ratio = f as f32/initial_luminance;
         if delta_luminance != 0.0{
-        m.rgb_e = Some(Rgb{ r:(m.rgb.r as f32*ratio).floor() as u8, 
-                            g:(m.rgb.g as f32*ratio).floor() as u8, 
+        m.rgb_e = Some(Rgb{ r:(m.rgb.r as f32*ratio).floor() as u8,
+                            g:(m.rgb.g as f32*ratio).floor() as u8,
                             b:(m.rgb.b as f32*ratio).floor() as u8 })
         }
         matl.push(m);
@@ -1050,7 +1086,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
     }
     vox.update_nodes();
     for c in 0..vox.to_print.len(){
-    println!("Size: {:?}, Position{:?}, Rotation{:?}", vox.to_print[c].size, vox.to_print[c].position, vox.to_print[c].rotation);
+    println!("Size: {:?}, Position{:?}, Rotation{:?}, Name{:?}, ParentsName{:?}", vox.to_print[c].size, vox.to_print[c].position, vox.to_print[c].rotation,vox.to_print[c].parents_name, vox.to_print[c].grandparents_name);
     }
     //dbg!(&vox);
     Ok(vox)

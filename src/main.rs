@@ -97,6 +97,7 @@ struct MyApp {
     sizex: f32,
     sizey: f32,
     sizez: f32,
+    detailed_export_name: bool,
     uv_extra_precision: bool,
     //vox settings
     all_in_one_mesh: bool,
@@ -320,6 +321,12 @@ impl eframe::App for MyApp {
                 if r.changed() {
                     change_options("all_in_one_mesh", &self.all_in_one_mesh.to_string());
                 }
+                if self.all_in_one_mesh == false{
+                    let r = columns[1].checkbox(&mut self.detailed_export_name, "Enable a more detailed export name");
+                    if r.changed() {
+                        change_options("detailed_export_name", &self.detailed_export_name.to_string());
+                    }
+                }
                 let r = columns[1].checkbox(&mut self.transparency, "Enable transparency");
                 if r.changed() {
                     change_options("transparency", &self.transparency.to_string());
@@ -410,6 +417,7 @@ impl Default for MyApp{
             let mut normals = true;
             // .vox settings
             let mut all_in_one_mesh = true;
+            let mut detailed_export_name = true;
             let mut transparency = true;
             let mut roughness = true;
             let mut emission = true;
@@ -458,6 +466,7 @@ impl Default for MyApp{
                         "sizey" => {sizey = parts.1[1..].parse::<f32>().expect("Type is not correct: {}");}
                         "sizez" => {sizez = parts.1[1..].parse::<f32>().expect("Type is not correct: {}");}
                         "uv_extra_precision" => {uv_extra_precision = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
+                        "detailed_export_name" => {detailed_export_name = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
 
                         _ => {
                             println!("Line has an unrecognized type \n line:{}",line);
@@ -503,7 +512,8 @@ impl Default for MyApp{
             sizex,
             sizey,
             sizez,
-            uv_extra_precision
+            uv_extra_precision,
+            detailed_export_name
         }
     }
 }

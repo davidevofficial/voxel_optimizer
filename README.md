@@ -285,6 +285,10 @@ These only matter when using .vox files
 
 As the name sugggests it puts all the models in one big .obj, optimizing the output while doing so
 
+If this is unselected the program will convert each nSHP (each model) utilizing threads (in parallel so it is faster). A new option will appear called *detailed export name* which chnges the name of the output by including the group the nSHP belongs to.
+
+The output will be {FileName}_{GroupName if detailed export name is enabled}_{ObjName}_{CHUNK_ID}
+
 **Reccomended:ON**
 
 **Pros:**

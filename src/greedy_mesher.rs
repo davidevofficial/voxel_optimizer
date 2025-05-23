@@ -3,7 +3,7 @@ use crate::vox_importer::*;
 use crate::vox_exporter::*;
 use crate::vox_exporter;
 use crate::{MyApp, vox_importer};
-
+use std::sync::{Arc, Mutex};
 
 /*
 END_PRODUCT
@@ -127,7 +127,7 @@ impl ColourMatrix{
         self.matrixb[zz][yy][xx]=Some(b);
     }
     fn can_slice_be_merged(&mut self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32) -> CanBeMerged {
-        
+
         let mut is_slice_already_merged: bool = false;
         let mut is_all_not_merged:bool=false;
         for z in z1..=z2{
@@ -141,10 +141,10 @@ impl ColourMatrix{
                                 is_slice_already_merged = !is_all_not_merged;
                                 }else{is_all_not_merged=true;}}
                     }
-                } 
+                }
             }
         }
-        
+
         if is_slice_already_merged{
             return CanBeMerged::Cross;
         }
@@ -157,7 +157,7 @@ impl ColourMatrix{
                     if self.get_cube_bool(x,y,z).is_none(){
                         return false;
                     }
-                } 
+                }
             }
         }
         true //return
@@ -167,7 +167,7 @@ impl ColourMatrix{
             for y in y1..=y2{
                 for x in x1..=x2{
                     self.set_cube_bool((x,y,z),true);
-                } 
+                }
             }
         }
     }
@@ -182,8 +182,8 @@ impl ColourMatrix{
             let mut i = 0;
             for y in (y1..y2).rev(){
                 vector_of_colours.push(Vec::new());
-                for x in x1..x2{   
-                        let rgb = self.get_cube_colour(x,y,z2-1);                
+                for x in x1..x2{
+                        let rgb = self.get_cube_colour(x,y,z2-1);
                         if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
                         vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
@@ -203,7 +203,7 @@ impl ColourMatrix{
                     if rgb.is_none(){vector_of_colours[i].push(None);}else if let Some(c) = rgb{
                     vector_of_colours[i].push(Some(Rgb{r:c.0, g: c.1, b: c.2}));}
                 }
-                i+=1;       
+                i+=1;
             }
         }
         //left//
@@ -424,7 +424,7 @@ impl CubeF {
         po.1 -= vc.1/2.0;
         po.2 -= vc.2/2.0;
         //let mut di: Direction = Direction::Front;
-        
+
         let dir = match vc {
             (1.0,0.0,0.0) => Direction::Right,
             (-1.0,0.0,0.0) => Direction::Left,
@@ -434,7 +434,7 @@ impl CubeF {
             (0.0,0.0,-1.0) => Direction::Right,
             _ => panic!("Invalid cross product. Error code 205"),
         };
-        
+
         let col = (a.r, a.g, a.b);
 
         CubeF {
@@ -585,7 +585,7 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
     for fa in &vector_of_f{
         let index = fa.return_cube_index();
          if index.0 <= colourmatrix.shape.0 + colourmatrix.lowest_coordinates.0
-         && index.1 <= colourmatrix.shape.1 + colourmatrix.lowest_coordinates.1 
+         && index.1 <= colourmatrix.shape.1 + colourmatrix.lowest_coordinates.1
          && index.2 <= colourmatrix.shape.2 + colourmatrix.lowest_coordinates.2
          && index.0 >= colourmatrix.lowest_coordinates.0
          && index.1 >= colourmatrix.lowest_coordinates.1
@@ -615,19 +615,19 @@ pub(crate) fn convert(my_app: &mut MyApp, path: PathBuf){
                 Direction::Front  => {h_front.set_cube_bool(i, true);}
                 Direction::Back   => {h_back.set_cube_bool(i, true);}
                 }
-            
+
         }
         for z in 0..h_left.matrixb.len(){
             for y in 0..h_left.matrixb[z].len(){
                 for x in 0..h_left.matrixb[z][y].len(){
                     if h_left.matrixb[z][y][x] && !h_right.matrixb[z][y][x]{
                         let mut w = 1;
-                        while !h_right.matrixb[z][y][x+w]{                       
+                        while !h_right.matrixb[z][y][x+w]{
                             if !h_front.matrixb[z][y][x+w] &&
                                 !h_back.matrixb[z][y][x+w] &&
                                 !h_top.matrixb[z][y][x+w] &&
                                 !h_bottom.matrixb[z][y][x+w]{
-                                colourmatrix.matrixb[z][y][x+w]=Some(false);  
+                                colourmatrix.matrixb[z][y][x+w]=Some(false);
                             }
                         w+=1;
                         if x > colourmatrix.shape.0 as usize { break };
@@ -766,12 +766,23 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
     }else{
         //MULTITHREADED
         let mut handles = Vec::new();
+        //Create a list to avoid name collisions
+        /// let names = [(id, name), (id different_name), (id2 name), (id 1_name)]
+        /// full name: filename_groupname_1_name.obj
+        /// If name = 1_name it is fine because
+        /// filename_groupname_1_1_name.obj
+        /// If 1 is taken it becomes 2 then 3 ec... (x+1)
+        /// Make it multithreaded with Arcs and Mutexes
+        let mut names = Arc::new(Mutex::new(Vec::<(u16, String, u16)>::new()));
 
-        for m in vox.chunks.iter(){
+        for m in vox.to_print.iter(){
             let vox = vox.clone();
             let path = path.clone();
             let my_app = my_app.clone();
             let m = m.clone();
+
+            // Clone the Arc to share ownership with threads
+            let names_for_thread = Arc::clone(&names);
             let handle = std::thread::spawn(move || {
                 let mut lowest_coordinates = (99999,99999,99999);
                 let mut highest_coordinates = (-99999,-99999,-99999);
@@ -793,14 +804,37 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
                 if m.position.2 + m.size.2 as i32> highest_coordinates.2{
                     highest_coordinates.2 = m.position.2 + m.size.2 as i32;
                 }
-                let shape = 
+                let shape =
                 (highest_coordinates.0-lowest_coordinates.0,
                  highest_coordinates.1-lowest_coordinates.1,
                  highest_coordinates.2-lowest_coordinates.2);
+
                 //Path
+                let mut names = names_for_thread.lock().unwrap();
                 let mut p = path.clone();
                 p.set_extension("");
-                let path = PathBuf::from(format!("{}_{:?}.vox",p.to_string_lossy(), m.id));dbg!(&path);
+                let mut group_name = String::new();
+                if my_app.detailed_export_name {
+                    group_name = format!("_{}",String::from_utf8(m.grandparents_name).expect("Chunk has invalid grandparent name"));
+                }
+                let mut name = String::from_utf8(m.parents_name).expect("Chunk has invalid parent name");
+                let id = m.id.clone();
+                let mut found = false;
+
+                for idx in 0..names.len(){
+                    if (id == names[idx].0) && (names[idx].1 == name){
+                        names[idx].2 += 1;
+                        name = format!("{}_{}",names[idx].2,name);
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
+                    names.push((id.clone(), name.clone(), 0_u16));
+                }
+
+                let path = PathBuf::from(format!("{}{}_{}_{:?}.vox",p.to_string_lossy(),group_name,name, id));
+                dbg!(&path);
                 //WARNING for the user
                 if shape.0*shape.1*shape.2 > 512*512*512{
                     let x = format!("WARNING: ({}x{}x{}) could be too big of a size to optimize, it might slow down your computer and use lots of ram"
@@ -816,11 +850,11 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
                     let indexy = xyzi.y as i32+m.position.1;
                     let indexz = xyzi.z as i32+m.position.2;
                     materialmatrix.set_cube_material((indexx,indexy,indexz), Some(xyzi.i), false);
-                
+
                 }
                 dbg!(&materialmatrix.is_glass, &materialmatrix.extra_mesh_glass);
                 let optimized_vox = convert_to_optimized_vox(&mut materialmatrix, lowest_coordinates,&my_app.cross);
-                
+
                 println!("{:?} optimized cubes in total", optimized_vox.len());
                 let mut obj = Obj::from_optimized_vox(path.clone(), &my_app, &optimized_vox, vox.materials.clone());
                 let x = format!("Exporting the mesh with {} vertices, {} faces and {}x{} texture size"
@@ -829,14 +863,14 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
                 obj.export_all(materialmatrix.shape, lowest_coordinates);
                 println!("{:?}", "Finished optimizing mesh");
                 let x = format!("{} {:?} in {:?}! ","Converted",path.to_string_lossy().to_string(),t.elapsed());
-                let _ = my_app.sx.send(x); 
+                let _ = my_app.sx.send(x);
             });
             handles.push(handle);
         }
         for handle in handles{
             handle.join().unwrap();
         }
-    
+
     }
     //create a material matrix, optimize it, export it for each model
 }
@@ -899,11 +933,11 @@ impl MaterialMatrix{
         }
     }
     fn pos_to_index(&self, x:i32, y:i32, z:i32)->(usize,usize,usize){
-        
+
         let xx = x-self.lowest_coordinates.0;
         let yy = y-self.lowest_coordinates.1;
         let zz = z-self.lowest_coordinates.2;
-        
+
         (xx as usize,yy as usize,zz as usize) //return
     }
     fn get_cube_material(&mut self, x: i32, y:i32, z: i32)->Option<u8>{
@@ -947,7 +981,7 @@ impl MaterialMatrix{
                         Some(id) => {if self.materials[id as usize].transparent!=transparent && deoptimize_glass{return CanBeMerged::No;}
                                            if merged.unwrap(){is_slice_already_merged = true;}
                         }
-                    }    
+                    }
                 }
             }
         }
@@ -963,7 +997,7 @@ impl MaterialMatrix{
                     if self.get_cube_material(x,y,z).is_none() || Some(0) == self.get_cube_material(x,y,z){
                         return false;
                     }
-                } 
+                }
             }
         }
         true //return
@@ -974,7 +1008,7 @@ impl MaterialMatrix{
                 for x in x1..=x2{
                     let id =self.get_cube_material(x,y,z);
                     self.set_cube_material((x,y,z),id, true);
-                } 
+                }
             }
         }
     }
@@ -990,8 +1024,8 @@ impl MaterialMatrix{
             let mut i = 0;
             for y in (y1..y2).rev(){
                 vector_of_materials.push(Vec::new());
-                for x in x1..x2{   
-                        let id = self.get_cube_material(x,y,z2-1);                
+                for x in x1..x2{
+                        let id = self.get_cube_material(x,y,z2-1);
                         if id.is_none(){vector_of_materials[i].push(0);}else if let Some(c) = id{
                         vector_of_materials[i].push(c);}
                 }
@@ -1117,7 +1151,7 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
                               index_we_are_at.2, index_we_are_at.2){
             CanBeMerged::No => {return None;}
             CanBeMerged::Cross => {return None;}
-            CanBeMerged::Yes => { 
+            CanBeMerged::Yes => {
                 //if so it will be the first cube of the vector
                 /*
                 if let Some(x) = mymap.get_cube(index_we_are_at.0 as i32, index_we_are_at.1 as i32, index_we_are_at.2 as i32) {
@@ -1155,9 +1189,9 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
     //todo()! -> v_cached gets sanitized (based on the cross rule) and then I put cubes in the optimized cubes based
     //           on vector lenght
     //println!("{:?}", v_cached);
-    
 
-    v_cached = cache_sanitization( v_cached, *cross_optimization);  
+
+    v_cached = cache_sanitization( v_cached, *cross_optimization);
     shape.0 = v_cached.len() as i32 + 1 ;
     /*
     if shape.0 > 1{
@@ -1178,8 +1212,8 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
             ((mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k) == CanBeMerged::Cross) && *cross_optimization){
                 v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k));
                 shape.1 += 1;
-            }  
-    v_cached = cache_sanitization( v_cached, *cross_optimization);    
+            }
+    v_cached = cache_sanitization( v_cached, *cross_optimization);
     shape.1 = v_cached.len() as i32  + 1;
     /*
     if shape.1 > 1{
@@ -1197,7 +1231,7 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
             ((mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2) == CanBeMerged::Cross) && *cross_optimization){
                 v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2));
                 shape.2 += 1;
-            }  
+            }
     v_cached = cache_sanitization( v_cached, *cross_optimization);
     shape.2 = v_cached.len() as i32  + 1;
     /*
@@ -1259,7 +1293,7 @@ pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32
                               index_we_are_at.2, index_we_are_at.2, transparent){
             CanBeMerged::No => {return None;}
             CanBeMerged::Cross => {return None;}
-            CanBeMerged::Yes => { 
+            CanBeMerged::Yes => {
             }
         }
 
@@ -1278,7 +1312,7 @@ pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32
                 shape.0 += 1;
             }
 
-    v_cached = cache_sanitization( v_cached, *cross_optimization);  
+    v_cached = cache_sanitization( v_cached, *cross_optimization);
     shape.0 = v_cached.len() as i32 + 1 ;
 
     //y
@@ -1287,8 +1321,8 @@ pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32
             ((mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent) == CanBeMerged::Cross) && *cross_optimization){
                 v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent));
                 shape.1 += 1;
-            }  
-    v_cached = cache_sanitization( v_cached, *cross_optimization);    
+            }
+    v_cached = cache_sanitization( v_cached, *cross_optimization);
     shape.1 = v_cached.len() as i32  + 1;
 
     //z
@@ -1297,7 +1331,7 @@ pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32
             ((mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent) == CanBeMerged::Cross) && *cross_optimization){
                 v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent));
                 shape.2 += 1;
-            }  
+            }
     v_cached = cache_sanitization( v_cached, *cross_optimization);
     shape.2 = v_cached.len() as i32  + 1;
 

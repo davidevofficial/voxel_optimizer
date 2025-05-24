@@ -1,2 +1,4 @@
 version.txt
-Current Version is 2.0.8
+Latest Version is 2.0.9
+
+If your version is not 2.0.9 please update to have all the latest features and

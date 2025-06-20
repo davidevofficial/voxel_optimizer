@@ -8,9 +8,23 @@ This program was made to optimize the meshes that are exported by **MagicaVoxel*
 6. multithreaded so that converting many models is blazingly fast
 
 # Compatibility
-Before explaining how it works I wanted to say that this program unfortunately only works for **windows**, if you know a little bit of rust you can contribute to other major platforms such as linux and mac. Also while this program doesn't use much cpu the better the cpu the faster will be the processes, the cpu also has to support multithreading to a certain capacity (Most of the cpu's will do the job). Last but not least to run this program you need a minimal amount of ram but it has to be at least as big as the models you are compressing.
+Before explaining how it works I wanted to say that this program works for **windows** and on **linux** and **mac** (mac is untested) throught wine but I also managed to get it working on Linux by compiling its source like so (from a default installation of Rustup > rustup default stable on Kubuntu ) :
+```
+sudo apt install rustup
+rustup default stable
+sudo apt-get install libatk1.0-dev libgdk-pixbuf2.0-dev
+sudo apt-get install libgtk-3-dev
+cargo build --profile finalrelease (or debug if you want debug)
+(Copy src inside of /target/finalrelease (or debug) or Copy VoxelOptimizer inside of src)
+cd /path/to/VoxelOptimizer
+WAYLAND_DISPLAY=invalid ./VoxelOptimizer //WayLand doesn't support drag-and-drop appraently so force X11 works fine (actually winit doesn't support Wayland drag and drop https://github.com/rust-windowing/winit/issues/1881) 
+```
+if you know a little bit of rust you can contribute to other major platforms such as Linux (making it wayland-compatible) and mac (just test it with wine or whatever for the 5 people that use macOS + magicavoxel and blender/godot/unity whatever). 
 
-# Usage and benchmarks
+## Requirements
+Also while this program doesn't use much cpu the better the cpu the faster will be the processes, the cpu also has to support multithreading to a certain capacity (Most of the cpu's will do the job). Last but not least to run this program you need a minimal amount of ram but it has to be at least as big as the models you are compressing.
+
+# Get Started
 Watch this video: [Optimize magicavoxel models with voxel optimizer](https://www.youtube.com/watch?v=KspAgJy-C9A) for version 1.0 and this one: [A new version of VoxelOptimizer is out!!!](https://www.youtube.com/watch?v=8qdgk7juKSw) for version 2.0 or follow this instructions to get started.
 
 **download the latest release (release v2.0.0)** and **extract it** in a folder or on your desktop, the important thing is that both the folder "src" and voxeloptimizer.exe are on the same directory (whether it is on the desktop or in another folder).

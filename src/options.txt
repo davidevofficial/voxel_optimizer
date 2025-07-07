@@ -3,3 +3,4 @@ manual_vt:true
 vt_precisionnumber:0
 y_is_up:true
 right_handed:true
+export_invisible:false

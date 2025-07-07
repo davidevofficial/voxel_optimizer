@@ -711,6 +711,9 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
         let mut lowest_coordinates = (99999,99999,99999);
         let mut highest_coordinates = (-99999,-99999,-99999);
         for m in vox.to_print.iter(){
+        	if m.hidden && !my_app.export_invisible{
+       			continue
+         	}
             if m.position.0 < lowest_coordinates.0{
                 lowest_coordinates.0 = m.position.0;
             }
@@ -745,6 +748,9 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
         materialmatrix.set_size(shape.0, shape.1, shape.2);
 
         for m in vox.to_print.iter(){
+       		if m.hidden && !my_app.export_invisible{
+      			continue
+        	}
             for xyzi in &m.xyzi{
                 let indexx = xyzi.x as i32+m.position.0;
                 let indexy = xyzi.y as i32+m.position.1;
@@ -776,6 +782,9 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
         let mut names = Arc::new(Mutex::new(Vec::<(u16, String, u16)>::new()));
 
         for m in vox.to_print.iter(){
+       		if m.hidden && !my_app.export_invisible{
+     			continue
+        	}
             let vox = vox.clone();
             let path = path.clone();
             let my_app = my_app.clone();

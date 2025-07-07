@@ -118,7 +118,7 @@ impl Vox{
         for nod in 0..self.nodes.len(){
             let x = self.nodes[nod].clone().find_children();
             let children_id = x.1.clone();
-            //if nSHP: do nothing else updated the children's parent name
+            //if nSHP: do nothing, else: update the children's parent name, and children's visibility
             if x.0{
                 continue;
             }
@@ -127,6 +127,7 @@ impl Vox{
                 let n_shp = &self.nodes[children_id[0] as usize];
                 let model = &self.chunks[n_shp.find_children().1[0] as usize];
                 let mut ch = model.clone();
+                ch.hidden = if self.nodes[nod].get_visibility() == 1{ true } else { false };
                 ch.parents_name = self.nodes[nod].get_name();
                 ch.grandparents_name = self.nodes[nod].get_parents_name();
                 ch.rotation = self.nodes[nod].find_attributes().rotation;
@@ -224,12 +225,15 @@ impl Vox{
                 // I (nod) am the parent of node[children_id] which is a nGRP
                 // All the children of node[children_id] must have my surname
                 // my name (name of the nTRN)
+                // And if I am hidden, then also all my grandchildren must be hidden
                 let my_name = self.nodes[nod].get_name();
+                let my_visibility = self.nodes[nod].get_visibility();
                 let children_id = self.nodes[children_id[0] as usize].clone().find_children();
                 for child_id in 0..children_id.1.len(){
                     let id = children_id.1[child_id].clone() as usize;
                     if let Some(child) = self.nodes.get_mut(id) {
                         child.change_parents_name(my_name.clone());
+                        child.change_visibility(my_visibility.clone());
                     }
                 }
             }
@@ -707,10 +711,25 @@ impl Node{
             trn.parents_name = new_name;
         }
     }
+    fn change_visibility(&mut self, new_value: u8){
+    	if new_value == 0{
+     		return
+     	}
+     	if let Node::TRN(ref mut trn) = self {
+          	trn.hidden = new_value;
+      	}
+    }
     fn get_name(&self)->Vec<u8>{
         match &self {
             Node::TRN(trn) => {return trn.name.clone()}
             _ => {Vec::new()}
+        }
+    }
+    // 0 = visible, 1 = hidden
+    fn get_visibility(&self)->u8{
+        match &self {
+            Node::TRN(trn) => {return trn.hidden}
+            _ => {0}
         }
     }
     fn get_parents_name(&self)->Vec<u8>{
@@ -731,6 +750,7 @@ impl Node{
 #[derive(Debug, Default, Clone)]
 pub struct Chunks{
     pub id: u16,
+    pub hidden: bool,
     pub position: (i32,i32,i32),
     pub rotation: (Versor, Versor, Versor),
     pub size: (u16, u16, u16),

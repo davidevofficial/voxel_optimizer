@@ -328,7 +328,7 @@ impl eframe::App for MyApp {
                         change_options("detailed_export_name", &self.detailed_export_name.to_string());
                     }
                 }
-                let r = columns[1].checkbox(&mut self.all_in_one_mesh, "Export invisible objects");
+                let r = columns[1].checkbox(&mut self.export_invisible, "Export invisible objects");
                 if r.changed() {
                     change_options("export_invisible", &self.export_invisible.to_string());
                 }

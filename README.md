@@ -298,6 +298,14 @@ The output will be {FileName}_{GroupName if detailed export name is enabled}_{Ob
 1. Increased RAM usage while optimizing
 2. Can't modify or use singular models because they are now all part of one
 
+### Export Invisible Objects
+
+When you are working with magicavoxel you may change the visibility of objects or groups. With this option disabled the invisible objects aren't exported, in this way you can selectively choose which objects are exported.
+
+This is useful when for example if you are building a big scene you might only want to export a small fraction of it.
+
+**Reccomended:OFF when MagicaVoxel scenes are huge**
+
 ### Transparency, Emission, Roughness, Metallic, IOR and Specular Maps
 
 If all of these are ON this is what the .mtl looks like (Given a .vox project called GlassTest): ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/9654d308-169c-4ba2-ac4a-b17a07fcf23a)

@@ -881,6 +881,8 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
         }
 
     }
+    let x = format!("{} {:?} in {:?}! ","Finished",path.to_string_lossy().to_string(),t.elapsed());
+    let _ = my_app.sx.send(x);
     //create a material matrix, optimize it, export it for each model
 }
 

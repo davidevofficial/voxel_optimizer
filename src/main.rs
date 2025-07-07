@@ -108,6 +108,7 @@ struct MyApp {
     refraction: bool,
     specular: bool,
     glass_creates_more_mesh:bool,
+    export_invisible: bool,
 }
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -327,6 +328,10 @@ impl eframe::App for MyApp {
                         change_options("detailed_export_name", &self.detailed_export_name.to_string());
                     }
                 }
+                let r = columns[1].checkbox(&mut self.all_in_one_mesh, "Export invisible objects");
+                if r.changed() {
+                    change_options("export_invisible", &self.export_invisible.to_string());
+                }
                 let r = columns[1].checkbox(&mut self.transparency, "Enable transparency");
                 if r.changed() {
                     change_options("transparency", &self.transparency.to_string());
@@ -425,7 +430,7 @@ impl Default for MyApp{
             let mut refraction = true;
             let mut specular = true;
             let mut glass_creates_more_mesh = true;
-
+            let mut export_invisible = true;
 
 
 
@@ -467,7 +472,7 @@ impl Default for MyApp{
                         "sizez" => {sizez = parts.1[1..].parse::<f32>().expect("Type is not correct: {}");}
                         "uv_extra_precision" => {uv_extra_precision = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
                         "detailed_export_name" => {detailed_export_name = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
-
+                        "export_invisible" => {export_invisible = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
                         _ => {
                             println!("Line has an unrecognized type \n line:{}",line);
                         }
@@ -513,7 +518,8 @@ impl Default for MyApp{
             sizey,
             sizez,
             uv_extra_precision,
-            detailed_export_name
+            detailed_export_name,
+            export_invisible,
         }
     }
 }

@@ -17,9 +17,9 @@ sudo apt-get install libgtk-3-dev
 cargo build --profile finalrelease (or debug if you want debug)
 (Copy src inside of /target/finalrelease (or debug) or Copy VoxelOptimizer inside of src)
 cd /path/to/VoxelOptimizer
-WAYLAND_DISPLAY=invalid ./VoxelOptimizer //WayLand doesn't support drag-and-drop appraently so force X11 works fine (actually winit doesn't support Wayland drag and drop https://github.com/rust-windowing/winit/issues/1881) 
+WAYLAND_DISPLAY=invalid ./VoxelOptimizer //WayLand doesn't support drag-and-drop apparently so force X11 works fine (actually winit doesn't support Wayland drag and drop https://github.com/rust-windowing/winit/issues/1881)
 ```
-if you know a little bit of rust you can contribute to other major platforms such as Linux (making it wayland-compatible) and mac (just test it with wine or whatever for the 5 people that use macOS + magicavoxel and blender/godot/unity whatever). 
+if you know a little bit of rust you can contribute to other major platforms such as Linux (making it wayland-compatible) and mac (just test it with wine or whatever for the 5 people that use macOS + magicavoxel and blender/godot/unity whatever).
 
 ## Requirements
 Also while this program doesn't use much cpu the better the cpu the faster will be the processes, the cpu also has to support multithreading to a certain capacity (Most of the cpu's will do the job). Last but not least to run this program you need a minimal amount of ram but it has to be at least as big as the models you are compressing.

@@ -927,9 +927,14 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
     // If vox_bytes[20] = "M" the file was made with mv 0.99.7.2 or above
     // This means that SIZE is at another index after the newly added
     // META - _anim_range : string (interval from x to y, default: 0..30)
+<<<<<<< HEAD
     if vox_bytes[size_index] == 0x4D{
     	while vox_bytes[size_index] != 0x53 {
      		dbg!(&vox_bytes[size_index]);
+=======
+    if vox_bytes[size_index] == 0x40{
+    	while vox_bytes[size_index] != 0x53 {
+>>>>>>> 6fba206c254f5cda75e9382c0fd5898e9ba3bf49
    			size_index += 1;
      		if size_index > 500{
        			return Err(vox_importer_errors::Other("No models in the .vox file".to_string()));

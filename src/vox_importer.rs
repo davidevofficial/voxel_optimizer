@@ -921,11 +921,23 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
     //  X  Y  Z  I (rev. size 8b) ({37}-{37}+[{33}*16^3+{32}*16^2+{31}*16+{30}]) (35, 36, 37 will be 0)
     // goes from "XYZI........"|to|"SIZE" or "nTRP"
     // S+36 to S
-    if vox_bytes[20] != 0x53{
-        return Err(vox_importer_errors::Other("No models in the .vox file".to_string()));
-    }
     //                  0x14
     let mut size_index = 20;
+
+    // If vox_bytes[20] = "M" the file was made with mv 0.99.7.2 or above
+    // This means that SIZE is at another index after the newly added
+    // META - _anim_range : string (interval from x to y, default: 0..30)
+    if vox_bytes[size_index] == 0x40{
+    	while vox_bytes[size_index] != 0x53 {
+   			size_index += 1;
+     		if size_index > 500{
+       			return Err(vox_importer_errors::Other("No models in the .vox file".to_string()));
+       		}
+     	}
+    }
+    if vox_bytes[size_index] != 0x53{
+        return Err(vox_importer_errors::Other("No models in the .vox file".to_string()));
+    }
     let mut i = 0;
     while vox_bytes[size_index] == 0x53{
 

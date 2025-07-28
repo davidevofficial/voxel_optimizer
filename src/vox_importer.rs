@@ -930,8 +930,6 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
     if vox_bytes[size_index] == 0x4D{
     	while vox_bytes[size_index] != 0x53 {
      		dbg!(&vox_bytes[size_index]);
-    if vox_bytes[size_index] == 0x40{
-    	while vox_bytes[size_index] != 0x53 {
    			size_index += 1;
      		if size_index > 500{
        			return Err(vox_importer_errors::Other("No models in the .vox file".to_string()));

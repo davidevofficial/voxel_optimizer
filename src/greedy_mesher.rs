@@ -679,7 +679,7 @@ pub fn convert_vox(my_app: &mut MyApp, path:PathBuf){
             //println!("{}", content);
             let x = format!("{}{}" ,String::from("parsing:"), &path.to_string_lossy().to_string());
             let _ = my_app.sx.send(x);
-            parse_vox(&content)
+            parse_vox(&content,my_app.realistic_lightning)
             //my_app.status = "parsing" ; parse(content)
         },
         Err(error) => {

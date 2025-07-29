@@ -890,7 +890,7 @@ pub fn parse_ply(content: &Vec<u8>) -> Result<ply, vox_importer_errors>{
     ply.vertices = vec_v;
     Ok(ply)
 }
-pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
+pub fn parse_vox(content: &Vec<u8>, flag_emission: bool) -> Result<Vox, vox_importer_errors>{
     let mut vox: Vox = Vox::default();
     let vox_bytes = content;
     //vox check
@@ -1107,6 +1107,8 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
                             g:(m.rgb.g as f32*ratio).floor() as u8,
                             b:(m.rgb.b as f32*ratio).floor() as u8 })
         }
+        if !flag_emission && emit != 0.0{m.rgb_e = Some(Rgb{r:m.rgb.r,g:m.rgb.g,b:m.rgb.b})}
+        else if !flag_emission && emit == 0.0{m.rgb_e = Some(Rgb::default())}
         matl.push(m);
     }
     //println!("{:?}",matl);

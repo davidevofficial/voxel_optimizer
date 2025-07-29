@@ -13,6 +13,7 @@ use eframe::egui;
 use std::fs::read;
 use std::fs::write;
 use std::io::BufRead;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 //use std::time::Duration;
@@ -76,6 +77,7 @@ struct MyApp {
     rx: Arc<Mutex<Receiver<String>>>,
     dropped_files: Vec<egui::DroppedFile>,
     picked_path: Option<String>,
+    picked_file: Option<String>,
     pub status: String,
     pub requestrepaint: bool,
     //settings
@@ -128,6 +130,19 @@ impl eframe::App for MyApp {
             });
         });
         egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui|{
+        	ui.horizontal(|ui|{
+		         if ui.button("Open file or drag and drop…").clicked() {
+		             if let Some(path) = rfd::FileDialog::new().pick_file() {
+		                 self.picked_file = Some(path.display().to_string());
+		             }
+		         }
+		         if let Some(picked_file) = &self.picked_file {
+		             ui.horizontal(|ui| {
+		                 ui.label("Picked file:");
+		                 ui.monospace(picked_file);
+		             });
+		         }
+        	});
             ui.horizontal(|ui|{
                 //ui.label("Drag-and-drop files onto the window to import, click the button below to choose the export directory!");
                 if ui.button("Click this button to choose the output directory!").clicked() {
@@ -191,6 +206,30 @@ impl eframe::App for MyApp {
                                 self.status = String::from("Invalid file/files!!!");
                             }
                         }
+                        if self.picked_file.is_some(){
+                        	let i = &PathBuf::from(&self.picked_file.clone().unwrap());
+	                       	if is_valid_ply(i) {
+	                            //println!("valid!");
+	                            self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy());
+	                            let i_clone = i.clone();
+	                            let mut my_app_clone = self.clone();
+	                            thread::spawn(move ||{
+	                              greedy_mesher::convert(&mut my_app_clone, i_clone);
+	                            });
+	                            //thread::sleep(Duration::from_millis((2000/self.dropped_files.len()).try_into().unwrap()));
+	                            //greedy_mesher::convert(self, i);
+	                        } else if is_vox(i) {
+	                            self.status = format!("{}{}", String::from("Loading:"), i.to_string_lossy());
+	                            let i_clone = i.clone();
+	                            let mut my_app_clone = self.clone();
+	                            thread::spawn(move ||{
+	                              greedy_mesher::convert_vox(&mut my_app_clone, i_clone);
+	                            });
+	                        }else{
+	                            println!("invalid!");
+	                            self.status = String::from("Invalid file/files!!!");
+	                        }
+	                        }
                     } else {
                         self.status = String::from("It is necessary to select an output folder, click the button above to do that! And if you haven't already drop the files onto the window")
                     }
@@ -489,6 +528,7 @@ impl Default for MyApp{
             rx: Arc::new(Mutex::new(rx)),
             dropped_files: vec![],
             picked_path: None,
+            picked_file: None,
             status: "".to_string(),
             requestrepaint: false,
             monochrome,

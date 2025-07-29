@@ -1085,7 +1085,7 @@ pub fn parse_vox(content: &Vec<u8>) -> Result<Vox, vox_importer_errors>{
             }
             n_of_attributes -= 1;
         }
-        let initial_luminance = 0.3*(m.rgb.r as f32) + 0.59*(m.rgb.r as f32) +0.11*(m.rgb.b as f32);
+        let initial_luminance = 0.3*(m.rgb.r as f32) + 0.59*(m.rgb.g as f32) +0.11*(m.rgb.b as f32);
         term = -0.5*((x as f32-127.5).abs())+63.75;
         let mut delta_luminance = 0.0;
         if emit != 0.0 || flux != 0 || ldr != 0.0{

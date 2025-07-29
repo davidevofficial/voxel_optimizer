@@ -892,6 +892,7 @@ pub enum CanBeMerged{
     Yes,
     No,
     Cross,
+    CrossWithBenefit,
 }
 ///Materials is of lenght 256 and matrixm is of lenght [shape.0][shape.1][shape.2]
 ///
@@ -975,7 +976,7 @@ impl MaterialMatrix{
     }
     fn can_slice_be_merged(&mut self, x1:i32, x2:i32, y1:i32, y2:i32, z1:i32, z2:i32, transparent:f32) -> CanBeMerged {
         let mut is_slice_already_merged: bool = false;
-        //let mut is_all_merged: bool=false;
+        let mut is_all_merged: bool = true;
         let is_glass = self.is_glass;
         let glass_creates_more_mesh = self.extra_mesh_glass;
         let deoptimize_glass = is_glass && glass_creates_more_mesh;
@@ -990,14 +991,17 @@ impl MaterialMatrix{
                     match cube{
                         None => {return CanBeMerged::No;}
                         Some(id) => {if self.materials[id as usize].transparent!=transparent && deoptimize_glass{return CanBeMerged::No;}
-                                           if merged.unwrap(){is_slice_already_merged = true;}
+                                           if merged.unwrap(){is_slice_already_merged = true;}else{is_all_merged = false;}
                         }
                     }
                 }
             }
         }
-        if is_slice_already_merged{
+        if is_slice_already_merged && is_all_merged{
             return CanBeMerged::Cross;
+        }
+        if is_slice_already_merged && !is_all_merged{
+        	return CanBeMerged::CrossWithBenefit;
         }
         CanBeMerged::Yes //return
     }
@@ -1162,6 +1166,7 @@ fn find_dimensions(mymap: &mut ColourMatrix, index_we_are_at: (i32,i32,i32), cro
                               index_we_are_at.2, index_we_are_at.2){
             CanBeMerged::No => {return None;}
             CanBeMerged::Cross => {return None;}
+            CanBeMerged::CrossWithBenefit => {return None;}
             CanBeMerged::Yes => {
                 //if so it will be the first cube of the vector
                 /*
@@ -1304,6 +1309,7 @@ pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32
                               index_we_are_at.2, index_we_are_at.2, transparent){
             CanBeMerged::No => {return None;}
             CanBeMerged::Cross => {return None;}
+            CanBeMerged::CrossWithBenefit => {return None;}
             CanBeMerged::Yes => {
             }
         }
@@ -1318,7 +1324,8 @@ pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32
     //x
     let mut v_cached = Vec::new();
     while (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k, transparent) == CanBeMerged::Yes) ||
-            (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k, transparent) == CanBeMerged::Cross && *cross_optimization){
+            (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k, transparent) == CanBeMerged::Cross && *cross_optimization)||
+                    (mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k, transparent) == CanBeMerged::CrossWithBenefit && *cross_optimization){
                 v_cached.push(mymap.can_slice_be_merged(i+shape.0, i+shape.0, j, j, k, k, transparent));
                 shape.0 += 1;
             }
@@ -1329,7 +1336,8 @@ pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32
     //y
     v_cached = Vec::new();
     while (mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent) == CanBeMerged::Yes) ||
-            ((mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent) == CanBeMerged::Cross) && *cross_optimization){
+            ((mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent) == CanBeMerged::Cross) && *cross_optimization)||
+                    ((mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent) == CanBeMerged::CrossWithBenefit) && *cross_optimization){
                 v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j+shape.1, j+shape.1, k, k, transparent));
                 shape.1 += 1;
             }
@@ -1339,7 +1347,8 @@ pub fn find_dimensions_vox(mymap: &mut MaterialMatrix, index_we_are_at: (i32,i32
     //z
     v_cached = Vec::new();
     while (mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent) == CanBeMerged::Yes) ||
-            ((mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent) == CanBeMerged::Cross) && *cross_optimization){
+            ((mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent) == CanBeMerged::Cross) && *cross_optimization)||
+                    ((mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent) == CanBeMerged::CrossWithBenefit) && *cross_optimization){
                 v_cached.push(mymap.can_slice_be_merged(i, i+shape.0-1, j, j+shape.1-1, k+shape.2, k+shape.2, transparent));
                 shape.2 += 1;
             }

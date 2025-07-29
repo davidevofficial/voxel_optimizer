@@ -353,21 +353,23 @@ MV = magicavoxel, VO = voxeloptimizer
 
 | Model Name            | MV Export size | MV Export speed | VO Export Size  | VO Export speed |
 |-----------------------|----------------|-----------------|-----------------|-----------------|
-|3x3x3                  |4.41kb          |N/A              |2.73kb           |73ms             |
-|Lightsabers            |14.8kb          |N/A              |7.4kb            |98ms             |
-|Castle+Chr_knight+Cars |276.2kb         |N/A              |126.5kb          |485ms            |
-|Doom                   |632.1kb         |N/A              |84.9kb           |473ms            |
-|Teapot                 |2.82mb          |About 3s         |1.27mb           |2.92s            |
-|Menger                 |19.5mb          |About 7s         |8.33mb           |22.93s           |
+|3x3x3                  |4.41kb          |N/A              |2.8kb            |15ms             |
+|Lightsabers            |14.8kb          |N/A              |6.5kb            |30ms             |
+|Castle+Chr_knight+Cars |276.2kb         |N/A              |102.6kb          |190ms            |
+|Doom                   |632.1kb         |N/A              |67.8kb           |213ms            |
+|Teapot                 |2.82mb          |About 3s         |1.27mb           |2.42s            |
+|Menger                 |19.5mb          |About 7s         |8.33mb           |15.8s            |
 
-VoxelOptimizer clearly beats Magicavoxel out of the water it is about two times as disk efficient (without accounting for the fact that they contain about 10x less faces) while unfortunately being slightly slower than Magicavoxel, VoxelOptimizer has also other advantages:
+VoxelOptimizer clearly beats Magicavoxel out of the water it is about two times as disk efficient (without accounting for the fact that they contain about 10x less faces) while unfortunately being slightly slower than Magicavoxel on large models, however being Multithreaded when there are multiple exports to do it means that exporting more models/projects is faster, VoxelOptimizer has also other advantages:
 |                                         |MV |VO |
 |-----------------------------------------|---|---|
 |Converting multiple files at once        |No |Yes|
 |Exporting to one file                    |No |Yes|
 |Exporting materials                      |No |Yes|
-|Various coordinate systems to choose from|No |Yes|
+|Various coordinate systems  							|No |Yes|
 |Normals                                  |Yes|Yes|
+|Customizability													|No |Yes|
+|Multithreaded for multipe models         |No |Yes|
 |Optimized for gamedev                    |No |Ye!|
 
 

@@ -1,4 +1,4 @@
 version.txt
-Latest Version is 2.0.10
+Latest Version is 2.0.11
 
-If your version is not 2.0.10 please update to have all the latest features and
+If your version is not 2.0.11 please update to have all the latest features and

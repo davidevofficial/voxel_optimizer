@@ -123,7 +123,7 @@ impl eframe::App for MyApp {
                 ui.label("First change the settings and Drag-and-drop files onto the window.Click the convert button to convert them into an optimized .obj file.
                          send me an email at: davidevufficial@gmail.com or For more help check the documentation here:");
                 ui.hyperlink_to("Github", "https://github.com/davidevofficial/voxel_optimizer/");
-                ui.label("Version is 2.0.10");
+                ui.label("Version is 2.0.11");
                 ui.hyperlink_to("Check for updates",
                     "https://raw.githubusercontent.com/davidevofficial/voxel_optimizer/refs/heads/master/src/version.txt");
 

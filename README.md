@@ -327,6 +327,12 @@ If all of these are ON this is what the .mtl looks like (Given a .vox project ca
 and this is what the file structure looks like: ![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/efa02adc-644e-4ed6-9088-cc3a362e3f5b)
 
 
+### Emission: Realistic Lightning
+
+If ON the program will attempt to use a smart algorithm for creating the emission map, creating a discrepancy between the albedo map and emission map.
+
+If OFF and the material is emissive the colour on the emission map will be the same as in the albedo map (if not emissive it will be rgb[0,0,0] on the emission map)
+
 **WARNING:**
 You might want to modify manually the emission map with another program (I'd suggest [Slate](https://github.com/mitchcurtis/slate/releases/tag/v0.9.0), just download, extract, load \_emit.png, click ctrl + A, go to **image>adjustments>Hue/Saturation**, modify, click ctrl + S) and the Alpha of the Albedo Map to make glass look more dense (You can do this as by changing The emission map but instead of hue/saturation you change opacity, for slate click the two checkbox and increase the slider).
 

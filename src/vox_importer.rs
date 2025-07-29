@@ -1108,7 +1108,7 @@ pub fn parse_vox(content: &Vec<u8>, flag_emission: bool) -> Result<Vox, vox_impo
                             b:(m.rgb.b as f32*ratio).floor() as u8 })
         }
         if !flag_emission && emit != 0.0{m.rgb_e = Some(Rgb{r:m.rgb.r,g:m.rgb.g,b:m.rgb.b})}
-        else if !flag_emission && emit == 0.0{m.rgb_e = Some(Rgb::default())}
+        else if !flag_emission && emit == 0.0{m.rgb_e = None}
         matl.push(m);
     }
     //println!("{:?}",matl);

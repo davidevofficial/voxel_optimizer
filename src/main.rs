@@ -27,7 +27,34 @@ use crate::vox_importer::{is_valid_ply,is_vox};
 /// Initiates the native window and calls the [`update`] method every frame.
 fn main() -> Result<(), eframe::Error> {
 
-    println!("Hello, world!");
+    // CLI functionality
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1{
+        let mut my_app = MyApp::default();
+        my_app.picked_file = Some(args[1].clone());
+        if my_app.picked_path.is_some(){
+            if my_app.picked_file.is_some(){
+            	let i = &PathBuf::from(&my_app.picked_file.clone().unwrap());
+	            if is_valid_ply(i) {
+					let start = std::time::Instant::now();        // Start timer
+					greedy_mesher::convert(&mut my_app, i.clone());
+					let duration = start.elapsed();    // Get elapsed time
+					println!("{:?} Converted in: {:?}",i.clone(), duration);
+	            } else if is_vox(i) {
+					let start = std::time::Instant::now();        // Start timer
+					greedy_mesher::convert_vox(&mut my_app, i.clone());
+					let duration = start.elapsed();    // Get elapsed time
+					println!("{:?} Converted in: {:?}",i.clone(), duration);
+	            }else{
+	                println!("Invalid File!");
+	            }
+	        }
+        } else {
+            println!("options.txt doesn't contain line that says: 'picked_path:/path/to/export/folder'");
+        }
+        Ok(())
+    } else {
+
 
     //icon
     println!("WARNING: If it crashes without displaying a window it means that the src folder or the contents inside could not be found, make sure VoxelOptimizer.exe is in the same folder as the src folder and unzipped.
@@ -64,6 +91,8 @@ fn main() -> Result<(), eframe::Error> {
         options,
         Box::new(|_cc| Box::<MyApp>::default()),
     )
+
+    }
 }
 ///Saves the data needed to run the app
 /// # Contains

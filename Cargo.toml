@@ -3,7 +3,7 @@ name = "VoxelOptimizer"
 version = "2.1.0"
 edition = "2021"
 authors = ["Davidevofficial <davidevufficial@gmail.com>"]
-description = "A simple tool to optimize voxel models"
+description = "A simple tool to optimize magicavoxel models"
 
 [[bin]]
 name="VoxelOptimizer"

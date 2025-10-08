@@ -23,6 +23,5 @@ codegen-units = 1
 crunch = { git = "https://github.com/ChevyRay/crunch-rs", branch = "master" }
 eframe = "0.22.0"
 rfd = "0.11.4"
-ndarray = "0.15.6"
 png = "0.17.10"
 

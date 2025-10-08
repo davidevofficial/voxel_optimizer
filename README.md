@@ -33,13 +33,18 @@ To run the program **double click** onto the executable and two windows will ope
 You'll have something like this:![image](https://github.com/davidevofficial/voxel_optimizer/assets/127616649/851990a9-ab26-4c67-b456-c701035e5b01)
 
 
-If you are on version 2.0 you can **drag and drop** every project file (.vox) you want to convert or use .ply files exported from magicavoxel itself. If you plan on using .vox files then you can export an obj with different materials depending on your settings.
+If you are on version 2.0 or above you can **drag and drop** every project file (.vox) you want to convert or use .ply files exported from magicavoxel itself. If you plan on using .vox files then you can export an obj with different materials depending on your settings.
 
 If you are on version 1.0.1 to convert models to an optimized and superior form you first have to create the models in magicavoxel and export them using the second option (.ply) and then **drag and drop** every file you want to convert (you can and it's better if you do more than one at the time, tip: Control + A selects all the files in a folder) like so:
 
 https://github.com/davidevofficial/voxel_optimizer/assets/127616649/4568ff63-293d-4748-83a3-ced18711c548
 
 The default options are the best if you care about output file size, however depending on your needs you might need to change some, so here is every setting and its explanation with pros and cons.
+
+Starting from version 2.1.0 the program can also be used as a CLI, for it to work you must provide an export path (either by manually modifying options.txt by inserting "picked_path:/path/to/export/folder" or launching the GUI).
+
+The usage of the CLI is as follows: `./VoxelOptimizer.exe /path/to/file.vox`
+
 
 ## Algorithm Options
 

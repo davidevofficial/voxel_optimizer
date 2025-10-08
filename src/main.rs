@@ -76,7 +76,7 @@ struct MyApp {
     sx: Sender<String>,
     rx: Arc<Mutex<Receiver<String>>>,
     dropped_files: Vec<egui::DroppedFile>,
-    picked_path: Option<String>,
+    picked_path: Option<String>, //Export Folder
     picked_file: Option<String>,
     pub status: String,
     pub requestrepaint: bool,
@@ -149,6 +149,7 @@ impl eframe::App for MyApp {
                 if ui.button("Click this button to choose the output directory!").clicked() {
                     if let Some(path) = rfd::FileDialog::new().pick_folder() {
                         self.picked_path = Some(path.display().to_string());
+                        change_options("picked_path",  path.to_str().unwrap());
                     }
                 }
                 if let Some(picked_path) = &self.picked_path {
@@ -445,6 +446,7 @@ impl Default for MyApp{
             let (sx, rx): (Sender<String>, Receiver<String>) = channel();
             let c = read("src/options.txt").unwrap();
             //Initialize default vars
+            let mut picked_path = None;
             let mut monochrome = true;
             let mut pattern_matching = true;
             let mut is_texturesize_powerof2 = true;
@@ -521,6 +523,7 @@ impl Default for MyApp{
                         "detailed_export_name" => {detailed_export_name = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
                         "export_invisible" => {export_invisible = parts.1[1..].parse::<bool>().expect("Type is not correct: {}");}
                         "realistic_lightning" => {realistic_lightning = parts.1[1..].parse::<bool>().expect("Type is not correct")}
+                        "picked_path" => {picked_path = Some(parts.1[1..].parse::<String>().expect("Type is not correct"))}
                         _ => {
                             println!("Line has an unrecognized type \n line:{}",line);
                         }
@@ -536,7 +539,7 @@ impl Default for MyApp{
             sx,
             rx: Arc::new(Mutex::new(rx)),
             dropped_files: vec![],
-            picked_path: None,
+            picked_path,
             picked_file: None,
             status: "".to_string(),
             requestrepaint: false,

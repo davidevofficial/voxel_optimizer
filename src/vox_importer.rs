@@ -903,16 +903,15 @@ pub fn parse_vox(content: &Vec<u8>, flag_emission: bool) -> Result<Vox, vox_impo
             }
             Err(_) => println!("Failed!"),
         }
-    let result: Result<u8, _> = vox_bytes[4].try_into();
-        match result {
-            Ok(bytes_fixed) => {
-                if bytes_fixed != 200{
-                return Err(vox_importer_errors::NotVersion200);
-                }
-            }
-            Err(_) => println!("Failed!"),
-        }
-    vox.vox_version = 200;
+    let result: Result<&[u8; 4], _> = vox_bytes[4..8].try_into();
+    let vox_version: u32 = match result {
+        Ok(bytes_fixed) => u32::from_le_bytes(*bytes_fixed),
+        Err(_) => return Err(vox_importer_errors::Other("Failed reading VOX version".to_string())),
+    };
+    if vox_version != 150 && vox_version != 200 {
+        return Err(vox_importer_errors::Other(format!("Unsupported VOX version: {}", vox_version)));
+    }
+    vox.vox_version = vox_version as usize;
     //while find_x_in_y(x)
     //__________________S
     // 0001020304    05060708090A0B0C0D0E0F 10 11 12 13            14151617 18191A1B1C1D1E1F 20-2324-2728-2B

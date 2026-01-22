@@ -44,6 +44,50 @@ use std::sync::mpsc::{channel, Sender, Receiver};
      direct
  }
 
+ fn options_file_path() -> std::path::PathBuf {
+     #[cfg(target_os = "windows")]
+     {
+         let base = std::env::var_os("APPDATA")
+             .map(std::path::PathBuf::from)
+             .unwrap_or_else(|| std::path::PathBuf::from("."));
+         return base.join("VoxelOptimizer").join("options.txt");
+     }
+     #[cfg(target_os = "macos")]
+     {
+         let home = std::env::var_os("HOME")
+             .map(std::path::PathBuf::from)
+             .unwrap_or_else(|| std::path::PathBuf::from("."));
+         return home
+             .join("Library")
+             .join("Application Support")
+             .join("VoxelOptimizer")
+             .join("options.txt");
+     }
+     #[cfg(all(unix, not(target_os = "macos")))]
+     {
+         let home = std::env::var_os("HOME")
+             .map(std::path::PathBuf::from)
+             .unwrap_or_else(|| std::path::PathBuf::from("."));
+         return home
+             .join(".config")
+             .join("VoxelOptimizer")
+             .join("options.txt");
+     }
+ }
+
+ fn ensure_options_file_exists() -> std::path::PathBuf {
+     let options_path = options_file_path();
+     if options_path.exists() {
+         return options_path;
+     }
+     if let Some(parent) = options_path.parent() {
+         let _ = std::fs::create_dir_all(parent);
+     }
+     let default_path = find_resource_path("src/options.txt");
+     let _ = std::fs::copy(default_path, &options_path);
+     options_path
+ }
+
 use eframe::egui::FontId;
 use eframe::egui::RichText;
 use crate::vox_importer::{is_valid_ply,is_vox};
@@ -498,7 +542,7 @@ impl MyApp {
 impl Default for MyApp{
     fn default() -> Self {
             let (sx, rx): (Sender<String>, Receiver<String>) = channel();
-            let c = read(find_resource_path("src/options.txt")).unwrap();
+            let c = read(ensure_options_file_exists()).unwrap();
             //Initialize default vars
             let mut picked_path = None;
             let mut monochrome = true;
@@ -634,9 +678,9 @@ impl Default for MyApp{
 use std::io::Write;
 
 fn change_options(option: &str, value: &str){
-    let filename = "src/options.txt";
-    let c = read(filename).unwrap();
-    let mut file = std::fs::File::create(format!("src/options.txt")).unwrap();
+    let filename = ensure_options_file_exists();
+    let c = read(&filename).unwrap();
+    let mut file = std::fs::File::create(&filename).unwrap();
     let mut found = false;
     for line_result in c.lines(){
         let mut line = line_result.expect("Failed Reading the file src/options.txt");

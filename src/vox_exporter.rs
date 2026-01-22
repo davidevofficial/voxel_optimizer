@@ -1438,9 +1438,9 @@ impl Obj{
                     //unity
                     (true, false) => {
                         let result = writeln!(&mut obj_file,  "vn {} {} {}",
-                        -&self.vertices_normals[v].nx,
-                        -&self.vertices_normals[v].nz,
-                        -&self.vertices_normals[v].ny);
+                        &self.vertices_normals[v].nx,
+                        &self.vertices_normals[v].nz,
+                        &self.vertices_normals[v].ny);
                         if result.is_err(){
                          panic!("Error while writing vertices normals: Error code 501");
                         }
@@ -1459,9 +1459,9 @@ impl Obj{
                     //Unreal engine
                     (false, false) => {
                         let result = writeln!(&mut obj_file,  "vn {} {} {}",
-                        -&self.vertices_normals[v].nz,
-                        -&self.vertices_normals[v].ny,
-                        -&self.vertices_normals[v].nx);
+                        &self.vertices_normals[v].nz,
+                        &self.vertices_normals[v].ny,
+                        &self.vertices_normals[v].nx);
                         if result.is_err(){
                          panic!("Error while writing vertices normals: Error code 501");
                         }

@@ -19,6 +19,31 @@ use std::thread;
 //use std::time::Duration;
 use std::sync::mpsc::{channel, Sender, Receiver};
 
+ fn bundled_resource_path(file_name: &str) -> Option<std::path::PathBuf> {
+     let exe = std::env::current_exe().ok()?;
+     let resources_dir = exe.parent()?.parent()?.join("Resources");
+     let candidate = resources_dir.join(file_name);
+     if candidate.exists() {
+         return Some(candidate);
+     }
+     None
+ }
+
+ fn find_resource_path(file_name: &str) -> std::path::PathBuf {
+     if let Some(p) = bundled_resource_path(file_name) {
+         return p;
+     }
+     let direct = std::path::PathBuf::from(file_name);
+     if direct.exists() {
+         return direct;
+     }
+     let candidate = std::path::PathBuf::from("src").join(file_name);
+     if candidate.exists() {
+         return candidate;
+     }
+     direct
+ }
+
 use eframe::egui::FontId;
 use eframe::egui::RichText;
 use crate::vox_importer::{is_valid_ply,is_vox};
@@ -70,7 +95,7 @@ fn main() -> Result<(), eframe::Error> {
         └── options.txt
 
     ------------------------------------------------------------------------------------------------------------------    ");
-    let bytes_png = read("src/icon.png").unwrap();
+    let bytes_png = read(find_resource_path("src/icon.png")).unwrap();
     let icon: eframe::IconData = eframe::IconData::try_from_png_bytes(&bytes_png).unwrap();
     /*let icon: eframe::IconData = eframe::IconData::from(IconData {
         rgba: vec![255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
@@ -452,7 +477,7 @@ impl eframe::App for MyApp {
         }
         //ctx.request_repaint()
     }
-    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>){panic!()}
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>){}
 }
 impl MyApp {
     ///Receives the message from rx and
@@ -473,7 +498,7 @@ impl MyApp {
 impl Default for MyApp{
     fn default() -> Self {
             let (sx, rx): (Sender<String>, Receiver<String>) = channel();
-            let c = read("src/options.txt").unwrap();
+            let c = read(find_resource_path("src/options.txt")).unwrap();
             //Initialize default vars
             let mut picked_path = None;
             let mut monochrome = true;

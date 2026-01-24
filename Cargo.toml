@@ -5,6 +5,12 @@ edition = "2021"
 authors = ["Davidevofficial <davidevufficial@gmail.com>"]
 description = "A simple tool to optimize magicavoxel models"
 
+[package.metadata.bundle]
+name = "VoxelOptimizer"
+identifier = "com.davidevofficial.voxeloptimizer"
+icon = ["src/icon.icns"]
+resources = ["src/options.txt", "src/icon.png"]
+
 [[bin]]
 name="VoxelOptimizer"
 path = "src/main.rs"
